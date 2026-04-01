@@ -6,34 +6,30 @@ interface BarkPushOptions {
   userId: string
   title: string
   body: string
-  sound?: string
 }
 
-async function getBarkUrl(userId: string): Promise<string> {
+async function getBarkUrl(userId: string): Promise<string | null> {
   const result = await db
     .select({ barkUrl: users.barkUrl })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
 
-  if (result[0]?.barkUrl) {
-    return result[0].barkUrl
-  }
-  return process.env.BARK_URL || 'https://api.day.app'
+  return result[0]?.barkUrl || null
 }
 
 export async function sendBarkPush(options: BarkPushOptions): Promise<boolean> {
   const barkUrl = await getBarkUrl(options.userId)
-  const url = `${barkUrl}/push`
+  if (!barkUrl) return false
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`${barkUrl}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: options.title,
         body: options.body,
-        sound: options.sound || 'alarm',
+        sound: 'alarm',
       }),
     })
 
