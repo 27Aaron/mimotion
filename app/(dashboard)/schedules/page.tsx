@@ -1,12 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Clock, Play, Pause } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Clock,
+  Play,
+  Pause,
+  CalendarClock,
+  Activity,
+  Zap,
+  Timer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -23,14 +39,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 interface Schedule {
   id: string;
@@ -41,6 +49,21 @@ interface Schedule {
   maxStep: number;
   isActive: boolean;
   lastRunAt: string | null;
+}
+
+function cronToHuman(cron: string): string {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length < 5) return cron;
+  const [, hour, , , dow] = parts;
+  const hourStr = hour !== "*" ? `${hour}:00` : "每小时";
+  const dowStr =
+    dow === "*"
+      ? "每天"
+      : dow === "1-5"
+        ? "工作日"
+        : `周${["日", "一", "二", "三", "四", "五", "六"][parseInt(dow) % 7]}`;
+  if (hour === "*") return `${dowStr}，每小时执行`;
+  return `${dowStr} ${hourStr}`;
 }
 
 export default function SchedulesPage() {
@@ -116,13 +139,46 @@ export default function SchedulesPage() {
     fetchSchedules();
   }
 
+  const activeCount = schedules.filter((s) => s.isActive).length;
+  const totalMin = schedules.reduce((sum, s) => sum + s.minStep, 0);
+  const totalMax = schedules.reduce((sum, s) => sum + s.maxStep, 0);
+
+  const stats = [
+    {
+      title: "任务总数",
+      value: schedules.length,
+      icon: CalendarClock,
+      detail: "已创建的刷步计划",
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+    {
+      title: "运行中",
+      value: activeCount,
+      icon: Activity,
+      detail: activeCount > 0 ? "任务正常执行中" : "暂无活跃任务",
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      title: "日步数合计",
+      value: totalMin > 0 ? `${totalMin.toLocaleString()}-${totalMax.toLocaleString()}` : "0",
+      icon: Zap,
+      detail: "所有任务的步数范围",
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+    },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">定时任务</h1>
-          <p className="mt-1 text-muted-foreground">管理自动刷步计划</p>
+          <p className="mt-1 text-muted-foreground">
+            创建自动刷步计划，设置时间和步数范围
+          </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
@@ -220,74 +276,150 @@ export default function SchedulesPage() {
         </Dialog>
       </div>
 
-      {/* Content */}
+      {/* Stats overview */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {stats.map((stat) => (
+          <Card key={stat.title} className="relative overflow-hidden">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.bg}`}
+                >
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold font-mono tracking-tight">
+                {stat.value}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {stat.detail}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Task list */}
       {schedules.length === 0 ? (
-        <Card>
-          <CardContent className="flex h-40 flex-col items-center justify-center text-muted-foreground">
-            <Clock className="mb-3 h-10 w-10 opacity-30" />
-            <p>暂无任务，点击上方按钮创建</p>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Timer className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">创建你的第一个定时任务</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                先添加小米账号，然后创建定时任务自动刷步
+              </p>
+            </div>
+            <Separator className="max-w-[240px]" />
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <span>选择账号</span>
+              <span>设定时间</span>
+              <span>配置步数</span>
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>账号</TableHead>
-                <TableHead>Cron</TableHead>
-                <TableHead>步数范围</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schedules.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-medium">
-                    {s.accountNickname}
-                  </TableCell>
-                  <TableCell>
-                    <code className="rounded bg-muted px-1.5 py-0.5 text-sm text-muted-foreground">
-                      {s.cronExpression}
-                    </code>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => handleToggle(s.id, s.isActive)}
-                    >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {schedules.map((s) => (
+            <Card
+              key={s.id}
+              className={`group relative overflow-hidden ${
+                !s.isActive ? "opacity-60" : ""
+              }`}
+            >
+              {/* Active indicator bar */}
+              {s.isActive && (
+                <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500" />
+              )}
+
+              <CardContent className="p-5 pl-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{s.accountNickname}</p>
                       {s.isActive ? (
-                        <>
-                          <Pause className="h-3.5 w-3.5" />
-                          <Badge variant="default">运行中</Badge>
-                        </>
+                        <Badge variant="default" className="text-[10px]">
+                          运行中
+                        </Badge>
                       ) : (
-                        <>
-                          <Play className="h-3.5 w-3.5" />
-                          <Badge variant="secondary">已停用</Badge>
-                        </>
+                        <Badge variant="secondary" className="text-[10px]">
+                          已暂停
+                        </Badge>
                       )}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-right">
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>{cronToHuman(s.cronExpression)}</span>
+                      <span className="text-muted-foreground/40">|</span>
+                      <code className="font-mono text-xs">
+                        {s.cronExpression}
+                      </code>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleToggle(s.id, s.isActive)}
+                    >
+                      {s.isActive ? (
+                        <Pause className="h-4 w-4 text-amber-500" />
+                      ) : (
+                        <Play className="h-4 w-4 text-emerald-500" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
                       onClick={() => handleDelete(s.id)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      步数范围
+                    </p>
+                    <p className="mt-0.5 font-mono text-sm font-medium">
+                      {s.minStep.toLocaleString()} -{" "}
+                      {s.maxStep.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      上次执行
+                    </p>
+                    <p className="mt-0.5 font-mono text-sm">
+                      {s.lastRunAt
+                        ? new Date(s.lastRunAt).toLocaleString("zh-CN", {
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
