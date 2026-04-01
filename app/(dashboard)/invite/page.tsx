@@ -175,13 +175,13 @@ export default function InvitePage() {
           <Card
             key={stat.title}
             onClick={() => setFilter(stat.filter)}
-            className={`relative cursor-pointer transition-all ${
+            className={`stat-card relative cursor-pointer transition-all ${
               filter === stat.filter
                 ? "ring-2 ring-primary/40"
                 : "hover:ring-1 hover:ring-border"
             }`}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="stat-label">
                   {stat.title}
@@ -189,15 +189,15 @@ export default function InvitePage() {
                 <div
                   className={`stat-icon-box ${stat.bg}`}
                 >
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  <stat.icon className={stat.color} />
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 pb-1">
               <div className="stat-value">
                 {stat.value}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {stat.detail}
               </p>
             </CardContent>

@@ -269,14 +269,25 @@
   }
 }
 
+/* Compact stat card (for stats-grid cards) */
+.stat-card {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  gap: 0.25rem;
+}
+
 /* Stat card icon box (add bg color class separately) */
 .stat-icon-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.667rem;
+  height: 2.667rem;
   border-radius: 0.5rem;
+}
+.stat-icon-box > svg {
+  width: 1.333rem;
+  height: 1.333rem;
 }
 
 /* Section header icon */
@@ -334,7 +345,7 @@
 
 /* Stat card value */
 .stat-value {
-  font-size: 1.875rem;
+  font-size: 1.5rem;
   font-weight: 700;
   font-family: var(--font-mono);
   letter-spacing: -0.025em;
