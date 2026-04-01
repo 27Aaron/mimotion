@@ -107,8 +107,8 @@ Schema 定义在 `lib/db/schema.ts`，使用 Drizzle ORM。修改后运行 `npm 
 - `ENCRYPTION_KEY` — 64 字符 hex，用于加密 Xiaomi token
 - `JWT_SECRET` — 64 字符 hex，用于 JWT 签名
 - `BARK_URL` — Bark 推送地址
-- `TELEGRAM_BOT_TOKEN` — Telegram Bot Token（可选）
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — 初始管理员（默认 `admin` / `password`）
+- Telegram 推送无需全局配置，用户在设置页自行填写 Bot Token + Chat ID
 
 ## Key Conventions
 

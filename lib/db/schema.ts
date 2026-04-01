@@ -6,6 +6,7 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   isAdmin: integer('is_admin', { mode: 'boolean' }).default(false),
   barkUrl: text('bark_url'),
+  telegramBotToken: text('telegram_bot_token'),
   telegramChatId: text('telegram_chat_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
