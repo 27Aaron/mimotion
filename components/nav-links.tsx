@@ -63,29 +63,33 @@ export function NavLinks({
 
   return (
     <>
-      {items.map((item) => {
+      {items.map((item, i) => {
         const isActive = pathname === item.href;
         const Icon = iconMap[item.icon];
+        const isAdminItem = item.icon === "Ticket" || item.icon === "Users";
+        const showDivider = isAdminItem && (i === 0 || !["Ticket", "Users"].includes(items[i - 1].icon));
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={isActive ? "page" : undefined}
-            className={`nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-              isActive
-                ? "bg-primary/10 text-primary"
-                : "text-sidebar-foreground/60 hover:bg-primary/8 hover:text-primary"
-            }`}
-          >
-            {Icon && (
-              <Icon
-                className={`h-4 w-4 transition-colors ${
-                  isActive ? "text-primary" : "group-hover:text-primary"
-                }`}
-              />
-            )}
-            {item.label}
-          </Link>
+          <span key={item.href}>
+            {showDivider && <div className="fade-divider my-1.5" />}
+            <Link
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-sidebar-foreground/60 hover:bg-primary/8 hover:text-primary"
+              }`}
+            >
+              {Icon && (
+                <Icon
+                  className={`h-4 w-4 transition-colors ${
+                    isActive ? "text-primary" : "group-hover:text-primary"
+                  }`}
+                />
+              )}
+              {item.label}
+            </Link>
+          </span>
         );
       })}
     </>

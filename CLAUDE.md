@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Xiaomi/Zepp 自动刷步服务。用户绑定小米账号后，通过 cron 定时随机写入步数，支持推送通知（Bark 等）。
+Xiaomi/Zepp 自动刷步服务。用户绑定小米账号后，通过 cron 定时随机写入步数，支持推送通知（Bark、Telegram）。
 
 ## Tech Stack
 
@@ -43,6 +43,7 @@ app/
     xiaomi/                # 小米账号 CRUD
     schedules/             # 定时任务 CRUD
     user/settings/         # 用户设置
+    user/test-push/        # 推送测试 (Bark/Telegram)
     invite/                # 邀请码 (admin)
     admin/users/           # 用户管理 CRUD (admin)
     cron/                  # 启动调度器
@@ -51,6 +52,7 @@ app/
 components/
   theme-provider.tsx       # next-themes 封装
   theme-toggle.tsx         # 亮/暗模式切换按钮
+  nav-links.tsx            # 侧边栏导航 (client, usePathname 选中态)
   ui/                      # shadcn/ui 组件 (card, table, dialog, button 等)
 lib/
   db/schema.ts             # Drizzle schema (5 张表)
@@ -82,10 +84,14 @@ scripts/
   - Logo 阴影：`shadow-lg shadow-primary/25`
   - 卡片 hover 绿色边框光：CSS `.card-glow` 类（渐变 border + mask）
   - 导航项 hover：`hover:bg-primary/8 hover:text-primary`，active 左侧绿色指示条
+  - 侧边栏 admin 分隔：邀请码/用户管理前插入 `fade-divider`，视觉分隔管理项
 - 统一页面结构：页头（标题+描述）→ 统计概览卡片 → 内容卡片列表
+- 设置页：行对齐 2×2 grid（Row1: 用户名↔Bark，Row2: 密码↔Telegram），section header 带图标框+延伸线
+- 空态引导：编号圆圈步骤指示（`bg-primary/10` + 数字），统一风格贯穿小米账号/控制台/定时任务页
 - 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区（含退出按钮），与右侧顶栏 `h-12` 像素对齐
 - 用户系统使用 **用户名**（非邮箱）注册和登录，邮箱/手机号仅用于绑定小米账号
-- 登录页：左右分栏（品牌介绍 Footprints logo + 切换式登录/注册表单）
+- 登录页：左右分栏（品牌介绍 Footprints logo + 切换式登录/注册表单），支持 URL `?code=XXX` 自动填入邀请码
+- 邀请码：8 位十六进制短码（`crypto.randomBytes`），复制时生成完整注册 URL
 - 所有内页（小米账号/定时任务/邀请码）使用卡片网格布局替代纯表格
 - 所有页面支持 dark/light 主题切换，顶栏右侧 ThemeToggle
 - CSS 自定义效果类（定义在 `globals.css`）：

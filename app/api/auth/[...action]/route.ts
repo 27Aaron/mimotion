@@ -141,7 +141,7 @@ async function handleRegister(request: NextRequest) {
   // 标记邀请码已使用
   await db
     .update(inviteCodes)
-    .set({ usedBy: userId, usedAt: now })
+    .set({ usedBy: userId })
     .where(eq(inviteCodes.code, inviteCode))
 
   const token = await createToken({

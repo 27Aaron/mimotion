@@ -16,7 +16,6 @@ export const inviteCodes = sqliteTable('invite_codes', {
   code: text('code').primaryKey(),
   createdBy: text('created_by').notNull().references(() => users.id),
   usedBy: text('used_by').references(() => users.id),
-  usedAt: integer('used_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
 
