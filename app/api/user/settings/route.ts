@@ -16,6 +16,7 @@ export async function GET() {
       username: users.username,
       isAdmin: users.isAdmin,
       barkUrl: users.barkUrl,
+      telegramChatId: users.telegramChatId,
     })
     .from(users)
     .where(eq(users.id, current.userId))
@@ -31,7 +32,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { username, password, barkUrl, currentPassword } = body
+  const { username, password, barkUrl, telegramChatId, currentPassword } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
@@ -71,6 +72,10 @@ export async function PUT(request: NextRequest) {
 
   if (barkUrl !== undefined) {
     updates.barkUrl = barkUrl || null
+  }
+
+  if (telegramChatId !== undefined) {
+    updates.telegramChatId = telegramChatId || null
   }
 
   await db.update(users).set(updates as typeof users.$inferInsert).where(eq(users.id, current.userId))

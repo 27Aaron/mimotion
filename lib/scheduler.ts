@@ -4,6 +4,7 @@ import { schedules, xiaomiAccounts, runLogs } from './db/schema'
 import { eq } from 'drizzle-orm'
 import { setSteps, decryptTokenData, generateRandomStep } from './xiaomi/client'
 import { sendBarkPush } from './bark'
+import { sendTelegramPush } from './telegram'
 import { v4 as uuid } from 'uuid'
 
 export function startScheduler() {
@@ -93,17 +94,11 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
       .where(eq(schedules.id, schedule.id))
 
     if (result.success) {
-      await sendBarkPush({
-        userId: schedule.userId,
-        title: '刷步数成功',
-        body: `已设置步数: ${steps}`,
-      })
+      const pushOpts = { userId: schedule.userId, title: '刷步数成功', body: `已设置步数: ${steps}` }
+      await Promise.all([sendBarkPush(pushOpts), sendTelegramPush(pushOpts)])
     } else {
-      await sendBarkPush({
-        userId: schedule.userId,
-        title: '刷步数失败',
-        body: result.error || '未知错误',
-      })
+      const pushOpts = { userId: schedule.userId, title: '刷步数失败', body: result.error || '未知错误' }
+      await Promise.all([sendBarkPush(pushOpts), sendTelegramPush(pushOpts)])
     }
   } catch (error) {
     console.error(`[Scheduler] Error executing schedule ${schedule.id}:`, error)

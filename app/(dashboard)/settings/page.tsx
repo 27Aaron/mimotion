@@ -7,9 +7,9 @@ import {
   Shield,
   Key,
   Loader2,
-  Globe,
   Smartphone,
   MessageSquare,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,17 +27,19 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [barkUrl, setBarkUrl] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
   const [currentUsername, setCurrentUsername] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/user/settings")
       .then((res) => res.json())
       .then((data) => {
-        if (data.user?.username) setCurrentUsername(data.user.username);
-        if (data.user?.barkUrl) setBarkUrl(data.user.barkUrl);
+        if (data.username) setCurrentUsername(data.username);
+        if (data.barkUrl) setBarkUrl(data.barkUrl);
+        if (data.telegramChatId) setTelegramChatId(data.telegramChatId);
       })
       .catch(() => {});
   }, []);
@@ -56,6 +58,7 @@ export default function SettingsPage() {
         password: newPassword || undefined,
         currentPassword: currentPassword || undefined,
         barkUrl: barkUrl || null,
+        telegramChatId: telegramChatId || null,
       }),
     });
 
@@ -219,11 +222,12 @@ export default function SettingsPage() {
                 <CardTitle className="text-base">通知渠道</CardTitle>
               </div>
               <CardDescription>
-                配置任务执行结果的推送方式
+                配置任务执行结果的推送方式，可同时启用多个渠道
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
+                {/* Bark */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
@@ -242,15 +246,25 @@ export default function SettingsPage() {
                     填入你的 Bark Key，任务执行后自动推送结果
                   </p>
                 </div>
-                <div className="flex items-center justify-center rounded-lg border border-dashed p-6">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      更多推送渠道
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground/60">
-                      Telegram、微信推送即将支持
-                    </p>
+
+                {/* Telegram */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label htmlFor="telegramChatId" className="text-xs">
+                      Telegram 推送
+                    </Label>
                   </div>
+                  <Input
+                    id="telegramChatId"
+                    type="text"
+                    value={telegramChatId}
+                    onChange={(e) => setTelegramChatId(e.target.value)}
+                    placeholder="Chat ID，如 123456789"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    向 Bot 发送 /start 获取 Chat ID，需管理员配置 Bot Token
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -266,6 +280,7 @@ export default function SettingsPage() {
               setCurrentPassword("");
               setNewPassword("");
               setBarkUrl("");
+              setTelegramChatId("");
               setMessage("");
               setError("");
             }}
