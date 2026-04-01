@@ -173,7 +173,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Recent activity */}
-      <div className="flex items-center gap-2">
+      <div className="-mt-3 flex items-center gap-2">
         <div className="section-icon">
           <Footprints className="h-3 w-3 text-primary" />
         </div>
