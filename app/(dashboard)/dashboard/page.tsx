@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { IconDeviceMobile, IconClockCheck, IconRun } from '@tabler/icons-react'
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
@@ -31,49 +32,64 @@ export default async function DashboardPage() {
     <div>
       <h1>控制台</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginTop: 20 }}>
-        <div style={{ border: '1px solid #ddd', padding: 20, borderRadius: 8 }}>
-          <h3>小米账号</h3>
-          <p style={{ fontSize: 32, margin: 0 }}>{accounts.length}</p>
+      <div className="stats-grid">
+        <div className="card card-stat">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <IconDeviceMobile size={18} stroke={1.5} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ margin: 0 }}>小米账号</h3>
+          </div>
+          <div className="stat-value">{accounts.length}</div>
         </div>
-        <div style={{ border: '1px solid #ddd', padding: 20, borderRadius: 8 }}>
-          <h3>活跃任务</h3>
-          <p style={{ fontSize: 32, margin: 0 }}>
+        <div className="card card-stat">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <IconClockCheck size={18} stroke={1.5} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ margin: 0 }}>活跃任务</h3>
+          </div>
+          <div className="stat-value">
             {activeSchedules.filter((s) => s.isActive).length}
-          </p>
+          </div>
         </div>
-        <div style={{ border: '1px solid #ddd', padding: 20, borderRadius: 8 }}>
-          <h3>今日执行</h3>
-          <p style={{ fontSize: 32, margin: 0 }}>{todayCount}</p>
+        <div className="card card-stat">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <IconRun size={18} stroke={1.5} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ margin: 0 }}>今日执行</h3>
+          </div>
+          <div className="stat-value">{todayCount}</div>
         </div>
       </div>
 
-      <h2 style={{ marginTop: 30 }}>最近执行记录</h2>
+      <div className="section-title">最近执行记录</div>
       {recentLogs.length === 0 ? (
-        <p>暂无执行记录</p>
+        <div className="empty-state">暂无执行记录</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-              <th>时间</th>
-              <th>步数</th>
-              <th>状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentLogs.map((log) => (
-              <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{log.executedAt ? new Date(log.executedAt).toLocaleString() : '-'}</td>
-                <td>{log.stepWritten || '-'}</td>
-                <td>
-                  <span style={{ color: log.status === 'success' ? 'green' : 'red' }}>
-                    {log.status === 'success' ? '成功' : '失败'}
-                  </span>
-                </td>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>步数</th>
+                <th>状态</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recentLogs.map((log) => (
+                <tr key={log.id}>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem' }}>
+                    {log.executedAt ? new Date(log.executedAt).toLocaleString() : '-'}
+                  </td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    {log.stepWritten || '-'}
+                  </td>
+                  <td>
+                    <span className={`badge ${log.status === 'success' ? 'badge-success' : 'badge-danger'}`}>
+                      {log.status === 'success' ? '成功' : '失败'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )

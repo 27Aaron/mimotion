@@ -9,11 +9,13 @@ export default function SettingsPage() {
   const [barkUrl, setBarkUrl] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setMessage('')
     setError('')
+    setLoading(true)
 
     const res = await fetch('/api/user/settings', {
       method: 'PUT',
@@ -27,6 +29,7 @@ export default function SettingsPage() {
     })
 
     const data = await res.json()
+    setLoading(false)
 
     if (res.ok) {
       setMessage('设置已保存')
@@ -39,55 +42,60 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1>设置</h1>
+      <div className="page-header">
+        <h1>设置</h1>
+      </div>
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: 500 }}>
-        <div style={{ marginBottom: 16 }}>
-          <label>新邮箱</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
+      <form onSubmit={handleSubmit} className="settings-form">
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h2 style={{ marginBottom: 20 }}>账号信息</h2>
+          <div>
+            <label>新邮箱</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="留空则不修改"
+            />
+          </div>
+          <div>
+            <label>当前密码（修改密码时必填）</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="输入当前密码"
+            />
+          </div>
+          <div>
+            <label>新密码</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="输入新密码"
+            />
+          </div>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label>当前密码（修改密码时必填）</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h2 style={{ marginBottom: 20 }}>通知设置</h2>
+          <div>
+            <label>Bark 推送 URL</label>
+            <input
+              type="url"
+              value={barkUrl}
+              onChange={(e) => setBarkUrl(e.target.value)}
+              placeholder="https://api.day.app（留空使用默认）"
+            />
+          </div>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label>新密码</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </div>
+        {error && <div className="msg-error" style={{ marginBottom: 16 }}>{error}</div>}
+        {message && <div className="msg-success" style={{ marginBottom: 16 }}>{message}</div>}
 
-        <div style={{ marginBottom: 16 }}>
-          <label>Bark URL（留空使用默认）</label>
-          <input
-            type="url"
-            value={barkUrl}
-            onChange={(e) => setBarkUrl(e.target.value)}
-            placeholder="https://api.day.app"
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </div>
-
-        {error && <div style={{ color: 'red', marginBottom: 16 }}>{error}</div>}
-        {message && <div style={{ color: 'green', marginBottom: 16 }}>{message}</div>}
-
-        <button type="submit" style={{ padding: '8px 24px' }}>
-          保存
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? '保存中...' : '保存设置'}
         </button>
       </form>
     </div>

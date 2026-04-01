@@ -1,6 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import {
+  IconPlus,
+  IconTrash,
+  IconClock,
+  IconPlayerPause,
+  IconPlayerPlay,
+} from '@tabler/icons-react'
 
 interface Schedule {
   id: string
@@ -24,6 +31,7 @@ export default function SchedulesPage() {
     maxStep: 1500,
   })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchSchedules()
@@ -32,23 +40,18 @@ export default function SchedulesPage() {
 
   async function fetchSchedules() {
     const res = await fetch('/api/schedules')
-    if (res.ok) {
-      const data = await res.json()
-      setSchedules(data)
-    }
+    if (res.ok) setSchedules(await res.json())
   }
 
   async function fetchAccounts() {
     const res = await fetch('/api/xiaomi')
-    if (res.ok) {
-      const data = await res.json()
-      setAccounts(data)
-    }
+    if (res.ok) setAccounts(await res.json())
   }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setLoading(true)
 
     const res = await fetch('/api/schedules', {
       method: 'POST',
@@ -57,6 +60,7 @@ export default function SchedulesPage() {
     })
 
     const data = await res.json()
+    setLoading(false)
 
     if (res.ok) {
       setShowAdd(false)
@@ -68,7 +72,7 @@ export default function SchedulesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确定删除？')) return
+    if (!confirm('确定删除该任务？')) return
     await fetch(`/api/schedules?id=${id}`, { method: 'DELETE' })
     fetchSchedules()
   }
@@ -84,56 +88,43 @@ export default function SchedulesPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header">
         <h1>定时任务</h1>
-        <button onClick={() => setShowAdd(true)} style={{ padding: '8px 16px' }}>
-          创建任务
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+          <IconPlus size={16} stroke={2} /> 创建任务
         </button>
       </div>
 
       {showAdd && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ background: 'white', padding: 24, borderRadius: 8, width: 450 }}>
-            <h2>创建定时任务</h2>
-            <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-              Cron 表达式示例: 0 9 * * * = 每天9点, 0 12 * * * = 每天12点
-            </p>
+        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginBottom: 20 }}>创建定时任务</h2>
             <form onSubmit={handleAdd}>
-              <div style={{ marginBottom: 16 }}>
+              <div>
                 <label>小米账号</label>
                 <select
                   value={form.xiaomiAccountId}
                   onChange={(e) => setForm({ ...form, xiaomiAccountId: e.target.value })}
                   required
-                  style={{ width: '100%', padding: 8, marginTop: 4 }}
                 >
                   <option value="">选择账号</option>
                   {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.nickname}
-                    </option>
+                    <option key={acc.id} value={acc.id}>{acc.nickname}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ marginBottom: 16 }}>
+              <div>
                 <label>Cron 表达式</label>
                 <input
                   type="text"
                   value={form.cronExpression}
                   onChange={(e) => setForm({ ...form, cronExpression: e.target.value })}
-                  required
                   placeholder="0 9 * * *"
-                  style={{ width: '100%', padding: 8, marginTop: 4 }}
+                  required
                 />
+                <div className="cron-hint">
+                  例: 0 9 * * * = 每天9点 &nbsp;|&nbsp; 0 12 * * * = 每天12点
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1 }}>
@@ -143,7 +134,6 @@ export default function SchedulesPage() {
                     value={form.minStep}
                     onChange={(e) => setForm({ ...form, minStep: parseInt(e.target.value) })}
                     required
-                    style={{ width: '100%', padding: 8, marginTop: 4 }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -153,16 +143,15 @@ export default function SchedulesPage() {
                     value={form.maxStep}
                     onChange={(e) => setForm({ ...form, maxStep: parseInt(e.target.value) })}
                     required
-                    style={{ width: '100%', padding: 8, marginTop: 4 }}
                   />
                 </div>
               </div>
-              {error && <div style={{ color: 'red', margin: '16px 0' }}>{error}</div>}
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button type="submit" style={{ padding: '8px 16px' }}>
-                  创建
+              {error && <div className="msg-error" style={{ marginTop: 16 }}>{error}</div>}
+              <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? '创建中...' : '创建'}
                 </button>
-                <button type="button" onClick={() => setShowAdd(false)} style={{ padding: '8px 16px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>
                   取消
                 </button>
               </div>
@@ -172,40 +161,54 @@ export default function SchedulesPage() {
       )}
 
       {schedules.length === 0 ? (
-        <p style={{ marginTop: 20 }}>暂无任务</p>
+        <div className="empty-state">
+          <IconClock size={40} stroke={1} style={{ color: 'var(--text-tertiary)', marginBottom: 12 }} />
+          <div>暂无任务，点击上方按钮创建</div>
+        </div>
       ) : (
-        <table style={{ width: '100%', marginTop: 20, borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-              <th>账号</th>
-              <th>时间</th>
-              <th>步数范围</th>
-              <th>状态</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {schedules.map((s) => (
-              <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{s.accountNickname}</td>
-                <td>{s.cronExpression}</td>
-                <td>
-                  {s.minStep} - {s.maxStep}
-                </td>
-                <td>
-                  <button onClick={() => handleToggle(s.id, s.isActive)}>
-                    {s.isActive ? '停用' : '启用'}
-                  </button>
-                </td>
-                <td>
-                  <button onClick={() => handleDelete(s.id)} style={{ color: 'red' }}>
-                    删除
-                  </button>
-                </td>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>账号</th>
+                <th>Cron</th>
+                <th>步数范围</th>
+                <th>状态</th>
+                <th>操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {schedules.map((s) => (
+                <tr key={s.id}>
+                  <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{s.accountNickname}</td>
+                  <td>
+                    <code style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{s.cronExpression}</code>
+                  </td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem' }}>
+                    {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
+                  </td>
+                  <td>
+                    <button
+                      className={`btn btn-sm ${s.isActive ? 'badge-success' : 'badge-neutral'}`}
+                      style={{ border: 'none', cursor: 'pointer', font: 'inherit' }}
+                      onClick={() => handleToggle(s.id, s.isActive)}
+                    >
+                      {s.isActive
+                        ? <><IconPlayerPause size={12} stroke={1.5} /> 运行中</>
+                        : <><IconPlayerPlay size={12} stroke={1.5} /> 已停用</>
+                      }
+                    </button>
+                  </td>
+                  <td>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
+                      <IconTrash size={14} stroke={1.5} /> 删除
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
