@@ -224,7 +224,7 @@
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 60%;
+  height: calc(60% - 6px);
   border-radius: 0 3px 3px 0;
   background: var(--primary);
   box-shadow: 0 0 8px oklch(from var(--primary) l c h / 40%);
