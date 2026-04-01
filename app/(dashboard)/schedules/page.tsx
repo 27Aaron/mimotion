@@ -318,9 +318,24 @@ export default function SchedulesPage() {
             </div>
             <div className="fade-divider max-w-[240px]" />
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <span>选择账号</span>
-              <span>设定时间</span>
-              <span>配置步数</span>
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  1
+                </span>
+                选择账号
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  2
+                </span>
+                设定时间
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  3
+                </span>
+                配置步数
+              </div>
             </div>
           </CardContent>
         </Card>
