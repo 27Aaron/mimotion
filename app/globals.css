@@ -255,3 +255,63 @@
 .card-glow:hover::before {
   opacity: 1;
 }
+
+/* Stats grid: 3-column layout with section spacing */
+.stats-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Stat card icon box (add bg color class separately) */
+.stat-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+}
+
+/* Section header icon */
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+  background: oklch(from var(--primary) l c h / 10%);
+}
+
+/* Empty state icon circle */
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background: oklch(from var(--primary) l c h / 10%);
+}
+
+/* Step indicator circle */
+.step-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: oklch(from var(--primary) l c h / 10%);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+}

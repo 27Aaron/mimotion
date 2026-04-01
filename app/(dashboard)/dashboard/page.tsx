@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats grid */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="stats-grid">
         {stats.map((stat) => (
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
                   {stat.title}
                 </CardTitle>
                 <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.bg}`}
+                  className={`stat-icon-box ${stat.bg}`}
                 >
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
       {accounts.length === 0 && (
         <Card className="mb-3 border-dashed">
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <div className="empty-icon">
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -150,19 +150,19 @@ export default async function DashboardPage() {
             <div className="fade-divider max-w-[200px]" />
             <div className="flex gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                <span className="step-circle">
                   1
                 </span>
                 添加账号
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                <span className="step-circle">
                   2
                 </span>
                 创建任务
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                <span className="step-circle">
                   3
                 </span>
                 自动刷步
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
 
       {/* Recent activity */}
       <div className="flex items-center gap-2">
-        <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+        <div className="section-icon">
           <Footprints className="h-3 w-3 text-primary" />
         </div>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
         {recentLogs.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <div className="empty-icon">
                 <Footprints className="h-5 w-5 text-primary" />
               </div>
               <div>

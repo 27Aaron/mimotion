@@ -158,7 +158,7 @@ export default function SettingsPage() {
         {/* Section headers */}
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+            <div className="section-icon">
               <Shield className="h-3 w-3 text-primary" />
             </div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -167,7 +167,7 @@ export default function SettingsPage() {
             <div className="ml-2 h-px flex-1 bg-border" />
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+            <div className="section-icon">
               <Bell className="h-3 w-3 text-primary" />
             </div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
