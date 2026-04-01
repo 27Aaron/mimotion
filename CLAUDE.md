@@ -82,7 +82,8 @@ scripts/
   - 顶栏绿色高光条：`bg-gradient-to-r from-transparent via-primary/40 to-transparent`
   - 顶栏毛玻璃：`bg-background/80 backdrop-blur-sm`
   - Logo 阴影：`shadow-lg shadow-primary/25`
-  - 卡片 hover 绿色边框光：CSS `.card-glow` 类（渐变 border + mask）
+  - 卡片毛玻璃：`bg-card/80 backdrop-blur-md`（半透明 + 模糊，全局 Card 基础组件）
+  - 卡片 hover 绿色边框光：CSS `.card-glow` 类（渐变 border + mask，hover 时 30% primary 渐变）
   - 导航项 hover：`hover:bg-primary/8 hover:text-primary`，active 左侧绿色指示条
   - 侧边栏 admin 分隔：邀请码/用户管理前插入 `fade-divider`，视觉分隔管理项
 - 统一页面结构：页头（标题+描述）→ 统计概览卡片 → 内容卡片列表
@@ -97,7 +98,9 @@ scripts/
 - 所有页面支持 dark/light 主题切换，顶栏右侧 ThemeToggle
 - CSS 自定义效果类（定义在 `globals.css`）：
   - `.fade-divider` / `.fade-border-*` — 主色调渐隐分割线
-  - `.card-glow` — hover 时绿色渐变边框
+  - `.card-glow` — hover 时绿色渐变边框（30% primary）
+  - `.glass` — 毛玻璃容器（`bg-card/70 backdrop-blur-12px`）
+  - `.glass-subtle` — 轻量毛玻璃（`bg-card/50 backdrop-blur-8px`，用于 hover 覆层）
   - `.nav-item` — 导航项基础样式 + active 指示条
   - `.stats-grid` — 三列统计卡片网格（`mb-6 grid gap-4 sm:grid-cols-3`）
   - `.stat-card` — 紧凑统计卡片（`py-0.5 gap-1`，配合 stats-grid 使用）

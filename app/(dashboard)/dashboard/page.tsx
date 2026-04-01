@@ -92,7 +92,7 @@ export default async function DashboardPage() {
               : " · 暂无运行中的任务"}
           </p>
         </div>
-        <div className="hidden items-center gap-2 rounded-lg border bg-background px-3 py-2 sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border bg-background/80 backdrop-blur-sm px-3 py-2 sm:flex">
           <TrendingUp className="h-4 w-4 text-primary" />
           <div>
             <p className="text-xs text-muted-foreground">今日成功率</p>
