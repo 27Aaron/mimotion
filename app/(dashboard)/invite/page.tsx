@@ -117,9 +117,9 @@ export default function InvitePage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col">
       {/* Page header */}
-      <div className="flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">邀请码管理</h1>
           <p className="mt-1 text-muted-foreground">
@@ -134,7 +134,7 @@ export default function InvitePage() {
 
       {/* New code highlight */}
       {newCode && (
-        <div className="flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+        <div className="mb-6 flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Ticket className="h-5 w-5 text-primary" />
           </div>
@@ -165,7 +165,7 @@ export default function InvitePage() {
       )}
 
       {/* Stats overview — clickable filters */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
           <Card
             key={stat.title}
@@ -204,8 +204,8 @@ export default function InvitePage() {
       {filteredCodes.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <Ticket className="h-6 w-6 text-primary" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Ticket className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="font-medium">

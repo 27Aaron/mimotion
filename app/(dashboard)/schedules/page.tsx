@@ -170,9 +170,9 @@ export default function SchedulesPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col">
       {/* Page header */}
-      <div className="flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">定时任务</h1>
           <p className="mt-1 text-muted-foreground">
@@ -276,7 +276,7 @@ export default function SchedulesPage() {
       </div>
 
       {/* Stats overview */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
@@ -306,9 +306,9 @@ export default function SchedulesPage() {
       {/* Task list */}
       {schedules.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <Timer className="h-6 w-6 text-primary" />
+          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Timer className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="font-medium">创建你的第一个定时任务</p>
