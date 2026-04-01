@@ -1,19 +1,19 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, Clock, Play, Pause } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState, useEffect } from "react";
+import { Plus, Trash2, Clock, Play, Pause } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -30,91 +30,99 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table";
 
 interface Schedule {
-  id: string
-  xiaomiAccountId: string
-  accountNickname: string
-  cronExpression: string
-  minStep: number
-  maxStep: number
-  isActive: boolean
-  lastRunAt: string | null
+  id: string;
+  xiaomiAccountId: string;
+  accountNickname: string;
+  cronExpression: string;
+  minStep: number;
+  maxStep: number;
+  isActive: boolean;
+  lastRunAt: string | null;
 }
 
 export default function SchedulesPage() {
-  const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [open, setOpen] = useState(false)
-  const [accounts, setAccounts] = useState<{ id: string; nickname: string }[]>([])
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [open, setOpen] = useState(false);
+  const [accounts, setAccounts] = useState<{ id: string; nickname: string }[]>(
+    [],
+  );
   const [form, setForm] = useState({
-    xiaomiAccountId: '',
-    cronExpression: '0 9 * * *',
+    xiaomiAccountId: "",
+    cronExpression: "0 9 * * *",
     minStep: 1000,
     maxStep: 1500,
-  })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchSchedules()
-    fetchAccounts()
-  }, [])
+    fetchSchedules();
+    fetchAccounts();
+  }, []);
 
   async function fetchSchedules() {
-    const res = await fetch('/api/schedules')
-    if (res.ok) setSchedules(await res.json())
+    const res = await fetch("/api/schedules");
+    if (res.ok) setSchedules(await res.json());
   }
 
   async function fetchAccounts() {
-    const res = await fetch('/api/xiaomi')
-    if (res.ok) setAccounts(await res.json())
+    const res = await fetch("/api/xiaomi");
+    if (res.ok) setAccounts(await res.json());
   }
 
   async function handleAdd(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const res = await fetch('/api/schedules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/schedules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
-    })
+    });
 
-    const data = await res.json()
-    setLoading(false)
+    const data = await res.json();
+    setLoading(false);
 
     if (res.ok) {
-      setOpen(false)
-      setForm({ xiaomiAccountId: '', cronExpression: '0 9 * * *', minStep: 1000, maxStep: 1500 })
-      fetchSchedules()
+      setOpen(false);
+      setForm({
+        xiaomiAccountId: "",
+        cronExpression: "0 9 * * *",
+        minStep: 1000,
+        maxStep: 1500,
+      });
+      fetchSchedules();
     } else {
-      setError(data.error || '创建失败')
+      setError(data.error || "创建失败");
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确定删除该任务？')) return
-    await fetch(`/api/schedules?id=${id}`, { method: 'DELETE' })
-    fetchSchedules()
+    if (!confirm("确定删除该任务？")) return;
+    await fetch(`/api/schedules?id=${id}`, { method: "DELETE" });
+    fetchSchedules();
   }
 
   async function handleToggle(id: string, isActive: boolean) {
     await fetch(`/api/schedules?id=${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !isActive }),
-    })
-    fetchSchedules()
+    });
+    fetchSchedules();
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Page header */}
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">定时任务</h1>
-          <p className="text-muted-foreground">管理自动刷步计划</p>
+          <p className="mt-1 text-muted-foreground">管理自动刷步计划</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
@@ -135,7 +143,9 @@ export default function SchedulesPage() {
                   <Label>小米账号</Label>
                   <Select
                     value={form.xiaomiAccountId}
-                    onValueChange={(v) => setForm({ ...form, xiaomiAccountId: v ?? '' })}
+                    onValueChange={(v) =>
+                      setForm({ ...form, xiaomiAccountId: v ?? "" })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="选择账号" />
@@ -153,7 +163,9 @@ export default function SchedulesPage() {
                   <Label>Cron 表达式</Label>
                   <Input
                     value={form.cronExpression}
-                    onChange={(e) => setForm({ ...form, cronExpression: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, cronExpression: e.target.value })
+                    }
                     placeholder="0 9 * * *"
                     required
                   />
@@ -167,7 +179,9 @@ export default function SchedulesPage() {
                     <Input
                       type="number"
                       value={form.minStep}
-                      onChange={(e) => setForm({ ...form, minStep: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setForm({ ...form, minStep: parseInt(e.target.value) })
+                      }
                       required
                     />
                   </div>
@@ -176,7 +190,9 @@ export default function SchedulesPage() {
                     <Input
                       type="number"
                       value={form.maxStep}
-                      onChange={(e) => setForm({ ...form, maxStep: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setForm({ ...form, maxStep: parseInt(e.target.value) })
+                      }
                       required
                     />
                   </div>
@@ -188,11 +204,15 @@ export default function SchedulesPage() {
                 )}
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                >
                   取消
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? '创建中...' : '创建'}
+                  {loading ? "创建中..." : "创建"}
                 </Button>
               </DialogFooter>
             </form>
@@ -200,6 +220,7 @@ export default function SchedulesPage() {
         </Dialog>
       </div>
 
+      {/* Content */}
       {schedules.length === 0 ? (
         <Card>
           <CardContent className="flex h-40 flex-col items-center justify-center text-muted-foreground">
@@ -222,9 +243,13 @@ export default function SchedulesPage() {
             <TableBody>
               {schedules.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.accountNickname}</TableCell>
+                  <TableCell className="font-medium">
+                    {s.accountNickname}
+                  </TableCell>
                   <TableCell>
-                    <code className="text-sm text-muted-foreground">{s.cronExpression}</code>
+                    <code className="rounded bg-muted px-1.5 py-0.5 text-sm text-muted-foreground">
+                      {s.cronExpression}
+                    </code>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
                     {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
@@ -233,23 +258,28 @@ export default function SchedulesPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="gap-1.5"
                       onClick={() => handleToggle(s.id, s.isActive)}
                     >
                       {s.isActive ? (
                         <>
-                          <Pause className="mr-1 h-3.5 w-3.5" />
+                          <Pause className="h-3.5 w-3.5" />
                           <Badge variant="default">运行中</Badge>
                         </>
                       ) : (
                         <>
-                          <Play className="mr-1 h-3.5 w-3.5" />
+                          <Play className="h-3.5 w-3.5" />
                           <Badge variant="secondary">已停用</Badge>
                         </>
                       )}
                     </Button>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(s.id)}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
@@ -260,5 +290,5 @@ export default function SchedulesPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }
