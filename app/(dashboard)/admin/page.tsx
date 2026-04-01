@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Users,
   Trash2,
@@ -74,9 +75,10 @@ export default function AdminPage() {
     const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       fetchUsers();
+      toast.success("用户已删除");
     } else {
       const data = await res.json();
-      alert(data.error || "删除失败");
+      toast.error(data.error || "删除失败");
     }
   }
 
@@ -104,6 +106,7 @@ export default function AdminPage() {
     if (res.ok) {
       setResetOpen(false);
       setResetUser(null);
+      toast.success("密码已重置");
     } else {
       const data = await res.json();
       setResetError(data.error || "重置失败");

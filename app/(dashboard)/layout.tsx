@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NavLinks } from "@/components/nav-links";
+import { Toaster } from "sonner";
 
 export default async function DashboardLayout({
   children,
@@ -114,6 +115,7 @@ export default async function DashboardLayout({
         </div>
 
         <div className="p-6 md:p-8">{children}</div>
+        <Toaster richColors position="top-right" />
       </main>
     </div>
   );
