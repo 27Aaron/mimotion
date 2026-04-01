@@ -123,4 +123,6 @@ Schema 定义在 `lib/db/schema.ts`，使用 Drizzle ORM。修改后运行 `npm 
 - 调度器使用 `Asia/Shanghai` 时区，分钟级匹配 cron 表达式
 - 前端页面为 React Server Components，交互部分使用 `'use client'`
 - 邀请码注册机制，管理员生成邀请码后用户才能注册
+- 邀请码为 8 位十六进制短码，复制时生成 `/login?code=XXX` 注册链接
+- 用户管理页（admin）：表格居中对齐，按注册时间升序排列，支持重置密码、查看推送配置状态
 - 新增 shadcn 组件：`npx shadcn add <component>`
