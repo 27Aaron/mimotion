@@ -165,7 +165,7 @@ export default function InvitePage() {
       )}
 
       {/* Stats overview — clickable filters */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="stats-grid">
         {stats.map((stat) => (
           <Card
             key={stat.title}
@@ -182,7 +182,7 @@ export default function InvitePage() {
                   {stat.title}
                 </CardTitle>
                 <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.bg}`}
+                  className={`stat-icon-box ${stat.bg}`}
                 >
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
@@ -204,7 +204,7 @@ export default function InvitePage() {
       {filteredCodes.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <div className="empty-icon">
               <Ticket className="h-5 w-5 text-primary" />
             </div>
             <div>

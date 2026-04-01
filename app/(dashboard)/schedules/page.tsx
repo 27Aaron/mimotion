@@ -276,7 +276,7 @@ export default function SchedulesPage() {
       </div>
 
       {/* Stats overview */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="stats-grid">
         {stats.map((stat) => (
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
@@ -285,7 +285,7 @@ export default function SchedulesPage() {
                   {stat.title}
                 </CardTitle>
                 <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.bg}`}
+                  className={`stat-icon-box ${stat.bg}`}
                 >
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
@@ -307,7 +307,7 @@ export default function SchedulesPage() {
       {schedules.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <div className="empty-icon">
               <Timer className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -319,19 +319,19 @@ export default function SchedulesPage() {
             <div className="fade-divider max-w-[240px]" />
             <div className="flex gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                <span className="step-circle">
                   1
                 </span>
                 选择账号
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                <span className="step-circle">
                   2
                 </span>
                 设定时间
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                <span className="step-circle">
                   3
                 </span>
                 配置步数
