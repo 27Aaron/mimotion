@@ -115,15 +115,15 @@ export default function AdminPage() {
   const totalActive = users.reduce((sum, u) => sum + u.activeSchedules, 0);
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col">
       {/* Page header */}
-      <div>
+      <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">用户管理</h1>
         <p className="mt-1 text-muted-foreground">查看和管理所有注册用户</p>
       </div>
 
       {/* Overview stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 py-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">

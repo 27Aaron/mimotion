@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   const todayLogs = recentLogs.filter(
     (l) =>
       l.executedAt &&
-      new Date(l.executedAt).toDateString() === new Date().toDateString()
+      new Date(l.executedAt).toDateString() === new Date().toDateString(),
   );
   const todaySuccess = todayLogs.filter((l) => l.status === "success").length;
   const todayFailed = todayLogs.length - todaySuccess;
@@ -80,17 +80,16 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col">
       {/* Welcome header */}
-      <div className="flex items-center justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {greeting}，{user.username}
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">控制台</h1>
           <p className="mt-1 text-muted-foreground">
+            {greeting}，{user.username}
             {activeCount > 0
-              ? `${activeCount} 个任务正在运行，一切正常`
-              : "暂无运行中的任务，去创建一个吧"}
+              ? ` · ${activeCount} 个任务正在运行`
+              : " · 暂无运行中的任务"}
           </p>
         </div>
         <div className="hidden items-center gap-2 rounded-lg border bg-background px-3 py-2 sm:flex">
@@ -108,7 +107,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats grid */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
@@ -127,87 +126,17 @@ export default async function DashboardPage() {
               <div className="text-3xl font-bold font-mono tracking-tight">
                 {stat.value}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">{stat.detail}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {stat.detail}
+              </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Recent activity */}
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            最近执行记录
-          </h2>
-          {recentLogs.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              最近 {recentLogs.length} 条
-            </p>
-          )}
-        </div>
-
-        {recentLogs.length === 0 ? (
-          <Card>
-            <CardContent className="flex h-32 flex-col items-center justify-center text-muted-foreground">
-              <Footprints className="mb-2 h-8 w-8 opacity-20" />
-              <p className="text-sm">暂无执行记录</p>
-              <p className="text-xs text-muted-foreground/60">
-                创建定时任务后将在此显示执行结果
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <div className="flex flex-col">
-              {recentLogs.slice(0, 10).map((log, i) => (
-                <div key={log.id}>
-                  {i > 0 && <div className="fade-divider" />}
-                  <div
-                    className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/50"
-                  >
-                    {log.status === "success" ? (
-                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {log.status === "success" ? "同步成功" : "同步失败"}
-                        </span>
-                        {log.stepWritten && (
-                          <Badge variant="secondary" className="font-mono text-xs">
-                            {Number(log.stepWritten).toLocaleString()} 步
-                          </Badge>
-                        )}
-                      </div>
-                      {log.errorMessage && (
-                        <p className="mt-0.5 text-xs text-destructive/80 truncate">
-                          {log.errorMessage}
-                        </p>
-                      )}
-                    </div>
-                    <time className="flex-shrink-0 font-mono text-xs text-muted-foreground">
-                      {log.executedAt
-                        ? new Date(log.executedAt).toLocaleString("zh-CN", {
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
-                    </time>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-      </div>
-
       {/* Quick tips when empty */}
       {accounts.length === 0 && (
-        <Card className="border-dashed">
+        <Card className="mb-3 border-dashed">
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <Smartphone className="h-5 w-5 text-primary" />
@@ -242,6 +171,87 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Recent activity */}
+      <div className="flex items-center gap-2">
+        <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+          <Footprints className="h-3 w-3 text-primary" />
+        </div>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          最近执行记录
+        </h2>
+        <div className="ml-2 h-px flex-1 bg-border" />
+        {recentLogs.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            最近 {recentLogs.length} 条
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3">
+        {recentLogs.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Footprints className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">暂无执行记录</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  创建定时任务后将在此显示执行结果
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="card-glow relative overflow-hidden">
+            <div className="flex flex-col">
+              {recentLogs.slice(0, 10).map((log, i) => (
+                <div key={log.id}>
+                  {i > 0 && <div className="fade-divider" />}
+                  <div className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/50">
+                    {log.status === "success" ? (
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {log.status === "success" ? "同步成功" : "同步失败"}
+                        </span>
+                        {log.stepWritten && (
+                          <Badge
+                            variant="secondary"
+                            className="font-mono text-xs"
+                          >
+                            {Number(log.stepWritten).toLocaleString()} 步
+                          </Badge>
+                        )}
+                      </div>
+                      {log.errorMessage && (
+                        <p className="mt-0.5 text-xs text-destructive/80 truncate">
+                          {log.errorMessage}
+                        </p>
+                      )}
+                    </div>
+                    <time className="flex-shrink-0 font-mono text-xs text-muted-foreground">
+                      {log.executedAt
+                        ? new Date(log.executedAt).toLocaleString("zh-CN", {
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-"}
+                    </time>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

@@ -122,15 +122,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col">
       {/* Page header */}
-      <div>
+      <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">设置</h1>
         <p className="mt-1 text-muted-foreground">管理你的账号和安全偏好</p>
       </div>
 
       {/* Profile */}
-      <Card>
+      <Card className="mb-3">
         <CardContent className="p-6">
           <div className="flex items-center gap-5">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
@@ -178,7 +178,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Row 1: Username ↔ Bark */}
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+        <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Row 2: Password ↔ Telegram */}
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+        <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
