@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { inviteCodes } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
-import { v4 as uuid } from 'uuid'
+import { randomBytes } from 'crypto'
 
 export async function GET() {
   const current = await getCurrentUser()
@@ -31,7 +31,7 @@ export async function POST() {
     return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
   }
 
-  const code = uuid()
+  const code = randomBytes(4).toString('hex').toUpperCase()
   const now = new Date()
 
   await db.insert(inviteCodes).values({

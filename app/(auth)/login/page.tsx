@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Footprints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default function AuthPage() {
+export default function AuthPageWrapper() {
+  return (
+    <Suspense>
+      <AuthPage />
+    </Suspense>
+  );
+}
+
+function AuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<"login" | "register">("login");
 
   // Login
@@ -24,6 +33,14 @@ export default function AuthPage() {
   const [regInviteCode, setRegInviteCode] = useState("");
   const [regError, setRegError] = useState("");
   const [regLoading, setRegLoading] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code) {
+      setRegInviteCode(code);
+      setMode("register");
+    }
+  }, [searchParams]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
