@@ -20,7 +20,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -198,7 +197,7 @@ export default function XiaomiPage() {
       {/* Stats overview */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.title} className="relative overflow-hidden">
+          <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -236,7 +235,7 @@ export default function XiaomiPage() {
                 绑定小米运动账号后，即可创建定时任务自动刷步
               </p>
             </div>
-            <Separator className="max-w-[240px]" />
+            <div className="fade-divider max-w-[240px]" />
             <div className="flex gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
@@ -262,7 +261,7 @@ export default function XiaomiPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {accounts.map((acc) => (
-            <Card key={acc.id} className="group relative overflow-hidden">
+            <Card key={acc.id} className="card-glow group relative overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -303,7 +302,7 @@ export default function XiaomiPage() {
                   </Button>
                 </div>
 
-                <Separator className="my-4" />
+                <div className="fade-divider my-4" />
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>

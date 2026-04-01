@@ -72,11 +72,24 @@ scripts/
 - **shadcn/ui** 组件库，基于 `@base-ui/react`（非 Radix）
 - Tailwind CSS v4，主题色通过 oklch CSS 变量定义（亮/暗两套）
 - 主色调：翡翠绿 `oklch(0.596 0.145 163.2)`
+- **绿色氛围系统**：全站统一的主色调环境光效，贯穿登录页和 Dashboard
+  - 背景光晕：3 个 `fixed` 定位模糊圆形（`bg-primary/[0.03~0.07]` + `blur-[80~120px]`），分布在右上/左下/中央
+  - 页面底色渐变：`bg-gradient-to-br from-background via-background to-primary/5`
+  - 侧边栏渐变：`bg-gradient-to-b from-primary/10 via-primary/[0.06] to-sidebar`
+  - 顶栏绿色高光条：`bg-gradient-to-r from-transparent via-primary/40 to-transparent`
+  - 顶栏毛玻璃：`bg-background/80 backdrop-blur-sm`
+  - Logo 阴影：`shadow-lg shadow-primary/25`
+  - 卡片 hover 绿色边框光：CSS `.card-glow` 类（渐变 border + mask）
+  - 导航项 hover：`hover:bg-primary/8 hover:text-primary`，active 左侧绿色指示条
 - 统一页面结构：页头（标题+描述）→ 统计概览卡片 → 内容卡片列表
-- 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区，与右侧顶栏 `h-12 border-b` 像素对齐
+- 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区，与右侧顶栏 `h-12` 像素对齐
 - 登录页：左右分栏（品牌介绍 Footprints logo + 切换式登录/注册表单）
 - 所有内页（小米账号/定时任务/邀请码）使用卡片网格布局替代纯表格
 - 所有页面支持 dark/light 主题切换，顶栏右侧 ThemeToggle
+- CSS 自定义效果类（定义在 `globals.css`）：
+  - `.fade-divider` / `.fade-border-*` — 主色调渐隐分割线
+  - `.card-glow` — hover 时绿色渐变边框
+  - `.nav-item` — 导航项基础样式 + active 指示条
 
 ## Database Schema
 

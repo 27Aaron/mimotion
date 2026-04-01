@@ -13,7 +13,6 @@ import {
   Footprints,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Separator } from "@/components/ui/separator";
 
 export default async function DashboardLayout({
   children,
@@ -39,12 +38,19 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="relative flex min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Background ambient glow — larger & more visible */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute right-[10%] top-[5%] h-[700px] w-[700px] rounded-full bg-primary/[0.07] blur-[120px]" />
+        <div className="absolute bottom-[10%] left-[5%] h-[600px] w-[600px] rounded-full bg-primary/[0.05] blur-[100px]" />
+        <div className="absolute left-[40%] top-[50%] h-[400px] w-[400px] rounded-full bg-primary/[0.03] blur-[80px]" />
+      </div>
+
       {/* Sidebar */}
-      <aside className="hidden md:flex w-60 flex-col border-r bg-sidebar text-sidebar-foreground">
-        {/* Brand - same height as top bar */}
-        <div className="flex h-12 items-center justify-center gap-2.5 border-b border-sidebar-border">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80 shadow-sm shadow-primary/20">
+      <aside className="fade-border-r relative z-10 hidden md:flex w-60 flex-col bg-gradient-to-b from-primary/10 via-primary/[0.06] to-sidebar text-sidebar-foreground">
+        {/* Brand */}
+        <div className="fade-border-b flex h-12 items-center justify-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
             <Footprints className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
           <span className="font-mono text-base font-bold tracking-tight">
@@ -61,21 +67,21 @@ export default async function DashboardLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 transition-all hover:bg-primary/8 hover:text-primary"
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-4 w-4 transition-colors group-hover:text-primary" />
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <Separator />
+        <div className="fade-divider" />
 
         {/* User section */}
         <div className="p-3">
           <div className="flex items-center gap-3 rounded-lg px-3 py-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
-              <CircleUser className="h-4 w-4 text-sidebar-foreground/60" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+              <CircleUser className="h-4 w-4 text-primary/60" />
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-sidebar-foreground/80">
@@ -88,7 +94,7 @@ export default async function DashboardLayout({
           </div>
           <Link
             href="/api/auth/logout"
-            className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/40 transition-all hover:bg-sidebar-accent hover:text-destructive"
+            className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/40 transition-all hover:bg-primary/8 hover:text-destructive"
           >
             <LogOut className="h-3.5 w-3.5" />
             退出登录
@@ -97,11 +103,14 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto bg-muted/30">
+      <main className="relative z-10 flex-1 overflow-auto">
+        {/* Green accent line at top */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
         {/* Top bar */}
-        <div className="flex h-12 items-center justify-between border-b bg-background px-4 md:px-6">
+        <div className="fade-border-b flex h-12 items-center justify-between bg-background/80 backdrop-blur-sm px-4 md:px-6">
           <div className="flex items-center gap-2 md:hidden">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80 shadow-md shadow-primary/20">
               <Footprints className="h-3 w-3 text-primary-foreground" />
             </div>
             <span className="font-mono text-sm font-bold">
@@ -114,12 +123,12 @@ export default async function DashboardLayout({
         </div>
 
         {/* Mobile nav */}
-        <div className="flex gap-1 overflow-x-auto border-b bg-background px-4 py-2 md:hidden">
+        <div className="fade-border-b flex gap-1 overflow-x-auto bg-background/80 backdrop-blur-sm px-4 py-2 md:hidden">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/8 hover:text-foreground"
             >
               <item.icon className="h-3.5 w-3.5" />
               {item.label}
