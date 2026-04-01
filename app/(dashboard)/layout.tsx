@@ -2,17 +2,12 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import {
-  LayoutDashboard,
-  Smartphone,
-  Clock,
-  Settings,
-  Ticket,
   LogOut,
   CircleUser,
-  Users,
   Footprints,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NavLinks } from "@/components/nav-links";
 
 export default async function DashboardLayout({
   children,
@@ -26,15 +21,15 @@ export default async function DashboardLayout({
   }
 
   const navItems = [
-    { href: "/dashboard", label: "控制台", icon: LayoutDashboard },
-    { href: "/xiaomi", label: "小米账号", icon: Smartphone },
-    { href: "/schedules", label: "定时任务", icon: Clock },
-    { href: "/settings", label: "设置", icon: Settings },
+    { href: "/dashboard", label: "控制台", icon: "LayoutDashboard" },
+    { href: "/xiaomi", label: "小米账号", icon: "Smartphone" },
+    { href: "/schedules", label: "定时任务", icon: "Clock" },
+    { href: "/settings", label: "设置", icon: "Settings" },
   ];
 
   if (user.isAdmin) {
-    navItems.push({ href: "/invite", label: "邀请码", icon: Ticket });
-    navItems.push({ href: "/admin", label: "用户管理", icon: Users });
+    navItems.push({ href: "/invite", label: "邀请码", icon: "Ticket" });
+    navItems.push({ href: "/admin", label: "用户管理", icon: "Users" });
   }
 
   return (
@@ -63,16 +58,7 @@ export default async function DashboardLayout({
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
             菜单
           </p>
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 transition-all hover:bg-primary/8 hover:text-primary"
-            >
-              <item.icon className="h-4 w-4 transition-colors group-hover:text-primary" />
-              {item.label}
-            </Link>
-          ))}
+          <NavLinks items={navItems} />
         </nav>
 
         <div className="fade-divider" />
@@ -124,16 +110,7 @@ export default async function DashboardLayout({
 
         {/* Mobile nav */}
         <div className="fade-border-b flex gap-1 overflow-x-auto bg-background/80 backdrop-blur-sm px-4 py-2 md:hidden">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/8 hover:text-foreground"
-            >
-              <item.icon className="h-3.5 w-3.5" />
-              {item.label}
-            </Link>
-          ))}
+          <NavLinks items={navItems} variant="mobile" />
         </div>
 
         <div className="p-6 md:p-8">{children}</div>
