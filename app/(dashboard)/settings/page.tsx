@@ -32,6 +32,10 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [testingBark, setTestingBark] = useState(false);
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [testBarkResult, setTestBarkResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testTelegramResult, setTestTelegramResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/user/settings")
@@ -44,6 +48,43 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, []);
+
+  async function handleTestPush(type: "bark" | "telegram") {
+    if (type === "bark") {
+      setTestingBark(true);
+      setTestBarkResult(null);
+    } else {
+      setTestingTelegram(true);
+      setTestTelegramResult(null);
+    }
+
+    try {
+      const res = await fetch("/api/user/test-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          type === "bark"
+            ? { type: "bark", barkUrl }
+            : { type: "telegram", telegramBotToken, telegramChatId }
+        ),
+      });
+      const data = await res.json();
+      if (type === "bark") {
+        setTestBarkResult({ ok: res.ok, msg: data.message || data.error });
+      } else {
+        setTestTelegramResult({ ok: res.ok, msg: data.message || data.error });
+      }
+    } catch {
+      if (type === "bark") {
+        setTestBarkResult({ ok: false, msg: "请求失败" });
+      } else {
+        setTestTelegramResult({ ok: false, msg: "请求失败" });
+      }
+    } finally {
+      if (type === "bark") setTestingBark(false);
+      else setTestingTelegram(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -114,195 +155,226 @@ export default function SettingsPage() {
       </Card>
 
       <form onSubmit={handleSubmit}>
-        {/* Two-column grid */}
+        {/* Section headers */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Left: Security */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                安全设置
-              </h2>
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+              <Shield className="h-3 w-3 text-primary" />
             </div>
-
-            {/* Username */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">修改用户名</CardTitle>
-                </div>
-                <CardDescription>修改后使用新用户名登录</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="username" className="text-xs">
-                    新用户名
-                  </Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="请输入新用户名"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  留空则不修改。更换后需用新用户名登录。
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Password */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Key className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">修改密码</CardTitle>
-                </div>
-                <CardDescription>修改后需重新登录</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="currentPassword" className="text-xs">
-                    当前密码
-                  </Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="请输入当前密码"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="newPassword" className="text-xs">
-                    新密码
-                  </Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="请输入新密码"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              安全设置
+            </h2>
+            <div className="ml-2 h-px flex-1 bg-border" />
           </div>
-
-          {/* Right: Notifications */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                推送通知
-              </h2>
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+              <Bell className="h-3 w-3 text-primary" />
             </div>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              推送通知
+            </h2>
+            <div className="ml-2 h-px flex-1 bg-border" />
+          </div>
+        </div>
 
-            {/* Bark */}
-            <Card>
-              <CardHeader className="pb-3">
+        {/* Row 1: Username ↔ Bark */}
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base">修改用户名</CardTitle>
+              </div>
+              <CardDescription>修改后使用新用户名登录</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="username" className="text-xs">
+                  新用户名
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="请输入新用户名"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                留空则不修改。更换后需用新用户名登录。
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Smartphone className="h-4 w-4 text-primary" />
                   <CardTitle className="text-base">Bark 推送</CardTitle>
                 </div>
-                <CardDescription>填入完整的 Bark 推送地址</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="barkUrl" className="text-xs">
-                    Bark URL
-                  </Label>
-                  <Input
-                    id="barkUrl"
-                    type="url"
-                    value={barkUrl}
-                    onChange={(e) => setBarkUrl(e.target.value)}
-                    placeholder="https://api.day.app/yourkey"
-                  />
+                <div className="flex items-center gap-2">
+                  {testBarkResult && (
+                    <span className={`text-xs ${testBarkResult.ok ? "text-primary" : "text-destructive"}`}>
+                      {testBarkResult.msg}
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={testingBark || !barkUrl}
+                    onClick={(e) => { e.preventDefault(); handleTestPush("bark"); }}
+                  >
+                    {testingBark && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    {testingBark ? "发送中..." : "测试推送"}
+                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  留空则不推送，填入后任务执行结果将推送至 Bark
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+              <CardDescription>填入完整的 Bark 推送地址</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="barkUrl" className="text-xs">
+                  Bark URL
+                </Label>
+                <Input
+                  id="barkUrl"
+                  type="url"
+                  value={barkUrl}
+                  onChange={(e) => setBarkUrl(e.target.value)}
+                  placeholder="https://api.day.app/yourkey"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                留空则不推送，填入后任务执行结果将推送至 Bark
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Telegram */}
-            <Card>
-              <CardHeader className="pb-3">
+        {/* Row 2: Password ↔ Telegram */}
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Key className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base">修改密码</CardTitle>
+              </div>
+              <CardDescription>修改后需重新登录</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="currentPassword" className="text-xs">
+                  当前密码
+                </Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="请输入当前密码"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="newPassword" className="text-xs">
+                  新密码
+                </Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="请输入新密码"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Send className="h-4 w-4 text-primary" />
                   <CardTitle className="text-base">Telegram 推送</CardTitle>
                 </div>
-                <CardDescription>通过 @userinfobot 获取 Chat ID</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="telegramBotToken" className="text-xs">
-                    Bot Token
-                  </Label>
-                  <Input
-                    id="telegramBotToken"
-                    type="text"
-                    value={telegramBotToken}
-                    onChange={(e) => setTelegramBotToken(e.target.value)}
-                    placeholder="123456:ABC-DEF..."
-                  />
+                <div className="flex items-center gap-2">
+                  {testTelegramResult && (
+                    <span className={`text-xs ${testTelegramResult.ok ? "text-primary" : "text-destructive"}`}>
+                      {testTelegramResult.msg}
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={testingTelegram || !telegramBotToken || !telegramChatId}
+                    onClick={(e) => { e.preventDefault(); handleTestPush("telegram"); }}
+                  >
+                    {testingTelegram && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    {testingTelegram ? "发送中..." : "测试推送"}
+                  </Button>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="telegramChatId" className="text-xs">
-                    Chat ID
-                  </Label>
-                  <Input
-                    id="telegramChatId"
-                    type="text"
-                    value={telegramChatId}
-                    onChange={(e) => setTelegramChatId(e.target.value)}
-                    placeholder="123456789"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <CardDescription>通过 @userinfobot 获取 Chat ID</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="telegramBotToken" className="text-xs">
+                  Bot Token
+                </Label>
+                <Input
+                  id="telegramBotToken"
+                  type="text"
+                  value={telegramBotToken}
+                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  placeholder="123456:ABC-DEF..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="telegramChatId" className="text-xs">
+                  Chat ID
+                </Label>
+                <Input
+                  id="telegramChatId"
+                  type="text"
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  placeholder="123456789"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Action buttons — bottom right of notifications column */}
-            <div className="mt-6 flex items-center justify-end gap-3">
-              {error && (
-                <span className="text-sm text-destructive">{error}</span>
-              )}
-              {message && (
-                <span className="text-sm text-primary">{message}</span>
-              )}
-              <Button
-                type="button"
-                onClick={() => {
-                  setUsername("");
-                  setCurrentPassword("");
-                  setNewPassword("");
-                  setBarkUrl("");
-                  setTelegramBotToken("");
-                  setTelegramChatId("");
-                  setMessage("");
-                  setError("");
-                }}
-                variant="outline"
-              >
-                重置
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                onClick={(e) => {
-                  const form = (e.target as HTMLButtonElement).closest("form");
-                  if (form) form.requestSubmit();
-                }}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? "保存中..." : "保存设置"}
-              </Button>
-            </div>
-          </div>
+        {/* Action buttons */}
+        <div className="mt-6 flex items-center justify-end gap-3 border-t pt-6">
+          {error && (
+            <span className="text-sm text-destructive">{error}</span>
+          )}
+          {message && (
+            <span className="text-sm text-primary">{message}</span>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setUsername("");
+              setCurrentPassword("");
+              setNewPassword("");
+              setBarkUrl("");
+              setTelegramBotToken("");
+              setTelegramChatId("");
+              setMessage("");
+              setError("");
+            }}
+          >
+            重置
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? "保存中..." : "保存设置"}
+          </Button>
         </div>
       </form>
     </div>
