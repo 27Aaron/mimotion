@@ -47,16 +47,16 @@ export async function GET(
 }
 
 async function handleLogin(request: NextRequest) {
-  const { email, password } = await request.json()
+  const { username, password } = await request.json()
 
-  if (!email || !password) {
+  if (!username || !password) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
 
   const result = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.username, username))
     .limit(1)
 
   const user = result[0]
@@ -71,7 +71,7 @@ async function handleLogin(request: NextRequest) {
 
   const token = await createToken({
     userId: user.id,
-    email: user.email,
+    username: user.username,
     isAdmin: user.isAdmin ?? false,
   })
 
@@ -86,16 +86,16 @@ async function handleLogin(request: NextRequest) {
   return NextResponse.json({
     user: {
       id: user.id,
-      email: user.email,
+      username: user.username,
       isAdmin: user.isAdmin,
     },
   })
 }
 
 async function handleRegister(request: NextRequest) {
-  const { email, password, inviteCode } = await request.json()
+  const { username, password, inviteCode } = await request.json()
 
-  if (!email || !password || !inviteCode) {
+  if (!username || !password || !inviteCode) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
 
@@ -114,15 +114,15 @@ async function handleRegister(request: NextRequest) {
     return NextResponse.json({ error: '邀请码已使用' }, { status: 400 })
   }
 
-  // 校验邮箱唯一
+  // 校验用户名唯一
   const existing = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.username, username))
     .limit(1)
 
   if (existing[0]) {
-    return NextResponse.json({ error: '邮箱已被注册' }, { status: 400 })
+    return NextResponse.json({ error: '用户名已被注册' }, { status: 400 })
   }
 
   const userId = uuid()
@@ -131,7 +131,7 @@ async function handleRegister(request: NextRequest) {
 
   await db.insert(users).values({
     id: userId,
-    email,
+    username,
     passwordHash,
     isAdmin: false,
     createdAt: now,
@@ -146,7 +146,7 @@ async function handleRegister(request: NextRequest) {
 
   const token = await createToken({
     userId,
-    email,
+    username,
     isAdmin: false,
   })
 
@@ -158,7 +158,7 @@ async function handleRegister(request: NextRequest) {
     maxAge: 60 * 60 * 24,
   })
 
-  return NextResponse.json({ user: { id: userId, email, isAdmin: false } })
+  return NextResponse.json({ user: { id: userId, username, isAdmin: false } })
 }
 
 async function handleLogout(request: NextRequest) {

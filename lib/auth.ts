@@ -7,7 +7,7 @@ const secret = new TextEncoder().encode(JWT_SECRET)
 
 export interface JWTPayload {
   userId: string
-  email: string
+  username: string
   isAdmin: boolean
   [key: string]: unknown
 }

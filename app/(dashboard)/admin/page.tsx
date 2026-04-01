@@ -16,7 +16,7 @@ import {
 
 interface UserRow {
   id: string;
-  email: string;
+  username: string;
   isAdmin: boolean;
   barkUrl: string | null;
   createdAt: string;
@@ -42,8 +42,8 @@ export default function AdminPage() {
     setLoading(false);
   }
 
-  async function handleDelete(id: string, email: string) {
-    if (!confirm(`确定删除用户 ${email}？该操作不可恢复。`)) return;
+  async function handleDelete(id: string, username: string) {
+    if (!confirm(`确定删除用户 ${username}？该操作不可恢复。`)) return;
     const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       fetchUsers();
@@ -131,10 +131,10 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                         <span className="text-xs font-medium">
-                          {u.email.charAt(0).toUpperCase()}
+                          {u.username.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <span className="font-medium">{u.email}</span>
+                      <span className="font-medium">{u.username}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -162,7 +162,7 @@ export default function AdminPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(u.id, u.email)}
+                        onClick={() => handleDelete(u.id, u.username)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
