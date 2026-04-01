@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Plus,
   Trash2,
@@ -118,8 +119,9 @@ export default function SchedulesPage() {
         maxStep: 1500,
       });
       fetchSchedules();
+      toast.success("任务创建成功");
     } else {
-      setError(data.error || "创建失败");
+      toast.error(data.error || "创建失败");
     }
   }
 
@@ -127,6 +129,7 @@ export default function SchedulesPage() {
     if (!confirm("确定删除该任务？")) return;
     await fetch(`/api/schedules?id=${id}`, { method: "DELETE" });
     fetchSchedules();
+    toast.success("任务已删除");
   }
 
   async function handleToggle(id: string, isActive: boolean) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Plus,
   Trash2,
@@ -51,6 +52,7 @@ export default function InvitePage() {
     if (res.ok) {
       setNewCode(data.code);
       fetchCodes();
+      toast.success("邀请码已生成");
     }
     setLoading(false);
   }
@@ -59,12 +61,14 @@ export default function InvitePage() {
     if (!confirm("确定删除该邀请码？")) return;
     await fetch(`/api/invite?code=${code}`, { method: "DELETE" });
     fetchCodes();
+    toast.success("邀请码已删除");
   }
 
   async function handleCopy(code: string) {
     const url = `${window.location.origin}/login?code=${code}`;
     await navigator.clipboard.writeText(url);
     setCopiedCode(code);
+    toast.success("注册链接已复制到剪贴板");
     setTimeout(() => setCopiedCode(null), 2000);
   }
 

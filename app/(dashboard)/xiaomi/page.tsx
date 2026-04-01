@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Plus,
   Trash2,
@@ -72,8 +73,9 @@ export default function XiaomiPage() {
       setOpen(false);
       setForm({ account: "", password: "", nickname: "" });
       fetchAccounts();
+      toast.success("账号添加成功");
     } else {
-      setError(data.error || "添加失败");
+      toast.error(data.error || "添加失败");
     }
   }
 
@@ -81,6 +83,7 @@ export default function XiaomiPage() {
     if (!confirm("确定删除该账号？")) return;
     await fetch(`/api/xiaomi?id=${id}`, { method: "DELETE" });
     fetchAccounts();
+    toast.success("账号已删除");
   }
 
   const activeCount = accounts.filter((a) => a.status === "active").length;

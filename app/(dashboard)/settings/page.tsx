@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   User,
   Bell,
@@ -29,13 +30,9 @@ export default function SettingsPage() {
   const [telegramBotToken, setTelegramBotToken] = useState("");
   const [telegramChatId, setTelegramChatId] = useState("");
   const [currentUsername, setCurrentUsername] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [testingBark, setTestingBark] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
-  const [testBarkResult, setTestBarkResult] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [testTelegramResult, setTestTelegramResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/user/settings")
@@ -50,13 +47,8 @@ export default function SettingsPage() {
   }, []);
 
   async function handleTestPush(type: "bark" | "telegram") {
-    if (type === "bark") {
-      setTestingBark(true);
-      setTestBarkResult(null);
-    } else {
-      setTestingTelegram(true);
-      setTestTelegramResult(null);
-    }
+    if (type === "bark") setTestingBark(true);
+    else setTestingTelegram(true);
 
     try {
       const res = await fetch("/api/user/test-push", {
@@ -69,17 +61,13 @@ export default function SettingsPage() {
         ),
       });
       const data = await res.json();
-      if (type === "bark") {
-        setTestBarkResult({ ok: res.ok, msg: data.message || data.error });
+      if (res.ok) {
+        toast.success(`${type === "bark" ? "Bark" : "Telegram"} 推送测试成功`);
       } else {
-        setTestTelegramResult({ ok: res.ok, msg: data.message || data.error });
+        toast.error(data.error || "推送测试失败");
       }
     } catch {
-      if (type === "bark") {
-        setTestBarkResult({ ok: false, msg: "请求失败" });
-      } else {
-        setTestTelegramResult({ ok: false, msg: "请求失败" });
-      }
+      toast.error("请求失败");
     } finally {
       if (type === "bark") setTestingBark(false);
       else setTestingTelegram(false);
@@ -88,8 +76,6 @@ export default function SettingsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage("");
-    setError("");
     setLoading(true);
 
     const res = await fetch("/api/user/settings", {
@@ -109,7 +95,7 @@ export default function SettingsPage() {
     setLoading(false);
 
     if (res.ok) {
-      setMessage("设置已保存");
+      toast.success("设置已保存");
       setCurrentPassword("");
       setNewPassword("");
       if (username) {
@@ -117,7 +103,7 @@ export default function SettingsPage() {
         setUsername("");
       }
     } else {
-      setError(data.error || "保存失败");
+      toast.error(data.error || "保存失败");
     }
   }
 
@@ -213,23 +199,16 @@ export default function SettingsPage() {
                   <Smartphone className="h-4 w-4 text-primary" />
                   <CardTitle className="text-base">Bark 推送</CardTitle>
                 </div>
-                <div className="flex items-center gap-2">
-                  {testBarkResult && (
-                    <span className={`text-xs ${testBarkResult.ok ? "text-primary" : "text-destructive"}`}>
-                      {testBarkResult.msg}
-                    </span>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={testingBark || !barkUrl}
-                    onClick={(e) => { e.preventDefault(); handleTestPush("bark"); }}
-                  >
-                    {testingBark && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                    {testingBark ? "发送中..." : "测试推送"}
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={testingBark || !barkUrl}
+                  onClick={(e) => { e.preventDefault(); handleTestPush("bark"); }}
+                >
+                  {testingBark && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  {testingBark ? "发送中..." : "测试推送"}
+                </Button>
               </div>
               <CardDescription>填入完整的 Bark 推送地址</CardDescription>
             </CardHeader>
@@ -298,23 +277,16 @@ export default function SettingsPage() {
                   <Send className="h-4 w-4 text-primary" />
                   <CardTitle className="text-base">Telegram 推送</CardTitle>
                 </div>
-                <div className="flex items-center gap-2">
-                  {testTelegramResult && (
-                    <span className={`text-xs ${testTelegramResult.ok ? "text-primary" : "text-destructive"}`}>
-                      {testTelegramResult.msg}
-                    </span>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={testingTelegram || !telegramBotToken || !telegramChatId}
-                    onClick={(e) => { e.preventDefault(); handleTestPush("telegram"); }}
-                  >
-                    {testingTelegram && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                    {testingTelegram ? "发送中..." : "测试推送"}
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={testingTelegram || !telegramBotToken || !telegramChatId}
+                  onClick={(e) => { e.preventDefault(); handleTestPush("telegram"); }}
+                >
+                  {testingTelegram && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  {testingTelegram ? "发送中..." : "测试推送"}
+                </Button>
               </div>
               <CardDescription>通过 @userinfobot 获取 Chat ID</CardDescription>
             </CardHeader>
@@ -349,12 +321,6 @@ export default function SettingsPage() {
 
         {/* Action buttons */}
         <div className="mt-6 flex items-center justify-end gap-3 border-t pt-6">
-          {error && (
-            <span className="text-sm text-destructive">{error}</span>
-          )}
-          {message && (
-            <span className="text-sm text-primary">{message}</span>
-          )}
           <Button
             type="button"
             variant="outline"
@@ -365,8 +331,6 @@ export default function SettingsPage() {
               setBarkUrl("");
               setTelegramBotToken("");
               setTelegramChatId("");
-              setMessage("");
-              setError("");
             }}
           >
             重置
