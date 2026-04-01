@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { users, xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
-import { eq, desc, sql } from 'drizzle-orm'
-import { verifyToken } from '@/lib/auth'
+import { eq, sql } from 'drizzle-orm'
+import { verifyToken, hashPassword } from '@/lib/auth'
 import { cookies } from 'next/headers'
 
 async function requireAdmin() {
@@ -28,10 +28,13 @@ export async function GET() {
       username: users.username,
       isAdmin: users.isAdmin,
       barkUrl: users.barkUrl,
+      telegramBotToken: users.telegramBotToken,
+      telegramChatId: users.telegramChatId,
       createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
     })
     .from(users)
-    .orderBy(desc(users.createdAt))
+    .orderBy(users.createdAt)
 
   // Get stats per user
   const userStats = await db
@@ -62,6 +65,28 @@ export async function GET() {
   }))
 
   return NextResponse.json(result)
+}
+
+export async function PUT(request: NextRequest) {
+  const admin = await requireAdmin()
+  if (!admin) {
+    return NextResponse.json({ error: '无权限' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { userId, newPassword } = body
+
+  if (!userId || !newPassword) {
+    return NextResponse.json({ error: '缺少参数' }, { status: 400 })
+  }
+
+  const passwordHash = await hashPassword(newPassword)
+  await db
+    .update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+
+  return NextResponse.json({ success: true })
 }
 
 export async function DELETE(request: NextRequest) {
