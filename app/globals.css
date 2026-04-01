@@ -242,7 +242,7 @@
   padding: 1px;
   background: linear-gradient(
     135deg,
-    oklch(from var(--primary) l c h / 20%),
+    oklch(from var(--primary) l c h / 30%),
     transparent 50%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -387,4 +387,18 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted-foreground);
+}
+
+/* Glass effect utility */
+.glass {
+  background: oklch(from var(--card) l c h / 70%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Glass subtle — for hover overlays and secondary containers */
+.glass-subtle {
+  background: oklch(from var(--card) l c h / 50%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
