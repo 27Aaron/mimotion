@@ -22,7 +22,7 @@ export async function POST(
   }
 
   if (actionStr === 'logout') {
-    return handleLogout()
+    return handleLogout(request)
   }
 
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -37,6 +37,10 @@ export async function GET(
 
   if (actionStr === 'me') {
     return handleMe()
+  }
+
+  if (actionStr === 'logout') {
+    return handleLogout(request)
   }
 
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -157,10 +161,12 @@ async function handleRegister(request: NextRequest) {
   return NextResponse.json({ user: { id: userId, email, isAdmin: false } })
 }
 
-async function handleLogout() {
+async function handleLogout(request: NextRequest) {
   const cookieStore = await cookies()
   cookieStore.delete('auth_token')
-  return NextResponse.json({ success: true })
+  const url = request.nextUrl.clone()
+  url.pathname = '/login'
+  return NextResponse.redirect(url)
 }
 
 async function handleMe() {
