@@ -19,6 +19,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+type FilterType = "unused" | "all" | "used";
+
 interface InviteCode {
   code: string;
   usedBy: string | null;
@@ -30,6 +33,7 @@ export default function InvitePage() {
   const [newCode, setNewCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterType>("unused");
 
   useEffect(() => {
     fetchCodes();
@@ -68,7 +72,21 @@ export default function InvitePage() {
   const usedCodes = codes.filter((c) => c.usedBy).length;
   const unusedCodes = totalCodes - usedCodes;
 
-  const stats = [
+  const filteredCodes = codes.filter((c) => {
+    if (filter === "all") return true;
+    if (filter === "used") return !!c.usedBy;
+    return !c.usedBy;
+  });
+
+  const stats: {
+    title: string;
+    value: number;
+    icon: typeof Hash;
+    detail: string;
+    color: string;
+    bg: string;
+    filter: FilterType;
+  }[] = [
     {
       title: "邀请码总数",
       value: totalCodes,
@@ -76,6 +94,7 @@ export default function InvitePage() {
       detail: "已生成的邀请码",
       color: "text-blue-500",
       bg: "bg-blue-500/10",
+      filter: "all",
     },
     {
       title: "已使用",
@@ -84,6 +103,7 @@ export default function InvitePage() {
       detail: "已注册的用户",
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
+      filter: "used",
     },
     {
       title: "待使用",
@@ -92,6 +112,7 @@ export default function InvitePage() {
       detail: unusedCodes > 0 ? "可分享给好友" : "生成新的邀请码",
       color: "text-amber-500",
       bg: "bg-amber-500/10",
+      filter: "unused",
     },
   ];
 
@@ -136,17 +157,25 @@ export default function InvitePage() {
               </>
             ) : (
               <>
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> 复制
+                <Copy className="mr-1.5 h-3.5 w-3.5" /> 复制链接
               </>
             )}
           </Button>
         </div>
       )}
 
-      {/* Stats overview */}
+      {/* Stats overview — clickable filters */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.title} className="relative overflow-hidden">
+          <Card
+            key={stat.title}
+            onClick={() => setFilter(stat.filter)}
+            className={`relative cursor-pointer transition-all ${
+              filter === stat.filter
+                ? "ring-2 ring-primary/40"
+                : "hover:ring-1 hover:ring-border"
+            }`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -172,14 +201,20 @@ export default function InvitePage() {
       </div>
 
       {/* Invite codes list */}
-      {codes.length === 0 ? (
+      {filteredCodes.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
               <Ticket className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="font-medium">暂无邀请码</p>
+              <p className="font-medium">
+                {filter === "used"
+                  ? "暂无已使用的邀请码"
+                  : filter === "all"
+                    ? "暂无邀请码"
+                    : "暂无待使用的邀请码"}
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 点击上方按钮生成邀请码，分享给需要注册的用户
               </p>
@@ -188,8 +223,8 @@ export default function InvitePage() {
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {codes.map((c) => (
-            <Card key={c.code} className="group relative overflow-hidden">
+          {filteredCodes.map((c) => (
+            <Card key={c.code} className="relative overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -228,28 +263,28 @@ export default function InvitePage() {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleCopy(c.code)}
-                    >
-                      {copiedCode === c.code ? (
-                        <Check className="h-4 w-4 text-emerald-500" />
-                      ) : (
-                        <Copy className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
                     {!c.usedBy && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                        onClick={() => handleDelete(c.code)}
+                        className="h-8 w-8"
+                        onClick={() => handleCopy(c.code)}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        {copiedCode === c.code ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDelete(c.code)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
