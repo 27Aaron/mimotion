@@ -79,26 +79,26 @@ export default async function DashboardLayout({
 
         {/* User section */}
         <div className="p-3">
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+          <div className="group flex items-center gap-3 rounded-lg px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
               <CircleUser className="h-4 w-4 text-primary/60" />
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-sidebar-foreground/80">
-                {user.email}
+                {user.username}
               </p>
               <p className="text-[10px] text-sidebar-foreground/40">
                 {user.isAdmin ? "管理员" : "用户"}
               </p>
             </div>
+            <Link
+              href="/api/auth/logout"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/30 transition-all hover:bg-destructive/10 hover:text-destructive"
+              title="退出登录"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <Link
-            href="/api/auth/logout"
-            className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/40 transition-all hover:bg-primary/8 hover:text-destructive"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            退出登录
-          </Link>
         </div>
       </aside>
 

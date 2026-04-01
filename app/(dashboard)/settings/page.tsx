@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 export default function SettingsPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [barkUrl, setBarkUrl] = useState("");
-  const [currentEmail, setCurrentEmail] = useState("");
+  const [currentUsername, setCurrentUsername] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function SettingsPage() {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
-        if (data.user?.email) setCurrentEmail(data.user.email);
+        if (data.user?.username) setCurrentUsername(data.user.username);
         if (data.user?.barkUrl) setBarkUrl(data.user.barkUrl);
       })
       .catch(() => {});
@@ -52,7 +52,7 @@ export default function SettingsPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: email || undefined,
+        username: username || undefined,
         password: newPassword || undefined,
         currentPassword: currentPassword || undefined,
         barkUrl: barkUrl || null,
@@ -66,9 +66,9 @@ export default function SettingsPage() {
       setMessage("设置已保存");
       setCurrentPassword("");
       setNewPassword("");
-      if (email) {
-        setCurrentEmail(email);
-        setEmail("");
+      if (username) {
+        setCurrentUsername(username);
+        setUsername("");
       }
     } else {
       setError(data.error || "保存失败");
@@ -96,20 +96,20 @@ export default function SettingsPage() {
             <CardContent className="p-6">
               <div className="flex items-center gap-5">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-                  {currentEmail ? currentEmail.charAt(0).toUpperCase() : "?"}
+                  {currentUsername ? currentUsername.charAt(0).toUpperCase() : "?"}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-lg font-semibold">
-                      {currentEmail || "加载中..."}
+                      {currentUsername || "加载中..."}
                     </p>
                     <Badge variant="secondary" className="text-[10px]">
-                      <Globe className="mr-1 h-3 w-3" />
-                      登录邮箱
+                      <User className="mr-1 h-3 w-3" />
+                      用户名
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    用于登录 MiMotion 的邮箱地址，不可与其他账号重复
+                    用于登录 MiMotion 的用户名
                   </p>
                 </div>
               </div>
@@ -163,30 +163,30 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Email card */}
+            {/* Username card */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">更换邮箱</CardTitle>
+                  <User className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base">修改用户名</CardTitle>
                 </div>
-                <CardDescription>修改后使用新邮箱登录</CardDescription>
+                <CardDescription>修改后使用新用户名登录</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs">
-                    新邮箱
+                  <Label htmlFor="username" className="text-xs">
+                    新用户名
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="请输入新邮箱"
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="请输入新用户名"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  留空则不修改。更换后需用新邮箱登录。
+                  留空则不修改。更换后需用新用户名登录。
                 </p>
 
                 <div className="fade-divider my-3" />
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                     安全提示
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    修改密码和邮箱均需重新登录。如忘记密码请联系管理员重置。
+                    修改密码和用户名均需重新登录。如忘记密码请联系管理员重置。
                   </p>
                 </div>
               </CardContent>
@@ -262,7 +262,7 @@ export default function SettingsPage() {
           <Button
             type="button"
             onClick={() => {
-              setEmail("");
+              setUsername("");
               setCurrentPassword("");
               setNewPassword("");
               setBarkUrl("");

@@ -85,7 +85,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {greeting}，{user.email.split("@")[0]}
+            {greeting}，{user.username}
           </h1>
           <p className="mt-1 text-muted-foreground">
             {activeCount > 0

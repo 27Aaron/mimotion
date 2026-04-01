@@ -13,7 +13,7 @@ export async function GET() {
   const result = await db
     .select({
       id: users.id,
-      email: users.email,
+      username: users.username,
       isAdmin: users.isAdmin,
       barkUrl: users.barkUrl,
     })
@@ -31,23 +31,23 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, password, barkUrl, currentPassword } = body
+  const { username, password, barkUrl, currentPassword } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
   }
 
-  if (email && email !== current.email) {
+  if (username && username !== current.username) {
     const existing = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.username, username))
       .limit(1)
 
     if (existing[0]) {
-      return NextResponse.json({ error: '邮箱已被使用' }, { status: 400 })
+      return NextResponse.json({ error: '用户名已被使用' }, { status: 400 })
     }
-    updates.email = email
+    updates.username = username
   }
 
   if (password) {

@@ -82,7 +82,8 @@ scripts/
   - 卡片 hover 绿色边框光：CSS `.card-glow` 类（渐变 border + mask）
   - 导航项 hover：`hover:bg-primary/8 hover:text-primary`，active 左侧绿色指示条
 - 统一页面结构：页头（标题+描述）→ 统计概览卡片 → 内容卡片列表
-- 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区，与右侧顶栏 `h-12` 像素对齐
+- 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区（含退出按钮），与右侧顶栏 `h-12` 像素对齐
+- 用户系统使用 **用户名**（非邮箱）注册和登录，邮箱/手机号仅用于绑定小米账号
 - 登录页：左右分栏（品牌介绍 Footprints logo + 切换式登录/注册表单）
 - 所有内页（小米账号/定时任务/邀请码）使用卡片网格布局替代纯表格
 - 所有页面支持 dark/light 主题切换，顶栏右侧 ThemeToggle
@@ -105,7 +106,7 @@ Schema 定义在 `lib/db/schema.ts`，使用 Drizzle ORM。修改后运行 `npm 
 - `ENCRYPTION_KEY` — 64 字符 hex，用于加密 Xiaomi token
 - `JWT_SECRET` — 64 字符 hex，用于 JWT 签名
 - `BARK_URL` — Bark 推送地址
-- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — 初始管理员
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — 初始管理员（默认 `admin` / `password`）
 
 ## Key Conventions
 

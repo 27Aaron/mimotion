@@ -13,13 +13,13 @@ export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
 
   // Login
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Register
-  const [regEmail, setRegEmail] = useState("");
+  const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regInviteCode, setRegInviteCode] = useState("");
   const [regError, setRegError] = useState("");
@@ -33,7 +33,7 @@ export default function AuthPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      body: JSON.stringify({ username: loginUsername, password: loginPassword }),
     });
 
     const data = await res.json();
@@ -56,7 +56,7 @@ export default function AuthPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: regEmail,
+        username: regUsername,
         password: regPassword,
         inviteCode: regInviteCode,
       }),
@@ -145,13 +145,13 @@ export default function AuthPage() {
               </div>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">邮箱</Label>
+                  <Label htmlFor="login-username">用户名</Label>
                   <Input
-                    id="login-email"
-                    type="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="请输入邮箱"
+                    id="login-username"
+                    type="text"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    placeholder="请输入用户名"
                     required
                   />
                 </div>
@@ -202,13 +202,13 @@ export default function AuthPage() {
               </div>
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reg-email">邮箱</Label>
+                  <Label htmlFor="reg-username">用户名</Label>
                   <Input
-                    id="reg-email"
-                    type="email"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="请输入邮箱"
+                    id="reg-username"
+                    type="text"
+                    value={regUsername}
+                    onChange={(e) => setRegUsername(e.target.value)}
+                    placeholder="请输入用户名"
                     required
                   />
                 </div>
