@@ -219,10 +219,25 @@ export default async function DashboardPage() {
               </p>
             </div>
             <div className="fade-divider max-w-[200px]" />
-            <div className="flex gap-4 text-sm text-muted-foreground">
-              <span>1. 添加小米账号</span>
-              <span>2. 创建定时任务</span>
-              <span>3. 自动执行</span>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  1
+                </span>
+                添加账号
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  2
+                </span>
+                创建任务
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  3
+                </span>
+                自动刷步
+              </div>
             </div>
           </CardContent>
         </Card>
