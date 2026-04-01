@@ -111,7 +111,7 @@ export default function SettingsPage() {
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    用于登录 mimotion 的邮箱地址，不可与其他账号重复
+                    用于登录 MiMotion 的邮箱地址，不可与其他账号重复
                   </p>
                 </div>
               </div>

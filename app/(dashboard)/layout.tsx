@@ -48,7 +48,7 @@ export default async function DashboardLayout({
             <Footprints className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
           <span className="font-mono text-base font-bold tracking-tight">
-            <span className="text-primary">mi</span>motion
+            <span className="text-primary">Mi</span>Motion
           </span>
         </div>
 
@@ -105,8 +105,8 @@ export default async function DashboardLayout({
               <Footprints className="h-3 w-3 text-primary-foreground" />
             </div>
             <span className="font-mono text-sm font-bold">
-              <span className="text-primary">mi</span>
-              <span className="text-muted-foreground">motion</span>
+              <span className="text-primary">Mi</span>
+              <span className="text-muted-foreground">Motion</span>
             </span>
           </div>
           <div className="hidden md:block" />

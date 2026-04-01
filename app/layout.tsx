@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "mimotion",
+  title: "MiMotion",
   description: "小米运动自动刷步数",
 };
 
