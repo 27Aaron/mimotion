@@ -86,6 +86,7 @@ scripts/
   - 导航项 hover：`hover:bg-primary/8 hover:text-primary`，active 左侧绿色指示条
   - 侧边栏 admin 分隔：邀请码/用户管理前插入 `fade-divider`，视觉分隔管理项
 - 统一页面结构：页头（标题+描述）→ 统计概览卡片 → 内容卡片列表
+- **页面布局**：所有 Dashboard 页面使用 `flex flex-col` + 手动 `mb-6` 精确控制间距（不使用 `space-y-*`），避免 CSS 选择器优先级导致的间距不对称问题
 - 设置页：行对齐 2×2 grid（Row1: 用户名↔Bark，Row2: 密码↔Telegram），section header 带图标框+延伸线
 - 空态引导：编号圆圈步骤指示（`bg-primary/10` + 数字），统一风格贯穿小米账号/控制台/定时任务页
 - 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区（含退出按钮），与右侧顶栏 `h-12` 像素对齐
@@ -98,6 +99,11 @@ scripts/
   - `.fade-divider` / `.fade-border-*` — 主色调渐隐分割线
   - `.card-glow` — hover 时绿色渐变边框
   - `.nav-item` — 导航项基础样式 + active 指示条
+  - `.stats-grid` — 三列统计卡片网格（`mb-6 grid gap-4 sm:grid-cols-3`）
+  - `.stat-icon-box` — 统计卡片图标容器（`flex h-8 w-8 rounded-lg`，需搭配 bg 色类）
+  - `.section-icon` — 章节标题图标框（`flex h-5 w-5 rounded bg-primary/10`）
+  - `.empty-icon` — 空态圆形图标（`flex h-12 w-12 rounded-full bg-primary/10`）
+  - `.step-circle` — 步骤编号圆圈（`flex h-5 w-5 rounded-full bg-primary/10` + 字号色）
 
 ## Database Schema
 
