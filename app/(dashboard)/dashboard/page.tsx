@@ -2,7 +2,17 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { IconDeviceMobile, IconClockCheck, IconRun } from '@tabler/icons-react'
+import { Smartphone, ClockCheck, Footprints } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
@@ -28,69 +38,76 @@ export default async function DashboardPage() {
     (l) => l.executedAt && new Date(l.executedAt).toDateString() === new Date().toDateString()
   ).length
 
-  return (
-    <div>
-      <h1>控制台</h1>
+  const stats = [
+    { title: '小米账号', value: accounts.length, icon: Smartphone },
+    { title: '活跃任务', value: activeSchedules.filter((s) => s.isActive).length, icon: ClockCheck },
+    { title: '今日执行', value: todayCount, icon: Footprints },
+  ]
 
-      <div className="stats-grid">
-        <div className="card card-stat">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <IconDeviceMobile size={18} stroke={1.5} style={{ color: 'var(--accent)' }} />
-            <h3 style={{ margin: 0 }}>小米账号</h3>
-          </div>
-          <div className="stat-value">{accounts.length}</div>
-        </div>
-        <div className="card card-stat">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <IconClockCheck size={18} stroke={1.5} style={{ color: 'var(--accent)' }} />
-            <h3 style={{ margin: 0 }}>活跃任务</h3>
-          </div>
-          <div className="stat-value">
-            {activeSchedules.filter((s) => s.isActive).length}
-          </div>
-        </div>
-        <div className="card card-stat">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <IconRun size={18} stroke={1.5} style={{ color: 'var(--accent)' }} />
-            <h3 style={{ margin: 0 }}>今日执行</h3>
-          </div>
-          <div className="stat-value">{todayCount}</div>
-        </div>
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">控制台</h1>
+        <p className="text-muted-foreground">查看你的步数同步状态</p>
       </div>
 
-      <div className="section-title">最近执行记录</div>
-      {recentLogs.length === 0 ? (
-        <div className="empty-state">暂无执行记录</div>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>时间</th>
-                <th>步数</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentLogs.map((log) => (
-                <tr key={log.id}>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem' }}>
-                    {log.executedAt ? new Date(log.executedAt).toLocaleString() : '-'}
-                  </td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    {log.stepWritten || '-'}
-                  </td>
-                  <td>
-                    <span className={`badge ${log.status === 'success' ? 'badge-success' : 'badge-danger'}`}>
-                      {log.status === 'success' ? '成功' : '失败'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <stat.icon className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold font-mono">{stat.value}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div>
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          最近执行记录
+        </h2>
+        {recentLogs.length === 0 ? (
+          <Card>
+            <CardContent className="flex h-32 items-center justify-center text-muted-foreground">
+              暂无执行记录
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>时间</TableHead>
+                  <TableHead>步数</TableHead>
+                  <TableHead>状态</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-mono text-sm">
+                      {log.executedAt ? new Date(log.executedAt).toLocaleString() : '-'}
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {log.stepWritten || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                        {log.status === 'success' ? '成功' : '失败'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

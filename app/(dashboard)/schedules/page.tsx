@@ -1,13 +1,36 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Plus, Trash2, Clock, Play, Pause } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
-  IconPlus,
-  IconTrash,
-  IconClock,
-  IconPlayerPause,
-  IconPlayerPlay,
-} from '@tabler/icons-react'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface Schedule {
   id: string
@@ -22,7 +45,7 @@ interface Schedule {
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [showAdd, setShowAdd] = useState(false)
+  const [open, setOpen] = useState(false)
   const [accounts, setAccounts] = useState<{ id: string; nickname: string }[]>([])
   const [form, setForm] = useState({
     xiaomiAccountId: '',
@@ -63,7 +86,7 @@ export default function SchedulesPage() {
     setLoading(false)
 
     if (res.ok) {
-      setShowAdd(false)
+      setOpen(false)
       setForm({ xiaomiAccountId: '', cronExpression: '0 9 * * *', minStep: 1000, maxStep: 1500 })
       fetchSchedules()
     } else {
@@ -87,128 +110,154 @@ export default function SchedulesPage() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>定时任务</h1>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <IconPlus size={16} stroke={2} /> 创建任务
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">定时任务</h1>
+          <p className="text-muted-foreground">管理自动刷步计划</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> 创建任务
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>创建定时任务</DialogTitle>
+              <DialogDescription>
+                设置自动刷步的时间和步数范围
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAdd}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>小米账号</Label>
+                  <Select
+                    value={form.xiaomiAccountId}
+                    onValueChange={(v) => setForm({ ...form, xiaomiAccountId: v ?? '' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择账号" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.nickname}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cron 表达式</Label>
+                  <Input
+                    value={form.cronExpression}
+                    onChange={(e) => setForm({ ...form, cronExpression: e.target.value })}
+                    placeholder="0 9 * * *"
+                    required
+                  />
+                  <p className="font-mono text-xs text-muted-foreground">
+                    例: 0 9 * * * = 每天9点 | 0 12 * * * = 每天12点
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>最小步数</Label>
+                    <Input
+                      type="number"
+                      value={form.minStep}
+                      onChange={(e) => setForm({ ...form, minStep: parseInt(e.target.value) })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>最大步数</Label>
+                    <Input
+                      type="number"
+                      value={form.maxStep}
+                      onChange={(e) => setForm({ ...form, maxStep: parseInt(e.target.value) })}
+                      required
+                    />
+                  </div>
+                </div>
+                {error && (
+                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  取消
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? '创建中...' : '创建'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {showAdd && (
-        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginBottom: 20 }}>创建定时任务</h2>
-            <form onSubmit={handleAdd}>
-              <div>
-                <label>小米账号</label>
-                <select
-                  value={form.xiaomiAccountId}
-                  onChange={(e) => setForm({ ...form, xiaomiAccountId: e.target.value })}
-                  required
-                >
-                  <option value="">选择账号</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>{acc.nickname}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label>Cron 表达式</label>
-                <input
-                  type="text"
-                  value={form.cronExpression}
-                  onChange={(e) => setForm({ ...form, cronExpression: e.target.value })}
-                  placeholder="0 9 * * *"
-                  required
-                />
-                <div className="cron-hint">
-                  例: 0 9 * * * = 每天9点 &nbsp;|&nbsp; 0 12 * * * = 每天12点
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <label>最小步数</label>
-                  <input
-                    type="number"
-                    value={form.minStep}
-                    onChange={(e) => setForm({ ...form, minStep: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label>最大步数</label>
-                  <input
-                    type="number"
-                    value={form.maxStep}
-                    onChange={(e) => setForm({ ...form, maxStep: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-              {error && <div className="msg-error" style={{ marginTop: 16 }}>{error}</div>}
-              <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? '创建中...' : '创建'}
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>
-                  取消
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {schedules.length === 0 ? (
-        <div className="empty-state">
-          <IconClock size={40} stroke={1} style={{ color: 'var(--text-tertiary)', marginBottom: 12 }} />
-          <div>暂无任务，点击上方按钮创建</div>
-        </div>
+        <Card>
+          <CardContent className="flex h-40 flex-col items-center justify-center text-muted-foreground">
+            <Clock className="mb-3 h-10 w-10 opacity-30" />
+            <p>暂无任务，点击上方按钮创建</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>账号</th>
-                <th>Cron</th>
-                <th>步数范围</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>账号</TableHead>
+                <TableHead>Cron</TableHead>
+                <TableHead>步数范围</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {schedules.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{s.accountNickname}</td>
-                  <td>
-                    <code style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{s.cronExpression}</code>
-                  </td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem' }}>
+                <TableRow key={s.id}>
+                  <TableCell className="font-medium">{s.accountNickname}</TableCell>
+                  <TableCell>
+                    <code className="text-sm text-muted-foreground">{s.cronExpression}</code>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
                     {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
-                  </td>
-                  <td>
-                    <button
-                      className={`btn btn-sm ${s.isActive ? 'badge-success' : 'badge-neutral'}`}
-                      style={{ border: 'none', cursor: 'pointer', font: 'inherit' }}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleToggle(s.id, s.isActive)}
                     >
-                      {s.isActive
-                        ? <><IconPlayerPause size={12} stroke={1.5} /> 运行中</>
-                        : <><IconPlayerPlay size={12} stroke={1.5} /> 已停用</>
-                      }
-                    </button>
-                  </td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
-                      <IconTrash size={14} stroke={1.5} /> 删除
-                    </button>
-                  </td>
-                </tr>
+                      {s.isActive ? (
+                        <>
+                          <Pause className="mr-1 h-3.5 w-3.5" />
+                          <Badge variant="default">运行中</Badge>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="mr-1 h-3.5 w-3.5" />
+                          <Badge variant="secondary">已停用</Badge>
+                        </>
+                      )}
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )

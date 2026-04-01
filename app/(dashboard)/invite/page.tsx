@@ -1,7 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { IconPlus, IconTrash, IconCopy, IconTicket } from '@tabler/icons-react'
+import { Plus, Trash2, Copy, Ticket } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface InviteCode {
   code: string
@@ -39,68 +50,75 @@ export default function InvitePage() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>邀请码管理</h1>
-        <button className="btn btn-primary" onClick={handleCreate} disabled={loading}>
-          <IconPlus size={16} stroke={2} /> {loading ? '生成中...' : '生成邀请码'}
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">邀请码管理</h1>
+          <p className="text-muted-foreground">生成和管理注册邀请码</p>
+        </div>
+        <Button onClick={handleCreate} disabled={loading}>
+          <Plus className="mr-2 h-4 w-4" />
+          {loading ? '生成中...' : '生成邀请码'}
+        </Button>
       </div>
 
       {newCode && (
-        <div className="code-highlight">
-          <code>{newCode}</code>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => { navigator.clipboard.writeText(newCode) }}
+        <div className="flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <code className="flex-1 font-mono text-lg text-primary">{newCode}</code>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigator.clipboard.writeText(newCode)}
           >
-            <IconCopy size={14} stroke={1.5} /> 复制
-          </button>
+            <Copy className="mr-1.5 h-3.5 w-3.5" /> 复制
+          </Button>
         </div>
       )}
 
       {codes.length === 0 ? (
-        <div className="empty-state">
-          <IconTicket size={40} stroke={1} style={{ color: 'var(--text-tertiary)', marginBottom: 12 }} />
-          <div>暂无邀请码</div>
-        </div>
+        <Card>
+          <CardContent className="flex h-40 flex-col items-center justify-center text-muted-foreground">
+            <Ticket className="mb-3 h-10 w-10 opacity-30" />
+            <p>暂无邀请码</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="table-wrap" style={{ marginTop: 20 }}>
-          <table>
-            <thead>
-              <tr>
-                <th>邀请码</th>
-                <th>状态</th>
-                <th>创建时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>邀请码</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>创建时间</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {codes.map((c) => (
-                <tr key={c.code}>
-                  <td>
-                    <code style={{ fontSize: '0.9rem' }}>{c.code}</code>
-                  </td>
-                  <td>
-                    <span className={`badge ${c.usedBy ? 'badge-success' : 'badge-neutral'}`}>
+                <TableRow key={c.code}>
+                  <TableCell>
+                    <code className="text-sm">{c.code}</code>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={c.usedBy ? 'default' : 'secondary'}>
                       {c.usedBy ? '已使用' : '未使用'}
-                    </span>
-                  </td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem' }}>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
                     {new Date(c.createdAt).toLocaleString()}
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell className="text-right">
                     {!c.usedBy && (
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.code)}>
-                        <IconTrash size={14} stroke={1.5} /> 删除
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(c.code)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )
