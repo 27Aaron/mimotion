@@ -96,7 +96,7 @@ export default function AuthPage() {
                 <Footprints className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-mono text-xl font-bold tracking-tight">
-                <span className="text-primary">mi</span>motion
+                <span className="text-primary">Mi</span>Motion
               </span>
             </div>
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
