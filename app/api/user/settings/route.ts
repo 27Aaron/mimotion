@@ -16,6 +16,7 @@ export async function GET() {
       username: users.username,
       isAdmin: users.isAdmin,
       barkUrl: users.barkUrl,
+      telegramBotToken: users.telegramBotToken,
       telegramChatId: users.telegramChatId,
     })
     .from(users)
@@ -32,7 +33,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { username, password, barkUrl, telegramChatId, currentPassword } = body
+  const { username, password, barkUrl, telegramBotToken, telegramChatId, currentPassword } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
@@ -72,6 +73,10 @@ export async function PUT(request: NextRequest) {
 
   if (barkUrl !== undefined) {
     updates.barkUrl = barkUrl || null
+  }
+
+  if (telegramBotToken !== undefined) {
+    updates.telegramBotToken = telegramBotToken || null
   }
 
   if (telegramChatId !== undefined) {

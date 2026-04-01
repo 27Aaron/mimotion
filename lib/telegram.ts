@@ -9,17 +9,17 @@ interface TelegramPushOptions {
 }
 
 async function getTelegramConfig(userId: string): Promise<{ botToken: string; chatId: string } | null> {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN
-  if (!botToken) return null
-
   const result = await db
-    .select({ telegramChatId: users.telegramChatId })
+    .select({
+      botToken: users.telegramBotToken,
+      chatId: users.telegramChatId,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
 
-  const chatId = result[0]?.telegramChatId
-  if (!chatId) return null
+  const { botToken, chatId } = result[0] || {}
+  if (!botToken || !chatId) return null
 
   return { botToken, chatId }
 }

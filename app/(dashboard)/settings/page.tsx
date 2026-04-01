@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [barkUrl, setBarkUrl] = useState("");
+  const [telegramBotToken, setTelegramBotToken] = useState("");
   const [telegramChatId, setTelegramChatId] = useState("");
   const [currentUsername, setCurrentUsername] = useState("");
   const [message, setMessage] = useState("");
@@ -39,6 +40,7 @@ export default function SettingsPage() {
       .then((data) => {
         if (data.username) setCurrentUsername(data.username);
         if (data.barkUrl) setBarkUrl(data.barkUrl);
+        if (data.telegramBotToken) setTelegramBotToken(data.telegramBotToken);
         if (data.telegramChatId) setTelegramChatId(data.telegramChatId);
       })
       .catch(() => {});
@@ -58,6 +60,7 @@ export default function SettingsPage() {
         password: newPassword || undefined,
         currentPassword: currentPassword || undefined,
         barkUrl: barkUrl || null,
+        telegramBotToken: telegramBotToken || null,
         telegramChatId: telegramChatId || null,
       }),
     });
@@ -226,45 +229,63 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-6 sm:grid-cols-2">
                 {/* Bark */}
-                <div className="space-y-1.5">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label htmlFor="barkUrl" className="text-xs">
-                      Bark 推送
-                    </Label>
+                    <Label className="text-xs font-medium">Bark 推送</Label>
                   </div>
-                  <Input
-                    id="barkUrl"
-                    type="url"
-                    value={barkUrl}
-                    onChange={(e) => setBarkUrl(e.target.value)}
-                    placeholder="https://api.day.app/yourkey"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    填入你的 Bark Key，任务执行后自动推送结果
-                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="barkUrl" className="text-xs text-muted-foreground">
+                      Bark URL
+                    </Label>
+                    <Input
+                      id="barkUrl"
+                      type="url"
+                      value={barkUrl}
+                      onChange={(e) => setBarkUrl(e.target.value)}
+                      placeholder="https://api.day.app/yourkey"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      填入完整的 Bark 推送地址
+                    </p>
+                  </div>
                 </div>
 
                 {/* Telegram */}
-                <div className="space-y-1.5">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Send className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label htmlFor="telegramChatId" className="text-xs">
-                      Telegram 推送
-                    </Label>
+                    <Label className="text-xs font-medium">Telegram 推送</Label>
                   </div>
-                  <Input
-                    id="telegramChatId"
-                    type="text"
-                    value={telegramChatId}
-                    onChange={(e) => setTelegramChatId(e.target.value)}
-                    placeholder="Chat ID，如 123456789"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    向 Bot 发送 /start 获取 Chat ID，需管理员配置 Bot Token
-                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="telegramBotToken" className="text-xs text-muted-foreground">
+                      Bot Token
+                    </Label>
+                    <Input
+                      id="telegramBotToken"
+                      type="text"
+                      value={telegramBotToken}
+                      onChange={(e) => setTelegramBotToken(e.target.value)}
+                      placeholder="123456:ABC-DEF..."
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="telegramChatId" className="text-xs text-muted-foreground">
+                      Chat ID
+                    </Label>
+                    <Input
+                      id="telegramChatId"
+                      type="text"
+                      value={telegramChatId}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      placeholder="123456789"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      通过 @userinfobot 获取 Chat ID
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -280,6 +301,7 @@ export default function SettingsPage() {
               setCurrentPassword("");
               setNewPassword("");
               setBarkUrl("");
+              setTelegramBotToken("");
               setTelegramChatId("");
               setMessage("");
               setError("");
