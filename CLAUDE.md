@@ -100,7 +100,10 @@ scripts/
   - `.card-glow` — hover 时绿色渐变边框
   - `.nav-item` — 导航项基础样式 + active 指示条
   - `.stats-grid` — 三列统计卡片网格（`mb-6 grid gap-4 sm:grid-cols-3`）
-  - `.stat-icon-box` — 统计卡片图标容器（`flex h-8 w-8 rounded-lg`，需搭配 bg 色类）
+  - `.stat-card` — 紧凑统计卡片（`py-0.5 gap-1`，配合 stats-grid 使用）
+  - `.stat-icon-box` — 统计卡片图标容器（`2.667rem` 方形圆角容器，SVG 子元素自动 `1.333rem`，需搭配 bg 色类）
+  - `.stat-value` — 统计数值（`1.5rem mono bold`）
+  - `.stat-label` — 统计标签（`0.75rem uppercase muted`）
   - `.section-icon` — 章节标题图标框（`flex h-5 w-5 rounded bg-primary/10`）
   - `.empty-icon` — 空态圆形图标（`flex h-12 w-12 rounded-full bg-primary/10`）
   - `.step-circle` — 步骤编号圆圈（`flex h-5 w-5 rounded-full bg-primary/10` + 字号色）

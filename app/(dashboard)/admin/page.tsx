@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -128,37 +128,46 @@ export default function AdminPage() {
 
       {/* Overview stats */}
       <div className="stats-grid">
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-              <Users className="h-5 w-5 text-blue-500" />
+        <Card className="stat-card">
+          <CardHeader className="pb-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="stat-label">注册用户</CardTitle>
+              <div className="stat-icon-box bg-blue-500/10">
+                <Users className="text-blue-500" />
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold font-mono">{totalUsers}</p>
-              <p className="text-xs text-muted-foreground">注册用户</p>
-            </div>
+          </CardHeader>
+          <CardContent className="pt-0 pb-1">
+            <div className="stat-value">{totalUsers}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">注册用户</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-              <Smartphone className="h-5 w-5 text-emerald-500" />
+        <Card className="stat-card">
+          <CardHeader className="pb-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="stat-label">绑定账号</CardTitle>
+              <div className="stat-icon-box bg-emerald-500/10">
+                <Smartphone className="text-emerald-500" />
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold font-mono">{totalAccounts}</p>
-              <p className="text-xs text-muted-foreground">绑定账号总数</p>
-            </div>
+          </CardHeader>
+          <CardContent className="pt-0 pb-1">
+            <div className="stat-value">{totalAccounts}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">绑定账号总数</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-              <Calendar className="h-5 w-5 text-amber-500" />
+        <Card className="stat-card">
+          <CardHeader className="pb-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="stat-label">活跃任务</CardTitle>
+              <div className="stat-icon-box bg-amber-500/10">
+                <Calendar className="text-amber-500" />
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold font-mono">{totalActive}</p>
-              <p className="text-xs text-muted-foreground">活跃任务总数</p>
-            </div>
+          </CardHeader>
+          <CardContent className="pt-0 pb-1">
+            <div className="stat-value">{totalActive}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">活跃任务总数</p>
           </CardContent>
         </Card>
       </div>

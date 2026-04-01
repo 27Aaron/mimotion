@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -331,15 +331,24 @@ export default function XiaomiPage() {
       {/* Stats overview */}
       <div className="stats-grid mb-6">
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="flex items-center gap-4 py-4">
-              <div className={`stat-icon-box ${stat.bg}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+          <Card key={stat.title} className="stat-card">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="stat-label">
+                  {stat.title}
+                </CardTitle>
+                <div className={`stat-icon-box ${stat.bg}`}>
+                  <stat.icon className={stat.color} />
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold font-mono">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.detail}</p>
+            </CardHeader>
+            <CardContent className="pt-0 pb-1">
+              <div className="stat-value">
+                {stat.value}
               </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {stat.detail}
+              </p>
             </CardContent>
           </Card>
         ))}

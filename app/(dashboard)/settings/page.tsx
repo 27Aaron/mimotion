@@ -136,14 +136,14 @@ export default function SettingsPage() {
 
       {/* Profile */}
       <Card className="mb-3">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-5">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+        <CardContent className="px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
               {currentUsername ? currentUsername.charAt(0).toUpperCase() : "?"}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-lg font-semibold">
+                <p className="text-base font-semibold">
                   {currentUsername || "加载中..."}
                 </p>
                 <Badge variant="secondary" className="text-[10px]">
@@ -151,7 +151,7 @@ export default function SettingsPage() {
                   用户名
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 用于登录 MiMotion 的用户名
               </p>
             </div>
