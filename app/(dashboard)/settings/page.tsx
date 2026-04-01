@@ -1,55 +1,62 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function SettingsPage() {
-  const [email, setEmail] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [barkUrl, setBarkUrl] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [barkUrl, setBarkUrl] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setMessage('')
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setMessage("");
+    setError("");
+    setLoading(true);
 
-    const res = await fetch('/api/user/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/user/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: email || undefined,
         password: newPassword || undefined,
         currentPassword: currentPassword || undefined,
         barkUrl: barkUrl || null,
       }),
-    })
+    });
 
-    const data = await res.json()
-    setLoading(false)
+    const data = await res.json();
+    setLoading(false);
 
     if (res.ok) {
-      setMessage('设置已保存')
-      setCurrentPassword('')
-      setNewPassword('')
+      setMessage("设置已保存");
+      setCurrentPassword("");
+      setNewPassword("");
     } else {
-      setError(data.error || '保存失败')
+      setError(data.error || "保存失败");
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">设置</h1>
-        <p className="text-muted-foreground">管理你的账号和通知偏好</p>
+        <p className="mt-1 text-muted-foreground">管理你的账号和通知偏好</p>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-lg space-y-6">
@@ -71,13 +78,15 @@ export default function SettingsPage() {
             </div>
             <Separator />
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">当前密码（修改密码时必填）</Label>
+              <Label htmlFor="currentPassword">
+                当前密码（修改密码时必填）
+              </Label>
               <Input
                 id="currentPassword"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="输入当前密码"
+                placeholder="请输入当前密码"
               />
             </div>
             <div className="space-y-2">
@@ -87,7 +96,7 @@ export default function SettingsPage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="输入新密码"
+                placeholder="请输入新密码"
               />
             </div>
           </CardContent>
@@ -96,7 +105,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>通知设置</CardTitle>
-            <CardDescription>配置 Bark 推送通知</CardDescription>
+            <CardDescription>配置执行结果推送通知</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -106,27 +115,27 @@ export default function SettingsPage() {
                 type="url"
                 value={barkUrl}
                 onChange={(e) => setBarkUrl(e.target.value)}
-                placeholder="https://api.day.app（留空使用默认）"
+                placeholder="留空使用默认"
               />
             </div>
           </CardContent>
         </Card>
 
         {error && (
-          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
         {message && (
-          <div className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+          <div className="rounded-md bg-primary/10 px-4 py-3 text-sm text-primary">
             {message}
           </div>
         )}
 
         <Button type="submit" disabled={loading}>
-          {loading ? '保存中...' : '保存设置'}
+          {loading ? "保存中..." : "保存设置"}
         </Button>
       </form>
     </div>
-  )
+  );
 }

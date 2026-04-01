@@ -1,71 +1,75 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Footprints } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Footprints } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AuthPage() {
-  const router = useRouter()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const router = useRouter();
+  const [mode, setMode] = useState<"login" | "register">("login");
 
   // Login
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   // Register
-  const [regEmail, setRegEmail] = useState('')
-  const [regPassword, setRegPassword] = useState('')
-  const [regInviteCode, setRegInviteCode] = useState('')
-  const [regError, setRegError] = useState('')
-  const [regLoading, setRegLoading] = useState(false)
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regInviteCode, setRegInviteCode] = useState("");
+  const [regError, setRegError] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoginError('')
-    setLoginLoading(true)
+    e.preventDefault();
+    setLoginError("");
+    setLoginLoading(true);
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-    })
+    });
 
-    const data = await res.json()
-    setLoginLoading(false)
+    const data = await res.json();
+    setLoginLoading(false);
 
     if (res.ok) {
-      router.push('/dashboard')
-      router.refresh()
+      router.push("/dashboard");
+      router.refresh();
     } else {
-      setLoginError(data.error || '登录失败')
+      setLoginError(data.error || "登录失败");
     }
   }
 
   async function handleRegister(e: React.FormEvent) {
-    e.preventDefault()
-    setRegError('')
-    setRegLoading(true)
+    e.preventDefault();
+    setRegError("");
+    setRegLoading(true);
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: regEmail, password: regPassword, inviteCode: regInviteCode }),
-    })
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: regEmail,
+        password: regPassword,
+        inviteCode: regInviteCode,
+      }),
+    });
 
-    const data = await res.json()
-    setRegLoading(false)
+    const data = await res.json();
+    setRegLoading(false);
 
     if (res.ok) {
-      router.push('/dashboard')
-      router.refresh()
+      router.push("/dashboard");
+      router.refresh();
     } else {
-      setRegError(data.error || '注册失败')
+      setRegError(data.error || "注册失败");
     }
   }
 
@@ -104,21 +108,26 @@ export default function AuthPage() {
 
           <div className="space-y-4">
             <div className="space-y-3">
-              {['自动定时刷步', '多账号管理', '执行结果推送通知'].map((text) => (
-                <div key={text} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  {text}
-                </div>
-              ))}
+              {["自动定时刷步", "多账号管理", "执行结果推送通知"].map(
+                (text) => (
+                  <div
+                    key={text}
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    {text}
+                  </div>
+                ),
+              )}
             </div>
             <p className="text-xs text-muted-foreground/50">
-              {mode === 'login' ? '还没有账号？' : '已有账号？'}
+              {mode === "login" ? "还没有账号？" : "已有账号？"}
               <button
                 type="button"
-                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+                onClick={() => setMode(mode === "login" ? "register" : "login")}
                 className="ml-1 font-medium text-primary hover:underline"
               >
-                {mode === 'login' ? '去注册' : '去登录'}
+                {mode === "login" ? "去注册" : "去登录"}
               </button>
             </p>
           </div>
@@ -126,10 +135,12 @@ export default function AuthPage() {
 
         {/* Right panel - form */}
         <div className="bg-card p-8">
-          {mode === 'login' ? (
+          {mode === "login" ? (
             <>
               <div className="mb-6">
-                <h2 className="text-xl font-semibold tracking-tight">欢迎回来</h2>
+                <h2 className="text-xl font-semibold tracking-tight">
+                  欢迎回来
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">登录以继续</p>
               </div>
               <form onSubmit={handleLogin} className="space-y-4">
@@ -160,14 +171,18 @@ export default function AuthPage() {
                     {loginError}
                   </div>
                 )}
-                <Button type="submit" className="w-full" disabled={loginLoading}>
-                  {loginLoading ? '登录中...' : '登录'}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? "登录中..." : "登录"}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground md:hidden">
-                  还没有账号？{' '}
+                  还没有账号？{" "}
                   <button
                     type="button"
-                    onClick={() => setMode('register')}
+                    onClick={() => setMode("register")}
                     className="font-medium text-primary hover:underline"
                   >
                     注册
@@ -178,8 +193,12 @@ export default function AuthPage() {
           ) : (
             <>
               <div className="mb-6">
-                <h2 className="text-xl font-semibold tracking-tight">创建账号</h2>
-                <p className="mt-1 text-sm text-muted-foreground">创建你的账号</p>
+                <h2 className="text-xl font-semibold tracking-tight">
+                  创建账号
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  创建你的账号
+                </p>
               </div>
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
@@ -221,13 +240,13 @@ export default function AuthPage() {
                   </div>
                 )}
                 <Button type="submit" className="w-full" disabled={regLoading}>
-                  {regLoading ? '注册中...' : '注册'}
+                  {regLoading ? "注册中..." : "注册"}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground md:hidden">
-                  已有账号？{' '}
+                  已有账号？{" "}
                   <button
                     type="button"
-                    onClick={() => setMode('login')}
+                    onClick={() => setMode("login")}
                     className="font-medium text-primary hover:underline"
                   >
                     登录
@@ -239,5 +258,5 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
