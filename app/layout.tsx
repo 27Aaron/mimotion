@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
 export const metadata: Metadata = {
   title: "mimotion",
@@ -17,7 +14,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className={geist.variable}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://npm.elemecdn.com/lxgw-wenkai-screen-webfont/style.css"
+        />
+      </head>
+      <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

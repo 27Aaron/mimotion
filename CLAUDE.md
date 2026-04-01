@@ -68,13 +68,15 @@ scripts/
 
 ## UI Architecture
 
+- **字体**: LXGW WenKai Screen（霞鹜文楷屏幕阅读版），CDN 加载；等宽字体用 JetBrains Mono
 - **shadcn/ui** 组件库，基于 `@base-ui/react`（非 Radix）
 - Tailwind CSS v4，主题色通过 oklch CSS 变量定义（亮/暗两套）
 - 主色调：翡翠绿 `oklch(0.596 0.145 163.2)`
-- 统一页面结构：`text-2xl font-bold` 标题 + `text-muted-foreground` 描述 + 内容区
-- 侧边栏：品牌 logo + 导航 + 用户信息区（邮箱 + 角色）
-- 登录页：左右分栏（品牌介绍 + 切换式登录/注册表单）
-- 所有页面支持 dark/light 主题切换，右上角 ThemeToggle
+- 统一页面结构：页头（标题+描述）→ 统计概览卡片 → 内容卡片列表
+- 侧边栏：Footprints 图标 logo（居中）+ 导航 + 用户信息区，与右侧顶栏 `h-12 border-b` 像素对齐
+- 登录页：左右分栏（品牌介绍 Footprints logo + 切换式登录/注册表单）
+- 所有内页（小米账号/定时任务/邀请码）使用卡片网格布局替代纯表格
+- 所有页面支持 dark/light 主题切换，顶栏右侧 ThemeToggle
 
 ## Database Schema
 

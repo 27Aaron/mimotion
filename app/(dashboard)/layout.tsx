@@ -10,6 +10,7 @@ import {
   LogOut,
   CircleUser,
   Users,
+  Footprints,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
@@ -41,17 +42,15 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="hidden md:flex w-60 flex-col border-r bg-sidebar text-sidebar-foreground">
-        {/* Brand */}
-        <div className="flex h-14 items-center gap-2.5 px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <span className="text-xs font-bold">m</span>
+        {/* Brand - same height as top bar */}
+        <div className="flex h-12 items-center justify-center gap-2.5 border-b border-sidebar-border">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80 shadow-sm shadow-primary/20">
+            <Footprints className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
           <span className="font-mono text-base font-bold tracking-tight">
-            <span className="text-primary">mi</span>
-            <span className="text-sidebar-foreground/40">motion</span>
+            <span className="text-primary">mi</span>motion
           </span>
         </div>
-        <Separator />
 
         {/* Navigation */}
         <nav className="flex-1 space-y-0.5 p-3">
@@ -102,8 +101,8 @@ export default async function DashboardLayout({
         {/* Top bar */}
         <div className="flex h-12 items-center justify-between border-b bg-background px-4 md:px-6">
           <div className="flex items-center gap-2 md:hidden">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
-              <span className="text-[10px] font-bold text-primary-foreground">m</span>
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80">
+              <Footprints className="h-3 w-3 text-primary-foreground" />
             </div>
             <span className="font-mono text-sm font-bold">
               <span className="text-primary">mi</span>
