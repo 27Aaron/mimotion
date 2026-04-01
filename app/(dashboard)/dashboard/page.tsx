@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -111,7 +110,7 @@ export default async function DashboardPage() {
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.title} className="relative overflow-hidden">
+          <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -159,44 +158,46 @@ export default async function DashboardPage() {
           </Card>
         ) : (
           <Card>
-            <div className="divide-y">
-              {recentLogs.slice(0, 10).map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/50"
-                >
-                  {log.status === "success" ? (
-                    <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                  ) : (
-                    <XCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
-                        {log.status === "success" ? "同步成功" : "同步失败"}
-                      </span>
-                      {log.stepWritten && (
-                        <Badge variant="secondary" className="font-mono text-xs">
-                          {Number(log.stepWritten).toLocaleString()} 步
-                        </Badge>
+            <div className="flex flex-col">
+              {recentLogs.slice(0, 10).map((log, i) => (
+                <div key={log.id}>
+                  {i > 0 && <div className="fade-divider" />}
+                  <div
+                    className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/50"
+                  >
+                    {log.status === "success" ? (
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {log.status === "success" ? "同步成功" : "同步失败"}
+                        </span>
+                        {log.stepWritten && (
+                          <Badge variant="secondary" className="font-mono text-xs">
+                            {Number(log.stepWritten).toLocaleString()} 步
+                          </Badge>
+                        )}
+                      </div>
+                      {log.errorMessage && (
+                        <p className="mt-0.5 text-xs text-destructive/80 truncate">
+                          {log.errorMessage}
+                        </p>
                       )}
                     </div>
-                    {log.errorMessage && (
-                      <p className="mt-0.5 text-xs text-destructive/80 truncate">
-                        {log.errorMessage}
-                      </p>
-                    )}
+                    <time className="flex-shrink-0 font-mono text-xs text-muted-foreground">
+                      {log.executedAt
+                        ? new Date(log.executedAt).toLocaleString("zh-CN", {
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-"}
+                    </time>
                   </div>
-                  <time className="flex-shrink-0 font-mono text-xs text-muted-foreground">
-                    {log.executedAt
-                      ? new Date(log.executedAt).toLocaleString("zh-CN", {
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "-"}
-                  </time>
                 </div>
               ))}
             </div>
@@ -217,7 +218,7 @@ export default async function DashboardPage() {
                 先添加一个小米账号，然后创建定时任务自动刷步
               </p>
             </div>
-            <Separator className="max-w-[200px]" />
+            <div className="fade-divider max-w-[200px]" />
             <div className="flex gap-4 text-sm text-muted-foreground">
               <span>1. 添加小米账号</span>
               <span>2. 创建定时任务</span>

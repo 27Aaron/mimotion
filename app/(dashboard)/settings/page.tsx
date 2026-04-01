@@ -22,8 +22,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
 export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -191,7 +189,7 @@ export default function SettingsPage() {
                   留空则不修改。更换后需用新邮箱登录。
                 </p>
 
-                <Separator className="my-3" />
+                <div className="fade-divider my-3" />
 
                 <div className="rounded-lg bg-muted/50 p-3">
                   <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -260,7 +258,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-4 border-t pt-6">
+        <div className="fade-border-t flex items-center gap-4 pt-6">
           <Button
             type="button"
             onClick={() => {
