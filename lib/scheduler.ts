@@ -9,11 +9,19 @@ import { sendBarkPush } from './bark'
 import { sendTelegramPush } from './telegram'
 import { v4 as uuid } from 'uuid'
 
+let schedulerRunning = false
+
 export function startScheduler() {
   console.log('[Scheduler] Starting...')
 
   cron.schedule('* * * * *', async () => {
-    await checkAndRunSchedules()
+    if (schedulerRunning) return
+    schedulerRunning = true
+    try {
+      await checkAndRunSchedules()
+    } finally {
+      schedulerRunning = false
+    }
   })
 
   console.log('[Scheduler] Running')
@@ -46,6 +54,11 @@ async function checkAndRunSchedules() {
     function matchesCronField(field: string, current: number): boolean {
       if (field === '*') return true
       if (field === current.toString()) return true
+      // 步长匹配（如 */5）
+      if (field.startsWith('*/')) {
+        const step = parseInt(field.slice(2))
+        return step > 0 && current % step === 0
+      }
       // 范围匹配
       if (field.includes('-')) {
         const [start, end] = field.split('-').map(Number)

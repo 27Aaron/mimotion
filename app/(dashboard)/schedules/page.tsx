@@ -167,6 +167,7 @@ export default function SchedulesPage() {
   const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     fetchSchedules();
@@ -174,8 +175,13 @@ export default function SchedulesPage() {
   }, []);
 
   async function fetchSchedules() {
-    const res = await fetch("/api/schedules");
-    if (res.ok) setSchedules(await res.json());
+    setDataLoading(true);
+    try {
+      const res = await fetch("/api/schedules");
+      if (res.ok) setSchedules(await res.json());
+    } finally {
+      setDataLoading(false);
+    }
   }
 
   async function fetchAccounts() {
@@ -358,7 +364,7 @@ export default function SchedulesPage() {
             创建自动刷步计划，设置时间和步数范围
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm({ ...DEFAULT_FORM }); setError(""); } }}>
           <DialogTrigger render={<Button />}>
             <IconCalendarPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> 创建任务
           </DialogTrigger>
@@ -464,7 +470,7 @@ export default function SchedulesPage() {
                       type="number"
                       value={form.minStep}
                       onChange={(e) =>
-                        setForm({ ...form, minStep: parseInt(e.target.value) })
+                        setForm({ ...form, minStep: Math.max(0, parseInt(e.target.value) || 0) })
                       }
                       required
                     />
@@ -475,7 +481,7 @@ export default function SchedulesPage() {
                       type="number"
                       value={form.maxStep}
                       onChange={(e) =>
-                        setForm({ ...form, maxStep: parseInt(e.target.value) })
+                        setForm({ ...form, maxStep: Math.max(0, parseInt(e.target.value) || 0) })
                       }
                       required
                     />
@@ -607,7 +613,7 @@ export default function SchedulesPage() {
                       type="number"
                       value={form.minStep}
                       onChange={(e) =>
-                        setForm({ ...form, minStep: parseInt(e.target.value) })
+                        setForm({ ...form, minStep: Math.max(0, parseInt(e.target.value) || 0) })
                       }
                       required
                     />
@@ -618,7 +624,7 @@ export default function SchedulesPage() {
                       type="number"
                       value={form.maxStep}
                       onChange={(e) =>
-                        setForm({ ...form, maxStep: parseInt(e.target.value) })
+                        setForm({ ...form, maxStep: Math.max(0, parseInt(e.target.value) || 0) })
                       }
                       required
                     />

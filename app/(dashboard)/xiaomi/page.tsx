@@ -59,14 +59,20 @@ export default function XiaomiPage() {
   const [error, setError] = useState("");
   const [editError, setEditError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     fetchAccounts();
   }, []);
 
   async function fetchAccounts() {
-    const res = await fetch("/api/xiaomi");
-    if (res.ok) setAccounts(await res.json());
+    setDataLoading(true);
+    try {
+      const res = await fetch("/api/xiaomi");
+      if (res.ok) setAccounts(await res.json());
+    } finally {
+      setDataLoading(false);
+    }
   }
 
   async function handleAdd(e: React.FormEvent) {

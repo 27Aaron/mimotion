@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, inArray } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
 import { encrypt } from '@/lib/crypto'
@@ -18,6 +18,7 @@ export async function GET() {
     .from(xiaomiAccounts)
     .where(eq(xiaomiAccounts.userId, current.userId))
 
+  // 任务统计 + scheduleId 映射合并为一条查询
   const scheduleStats = await db
     .select({
       xiaomiAccountId: schedules.xiaomiAccountId,
@@ -30,7 +31,6 @@ export async function GET() {
 
   const scheduleMap = new Map(scheduleStats.map(s => [s.xiaomiAccountId, s]))
 
-  // 查每个账号最近步数
   const userSchedules = await db
     .select({ id: schedules.id, xiaomiAccountId: schedules.xiaomiAccountId })
     .from(schedules)
@@ -49,7 +49,7 @@ export async function GET() {
         executedAt: runLogs.executedAt,
       })
       .from(runLogs)
-      .where(sql`${runLogs.scheduleId} in (${sql.join(scheduleIds.map(id => sql`${id}`), sql`, `)})`)
+      .where(inArray(runLogs.scheduleId, scheduleIds))
       .orderBy(desc(runLogs.executedAt))
 
     const seen = new Set<string>()

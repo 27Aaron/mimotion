@@ -47,20 +47,25 @@ function AuthPage() {
     setLoginError("");
     setLoginLoading(true);
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: loginUsername, password: loginPassword }),
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+      });
 
-    const data = await res.json();
-    setLoginLoading(false);
+      const data = await res.json();
 
-    if (res.ok) {
-      router.push("/dashboard");
-      router.refresh();
-    } else {
-      setLoginError(data.error || "登录失败");
+      if (res.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        setLoginError(data.error || "登录失败");
+      }
+    } catch {
+      setLoginError("网络错误，请重试");
+    } finally {
+      setLoginLoading(false);
     }
   }
 
@@ -69,24 +74,29 @@ function AuthPage() {
     setRegError("");
     setRegLoading(true);
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: regUsername,
-        password: regPassword,
-        inviteCode: regInviteCode,
-      }),
-    });
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: regUsername,
+          password: regPassword,
+          inviteCode: regInviteCode,
+        }),
+      });
 
-    const data = await res.json();
-    setRegLoading(false);
+      const data = await res.json();
 
-    if (res.ok) {
-      router.push("/dashboard");
-      router.refresh();
-    } else {
-      setRegError(data.error || "注册失败");
+      if (res.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        setRegError(data.error || "注册失败");
+      }
+    } catch {
+      setRegError("网络错误，请重试");
+    } finally {
+      setRegLoading(false);
     }
   }
 
