@@ -80,6 +80,10 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
 
+  if (typeof newPassword !== 'string' || newPassword.length < 6) {
+    return NextResponse.json({ error: '密码长度至少 6 位' }, { status: 400 })
+  }
+
   const passwordHash = await hashPassword(newPassword)
   await db
     .update(users)
@@ -106,23 +110,25 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '不能删除自己' }, { status: 400 })
   }
 
-  // Delete in order: logs -> schedules -> accounts -> invite codes -> user
-  const userSchedules = await db
-    .select({ id: schedules.id })
-    .from(schedules)
-    .where(eq(schedules.userId, userId))
+  // 事务内级联删除
+  await db.transaction(async (tx) => {
+    const userSchedules = await tx
+      .select({ id: schedules.id })
+      .from(schedules)
+      .where(eq(schedules.userId, userId))
 
-  for (const s of userSchedules) {
-    await db.delete(runLogs).where(eq(runLogs.scheduleId, s.id))
-  }
-  await db.delete(schedules).where(eq(schedules.userId, userId))
-  await db.delete(xiaomiAccounts).where(eq(xiaomiAccounts.userId, userId))
+    for (const s of userSchedules) {
+      await tx.delete(runLogs).where(eq(runLogs.scheduleId, s.id))
+    }
+    await tx.delete(schedules).where(eq(schedules.userId, userId))
+    await tx.delete(xiaomiAccounts).where(eq(xiaomiAccounts.userId, userId))
 
-  // Unlink invite codes used by this user, delete codes created by this user
-  await db.update(inviteCodes).set({ usedBy: null }).where(eq(inviteCodes.usedBy, userId))
-  await db.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId))
+    // Unlink invite codes used by this user, delete codes created by this user
+    await tx.update(inviteCodes).set({ usedBy: null }).where(eq(inviteCodes.usedBy, userId))
+    await tx.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId))
 
-  await db.delete(users).where(eq(users.id, userId))
+    await tx.delete(users).where(eq(users.id, userId))
+  })
 
   return NextResponse.json({ success: true })
 }

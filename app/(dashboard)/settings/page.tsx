@@ -33,6 +33,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [testingBark, setTestingBark] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
+  const [initialValues, setInitialValues] = useState({
+    barkUrl: "",
+    telegramBotToken: "",
+    telegramChatId: "",
+  });
 
   useEffect(() => {
     fetch("/api/user/settings")
@@ -42,6 +47,11 @@ export default function SettingsPage() {
         if (data.barkUrl) setBarkUrl(data.barkUrl);
         if (data.telegramBotToken) setTelegramBotToken(data.telegramBotToken);
         if (data.telegramChatId) setTelegramChatId(data.telegramChatId);
+        setInitialValues({
+          barkUrl: data.barkUrl || "",
+          telegramBotToken: data.telegramBotToken || "",
+          telegramChatId: data.telegramChatId || "",
+        });
       })
       .catch(() => {});
   }, []);
@@ -101,7 +111,16 @@ export default function SettingsPage() {
       if (username) {
         setCurrentUsername(username);
         setUsername("");
+        // 改用户名后刷新页面以更新 JWT 和侧边栏
+        window.location.reload();
+        return;
       }
+      // 更新初始值以便重置按钮使用
+      setInitialValues({
+        barkUrl: barkUrl || "",
+        telegramBotToken: telegramBotToken || "",
+        telegramChatId: telegramChatId || "",
+      });
     } else {
       toast.error(data.error || "保存失败");
     }
@@ -328,9 +347,9 @@ export default function SettingsPage() {
               setUsername("");
               setCurrentPassword("");
               setNewPassword("");
-              setBarkUrl("");
-              setTelegramBotToken("");
-              setTelegramChatId("");
+              setBarkUrl(initialValues.barkUrl);
+              setTelegramBotToken(initialValues.telegramBotToken);
+              setTelegramChatId(initialValues.telegramChatId);
             }}
           >
             重置

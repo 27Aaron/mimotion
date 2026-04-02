@@ -221,6 +221,17 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少 id' }, { status: 400 })
   }
 
+  // 级联删除：先删 runLogs -> schedules -> account
+  const accountSchedules = await db
+    .select({ id: schedules.id })
+    .from(schedules)
+    .where(and(eq(schedules.xiaomiAccountId, id), eq(schedules.userId, current.userId)))
+
+  for (const s of accountSchedules) {
+    await db.delete(runLogs).where(eq(runLogs.scheduleId, s.id))
+  }
+  await db.delete(schedules).where(and(eq(schedules.xiaomiAccountId, id), eq(schedules.userId, current.userId)))
+
   await db
     .delete(xiaomiAccounts)
     .where(and(eq(xiaomiAccounts.id, id), eq(xiaomiAccounts.userId, current.userId)))

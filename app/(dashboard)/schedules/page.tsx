@@ -134,12 +134,17 @@ export default function SchedulesPage() {
   }
 
   async function handleToggle(id: string, isActive: boolean) {
-    await fetch(`/api/schedules?id=${id}`, {
+    const res = await fetch(`/api/schedules?id=${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !isActive }),
     });
-    fetchSchedules();
+    if (res.ok) {
+      fetchSchedules();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "操作失败");
+    }
   }
 
   const activeCount = schedules.filter((s) => s.isActive).length;

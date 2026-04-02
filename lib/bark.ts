@@ -22,6 +22,9 @@ export async function sendBarkPush(options: BarkPushOptions): Promise<boolean> {
   const barkUrl = await getBarkUrl(options.userId)
   if (!barkUrl) return false
 
+  // 基础 URL 校验：必须是 https 或 http（自托管）
+  if (!/^https?:\/\//i.test(barkUrl)) return false
+
   try {
     const response = await fetch(`${barkUrl}`, {
       method: 'POST',
