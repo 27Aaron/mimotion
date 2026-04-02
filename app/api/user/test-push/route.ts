@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
+import { isSafeBarkUrl } from '@/lib/safe-url'
 
 export async function POST(request: NextRequest) {
   const current = await getCurrentUser()
@@ -13,6 +14,9 @@ export async function POST(request: NextRequest) {
   if (type === 'bark') {
     if (!barkUrl) {
       return NextResponse.json({ error: '请先填写 Bark URL', code: 'PUSH_BARK_URL_REQUIRED' }, { status: 400 })
+    }
+    if (!isSafeBarkUrl(barkUrl)) {
+      return NextResponse.json({ error: 'Bark URL 不安全或格式无效', code: 'PUSH_BARK_URL_INVALID' }, { status: 400 })
     }
     try {
       const res = await fetch(barkUrl, {
