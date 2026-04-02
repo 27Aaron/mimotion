@@ -315,3 +315,65 @@
   font-weight: 600;
   color: var(--primary);
 }
+
+/* Page title */
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Stat card label */
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+/* Stat card value */
+.stat-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: -0.025em;
+}
+
+/* Empty state content area */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  text-align: center;
+}
+
+/* Card grid: 2 columns responsive */
+.card-grid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Info grid: compact 2-column */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+/* Tiny label in cards */
+.label-tiny {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}

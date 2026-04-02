@@ -126,7 +126,7 @@ export default function InvitePage() {
       {/* Page header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">邀请码管理</h1>
+          <h1 className="page-title">邀请码管理</h1>
           <p className="mt-1 text-muted-foreground">
             生成注册邀请码，控制新用户注册
           </p>
@@ -183,7 +183,7 @@ export default function InvitePage() {
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <CardTitle className="stat-label">
                   {stat.title}
                 </CardTitle>
                 <div
@@ -194,7 +194,7 @@ export default function InvitePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold font-mono tracking-tight">
+              <div className="stat-value">
                 {stat.value}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -208,7 +208,7 @@ export default function InvitePage() {
       {/* Invite codes list */}
       {filteredCodes.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+          <CardContent className="empty-state py-12">
             <div className="empty-icon">
               <Ticket className="h-5 w-5 text-primary" />
             </div>
@@ -227,7 +227,7 @@ export default function InvitePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="card-grid gap-3">
           {filteredCodes.map((c) => (
             <Card key={c.code} className="relative overflow-hidden">
               <CardContent className="p-4">

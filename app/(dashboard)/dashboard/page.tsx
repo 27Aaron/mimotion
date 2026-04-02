@@ -84,7 +84,7 @@ export default async function DashboardPage() {
       {/* Welcome header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">控制台</h1>
+          <h1 className="page-title">控制台</h1>
           <p className="mt-1 text-muted-foreground">
             {greeting}，{user.username}
             {activeCount > 0
@@ -112,7 +112,7 @@ export default async function DashboardPage() {
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <CardTitle className="stat-label">
                   {stat.title}
                 </CardTitle>
                 <div
@@ -123,7 +123,7 @@ export default async function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold font-mono tracking-tight">
+              <div className="stat-value">
                 {stat.value}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -137,7 +137,7 @@ export default async function DashboardPage() {
       {/* Quick tips when empty */}
       {accounts.length === 0 && (
         <Card className="mb-3 border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+          <CardContent className="empty-state">
             <div className="empty-icon">
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
       <div className="mt-3">
         {recentLogs.length === 0 ? (
           <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <CardContent className="empty-state py-12">
               <div className="empty-icon">
                 <Footprints className="h-5 w-5 text-primary" />
               </div>

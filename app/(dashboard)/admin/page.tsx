@@ -122,7 +122,7 @@ export default function AdminPage() {
     <div className="flex flex-col">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">用户管理</h1>
+        <h1 className="page-title">用户管理</h1>
         <p className="mt-1 text-muted-foreground">查看和管理所有注册用户</p>
       </div>
 
