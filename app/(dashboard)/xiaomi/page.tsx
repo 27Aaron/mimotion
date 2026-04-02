@@ -130,7 +130,7 @@ export default function XiaomiPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
             <Button>
-              <IconUserPlus className="mr-2 h-4 w-4 stroke-[1.5]" /> 添加账号
+              <IconUserPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> 添加账号
             </Button>
           </DialogTrigger>
           <DialogContent>

@@ -10,7 +10,16 @@ export function Toaster() {
     <Sonner
       richColors
       position="top-right"
-      offset="60px"
+      offset="52px"
+      gap={8}
+      toastOptions={{
+        style: {
+          width: "280px",
+        },
+      }}
+      style={{
+        right: "12px",
+      }}
       theme={resolvedTheme === "dark" ? "dark" : "light"}
     />
   );
