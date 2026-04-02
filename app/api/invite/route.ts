@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, sqlite } from '@/lib/db'
 import { inviteCodes } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { randomBytes } from 'crypto'
+import { deleteOwnedUnusedInviteCode } from '@/lib/ownership'
 
 export async function GET() {
   const current = await getCurrentUser()
@@ -59,21 +60,13 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少 code', code: 'MISSING_CODE' }, { status: 400 })
   }
 
-  const result = await db
-    .select()
-    .from(inviteCodes)
-    .where(eq(inviteCodes.code, code))
-    .limit(1)
-
-  const inviteCode = result[0]
-  if (!inviteCode) {
+  const result = deleteOwnedUnusedInviteCode(sqlite, code, current.userId)
+  if (result === 'not_found') {
     return NextResponse.json({ error: '邀请码不存在', code: 'CODE_NOT_FOUND' }, { status: 404 })
   }
-  if (inviteCode.usedBy) {
+  if (result === 'used') {
     return NextResponse.json({ error: '只能删除未使用的邀请码', code: 'CODE_ONLY_DELETE_UNUSED' }, { status: 400 })
   }
-
-  await db.delete(inviteCodes).where(eq(inviteCodes.code, code))
 
   return NextResponse.json({ success: true })
 }

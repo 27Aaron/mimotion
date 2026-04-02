@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, sqlite } from '@/lib/db'
 import { schedules, xiaomiAccounts, runLogs } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
+import { deleteOwnedSchedule, isOwnedXiaomiAccount } from '@/lib/ownership'
 
 export async function GET() {
   const current = await getCurrentUser()
@@ -166,7 +167,12 @@ export async function PUT(request: NextRequest) {
   }
 
   if (isActive !== undefined) updates.isActive = isActive
-  if (xiaomiAccountId !== undefined) updates.xiaomiAccountId = xiaomiAccountId
+  if (xiaomiAccountId !== undefined) {
+    if (!isOwnedXiaomiAccount(sqlite, current.userId, xiaomiAccountId)) {
+      return NextResponse.json({ error: '小米账号不存在', code: 'ACCOUNT_NOT_FOUND' }, { status: 404 })
+    }
+    updates.xiaomiAccountId = xiaomiAccountId
+  }
 
   await db
     .update(schedules)
@@ -189,11 +195,10 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
-  // 先删关联的执行记录，再删定时任务
-  await db.delete(runLogs).where(eq(runLogs.scheduleId, id))
-  await db
-    .delete(schedules)
-    .where(and(eq(schedules.id, id), eq(schedules.userId, current.userId)))
+  const deleted = deleteOwnedSchedule(sqlite, id, current.userId)
+  if (!deleted) {
+    return NextResponse.json({ error: '定时任务不存在', code: 'SCHEDULE_NOT_FOUND' }, { status: 404 })
+  }
 
   return NextResponse.json({ success: true })
 }

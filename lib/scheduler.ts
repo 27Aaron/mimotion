@@ -173,6 +173,10 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
   }
 
   const acc = account[0]
+  if (acc.userId !== schedule.userId) {
+    console.error(`[Scheduler] Account ${acc.id} does not belong to user ${schedule.userId}`)
+    return
+  }
 
   const userRow = await db
     .select({ locale: users.locale })
