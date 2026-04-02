@@ -11,6 +11,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { IconUserPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,7 +120,7 @@ export default function XiaomiPage() {
   return (
     <div className="flex flex-col">
       {/* Page header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">小米账号</h1>
           <p className="mt-1 text-muted-foreground">
@@ -129,7 +130,7 @@ export default function XiaomiPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> 添加账号
+              <IconUserPlus className="mr-2 h-4 w-4 stroke-[1.5]" /> 添加账号
             </Button>
           </DialogTrigger>
           <DialogContent>

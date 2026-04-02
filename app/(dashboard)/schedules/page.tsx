@@ -13,6 +13,7 @@ import {
   Zap,
   Timer,
 } from "lucide-react";
+import { IconCalendarPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -175,7 +176,7 @@ export default function SchedulesPage() {
   return (
     <div className="flex flex-col">
       {/* Page header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">定时任务</h1>
           <p className="mt-1 text-muted-foreground">
@@ -185,7 +186,7 @@ export default function SchedulesPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> 创建任务
+              <IconCalendarPlus className="mr-2 h-4 w-4 stroke-[1.5]" /> 创建任务
             </Button>
           </DialogTrigger>
           <DialogContent>
