@@ -1,12 +1,14 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 import { getCurrentUser } from "@/lib/auth";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import {
   LogOut,
   CircleUser,
   Footprints,
 } from "lucide-react";
+import { getTranslations, getLocale } from "next-intl/server";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import { NavLinks } from "@/components/nav-links";
 import { Toaster } from "@/components/toaster";
 
@@ -15,22 +17,24 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const t = await getTranslations("nav");
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect({ href: "/login", locale });
   }
 
   const navItems = [
-    { href: "/dashboard", label: "控制台", icon: "LayoutDashboard" },
-    { href: "/xiaomi", label: "小米账号", icon: "Smartphone" },
-    { href: "/schedules", label: "定时任务", icon: "Clock" },
-    { href: "/settings", label: "设置", icon: "Settings" },
+    { href: "/dashboard", label: t("dashboard"), icon: "LayoutDashboard" },
+    { href: "/xiaomi", label: t("xiaomiAccounts"), icon: "Smartphone" },
+    { href: "/schedules", label: t("schedules"), icon: "Clock" },
+    { href: "/settings", label: t("settings"), icon: "Settings" },
   ];
 
-  if (user.isAdmin) {
-    navItems.push({ href: "/invite", label: "邀请码", icon: "Ticket" });
-    navItems.push({ href: "/admin", label: "用户管理", icon: "Users" });
+  if (user?.isAdmin) {
+    navItems.push({ href: "/invite", label: t("inviteCodes"), icon: "Ticket" });
+    navItems.push({ href: "/admin", label: t("userManagement"), icon: "Users" });
   }
 
   return (
@@ -57,7 +61,7 @@ export default async function DashboardLayout({
         {/* Navigation */}
         <nav className="flex-1 space-y-0.5 p-3">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
-            菜单
+            {t("menu")}
           </p>
           <NavLinks items={navItems} />
         </nav>
@@ -72,19 +76,19 @@ export default async function DashboardLayout({
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-sidebar-foreground/80">
-                {user.username}
+                {user?.username}
               </p>
               <p className="text-[10px] text-sidebar-foreground/40">
-                {user.isAdmin ? "管理员" : "用户"}
+                {user?.isAdmin ? t("roleAdmin") : t("roleUser")}
               </p>
             </div>
-            <Link
+            <a
               href="/api/auth/logout"
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/30 transition-all hover:bg-destructive/10 hover:text-destructive"
-              title="退出登录"
+              title={t("logout")}
             >
               <LogOut className="h-3.5 w-3.5" />
-            </Link>
+            </a>
           </div>
         </div>
       </aside>
@@ -106,7 +110,10 @@ export default async function DashboardLayout({
             </span>
           </div>
           <div className="hidden md:block" />
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <LocaleSwitcher />
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Mobile nav */}

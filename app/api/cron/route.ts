@@ -10,11 +10,11 @@ export async function POST(_request: NextRequest) {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   if (!token) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
   const payload = await verifyToken(token)
   if (!payload?.isAdmin) {
-    return NextResponse.json({ error: '无权限' }, { status: 403 })
+    return NextResponse.json({ error: '无权限', code: 'FORBIDDEN' }, { status: 403 })
   }
 
   if (!schedulerStarted) {

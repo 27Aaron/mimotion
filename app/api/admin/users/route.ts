@@ -19,7 +19,7 @@ async function requireAdmin() {
 export async function GET() {
   const admin = await requireAdmin()
   if (!admin) {
-    return NextResponse.json({ error: '无权限' }, { status: 403 })
+    return NextResponse.json({ error: '无权限', code: 'FORBIDDEN' }, { status: 403 })
   }
 
   const allUsers = await db
@@ -70,18 +70,18 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   const admin = await requireAdmin()
   if (!admin) {
-    return NextResponse.json({ error: '无权限' }, { status: 403 })
+    return NextResponse.json({ error: '无权限', code: 'FORBIDDEN' }, { status: 403 })
   }
 
   const body = await request.json()
   const { userId, newPassword } = body
 
   if (!userId || !newPassword) {
-    return NextResponse.json({ error: '缺少参数' }, { status: 400 })
+    return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
   }
 
   if (typeof newPassword !== 'string' || newPassword.length < 6) {
-    return NextResponse.json({ error: '密码长度至少 6 位' }, { status: 400 })
+    return NextResponse.json({ error: '密码长度至少 6 位', code: 'PASSWORD_MIN_LENGTH' }, { status: 400 })
   }
 
   const passwordHash = await hashPassword(newPassword)
@@ -96,18 +96,18 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const admin = await requireAdmin()
   if (!admin) {
-    return NextResponse.json({ error: '无权限' }, { status: 403 })
+    return NextResponse.json({ error: '无权限', code: 'FORBIDDEN' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('id')
 
   if (!userId) {
-    return NextResponse.json({ error: '缺少参数' }, { status: 400 })
+    return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
   }
 
   if (userId === admin.userId) {
-    return NextResponse.json({ error: '不能删除自己' }, { status: 400 })
+    return NextResponse.json({ error: '不能删除自己', code: 'CANNOT_DELETE_SELF' }, { status: 400 })
   }
 
   // 级联删除

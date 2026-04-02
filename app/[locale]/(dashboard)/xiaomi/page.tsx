@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Trash2,
   Smartphone,
@@ -50,6 +51,9 @@ interface Account {
 }
 
 export default function XiaomiPage() {
+  const t = useTranslations("xiaomi");
+  const tc = useTranslations("common");
+  const locale = useLocale();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -93,21 +97,21 @@ export default function XiaomiPage() {
       setOpen(false);
       setForm({ account: "", password: "", nickname: "" });
       fetchAccounts();
-      toast.success("账号添加成功");
+      toast.success(t("toastAdded"));
     } else {
-      toast.error(data.error || "添加失败");
+      toast.error(data.error || t("addFailed"));
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("确定删除该账号？")) return;
+    if (!confirm(t("confirmDelete"))) return;
     const res = await fetch(`/api/xiaomi?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       fetchAccounts();
-      toast.success("账号已删除");
+      toast.success(t("toastDeleted"));
     } else {
       const data = await res.json().catch(() => ({}));
-      toast.error(data.error || "删除失败");
+      toast.error(data.error || t("deleteFailed"));
     }
   }
 
@@ -143,9 +147,9 @@ export default function XiaomiPage() {
       setEditOpen(false);
       setEditingId(null);
       fetchAccounts();
-      toast.success("账号已更新");
+      toast.success(t("toastUpdated"));
     } else {
-      setEditError(data.error || "更新失败");
+      setEditError(data.error || t("updateFailed"));
     }
   }
 
@@ -154,26 +158,26 @@ export default function XiaomiPage() {
 
   const stats = [
     {
-      title: "账号总数",
+      title: t("statTotal"),
       value: accounts.length,
       icon: Smartphone,
-      detail: "已绑定账号",
+      detail: t("statTotalDetail"),
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
-      title: "正常连接",
+      title: t("statActive"),
       value: activeCount,
       icon: Wifi,
-      detail: "同步状态良好",
+      detail: t("statActiveDetail"),
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
     },
     {
-      title: "需要关注",
+      title: t("statAttention"),
       value: errorCount,
       icon: WifiOff,
-      detail: errorCount > 0 ? "请检查账号状态" : "一切正常",
+      detail: errorCount > 0 ? t("statAttentionDetailBad") : t("statAttentionDetailOk"),
       color: "text-amber-500",
       bg: "bg-amber-500/10",
     },
@@ -181,7 +185,7 @@ export default function XiaomiPage() {
 
   function formatDate(d: string | null) {
     if (!d) return "-";
-    return new Date(d).toLocaleString("zh-CN", {
+    return new Date(d).toLocaleString(locale, {
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
@@ -194,55 +198,55 @@ export default function XiaomiPage() {
       {/* Page header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="page-title">小米账号</h1>
+          <h1 className="page-title">{t("title")}</h1>
           <p className="mt-1 text-muted-foreground">
-            管理你的小米运动账号，添加后可用于创建定时刷步任务
+            {t("description")}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button />}>
-            <IconUserPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> 添加账号
+            <IconUserPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> {t("addAccount")}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>添加小米账号</DialogTitle>
+              <DialogTitle>{t("addAccountTitle")}</DialogTitle>
               <DialogDescription>
-                输入你的小米/Zepp 账号和密码
+                {t("addAccountDesc")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAdd}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>小米账号（手机号 / 邮箱）</Label>
+                  <Label>{t("accountField")}</Label>
                   <Input
                     value={form.account}
                     onChange={(e) =>
                       setForm({ ...form, account: e.target.value })
                     }
-                    placeholder="请输入手机号或邮箱"
+                    placeholder={t("accountPlaceholder")}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>密码</Label>
+                  <Label>{t("passwordField")}</Label>
                   <Input
                     type="password"
                     value={form.password}
                     onChange={(e) =>
                       setForm({ ...form, password: e.target.value })
                     }
-                    placeholder="请输入密码"
+                    placeholder={t("passwordPlaceholder")}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>显示名称（可选）</Label>
+                  <Label>{t("nicknameField")}</Label>
                   <Input
                     value={form.nickname}
                     onChange={(e) =>
                       setForm({ ...form, nickname: e.target.value })
                     }
-                    placeholder="给账号起个名字"
+                    placeholder={t("nicknamePlaceholder")}
                   />
                 </div>
                 {error && (
@@ -257,10 +261,10 @@ export default function XiaomiPage() {
                   variant="outline"
                   onClick={() => setOpen(false)}
                 >
-                  取消
+                  {tc("cancel")}
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "添加中..." : "添加"}
+                  {loading ? tc("adding") : tc("add")}
                 </Button>
               </DialogFooter>
             </form>
@@ -271,42 +275,42 @@ export default function XiaomiPage() {
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>编辑账号</DialogTitle>
+              <DialogTitle>{t("editAccount")}</DialogTitle>
               <DialogDescription>
-                修改信息或重新登录以刷新凭证
+                {t("editAccountDesc")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleEdit}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>小米账号（手机号 / 邮箱）</Label>
+                  <Label>{t("accountField")}</Label>
                   <Input
                     value={editForm.account}
                     onChange={(e) =>
                       setEditForm({ ...editForm, account: e.target.value })
                     }
-                    placeholder="请输入手机号或邮箱"
+                    placeholder={t("accountPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>密码</Label>
+                  <Label>{t("passwordField")}</Label>
                   <Input
                     type="password"
                     value={editForm.password}
                     onChange={(e) =>
                       setEditForm({ ...editForm, password: e.target.value })
                     }
-                    placeholder="填写密码以重新验证登录"
+                    placeholder={t("editPasswordPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>显示名称（可选）</Label>
+                  <Label>{t("nicknameField")}</Label>
                   <Input
                     value={editForm.nickname}
                     onChange={(e) =>
                       setEditForm({ ...editForm, nickname: e.target.value })
                     }
-                    placeholder="给账号起个名字"
+                    placeholder={t("nicknamePlaceholder")}
                   />
                 </div>
                 {editError && (
@@ -321,10 +325,10 @@ export default function XiaomiPage() {
                   variant="outline"
                   onClick={() => setEditOpen(false)}
                 >
-                  取消
+                  {tc("cancel")}
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "保存中..." : "保存"}
+                  {loading ? tc("saving") : tc("save")}
                 </Button>
               </DialogFooter>
             </form>
@@ -366,21 +370,21 @@ export default function XiaomiPage() {
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium">添加你的第一个小米账号</p>
+              <p className="font-medium">{t("emptyTitle")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                绑定小米运动账号后，即可创建定时任务自动刷步
+                {t("emptyDesc")}
               </p>
             </div>
             <div className="fade-divider max-w-[240px]" />
             <div className="flex gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <span className="step-circle">1</span> 添加账号
+                <span className="step-circle">1</span> {t("step1")}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="step-circle">2</span> 创建任务
+                <span className="step-circle">2</span> {t("step2")}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="step-circle">3</span> 自动刷步
+                <span className="step-circle">3</span> {t("step3")}
               </div>
             </div>
           </CardContent>
@@ -390,14 +394,14 @@ export default function XiaomiPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px] text-center">账号</TableHead>
-                <TableHead className="text-center">状态</TableHead>
-                <TableHead className="text-center">定时任务</TableHead>
-                <TableHead className="text-center">最近步数</TableHead>
-                <TableHead className="text-center">最后同步</TableHead>
-                <TableHead className="text-center">添加时间</TableHead>
-                <TableHead className="text-center">更新时间</TableHead>
-                <TableHead className="text-center w-[100px]">操作</TableHead>
+                <TableHead className="w-[200px] text-center">{t("colAccount")}</TableHead>
+                <TableHead className="text-center">{t("colStatus")}</TableHead>
+                <TableHead className="text-center">{t("colSchedules")}</TableHead>
+                <TableHead className="text-center">{t("colLastStep")}</TableHead>
+                <TableHead className="text-center">{t("colLastSync")}</TableHead>
+                <TableHead className="text-center">{t("colCreatedAt")}</TableHead>
+                <TableHead className="text-center">{t("colUpdatedAt")}</TableHead>
+                <TableHead className="text-center w-[100px]">{t("colActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -432,7 +436,7 @@ export default function XiaomiPage() {
                     <Badge
                       variant={acc.status === "active" ? "default" : "destructive"}
                     >
-                      {acc.status === "active" ? "正常" : "异常"}
+                      {acc.status === "active" ? t("statusActive") : t("statusError")}
                     </Badge>
                     {acc.lastError && (
                       <p className="mt-1 text-xs text-destructive/80 truncate max-w-[160px] mx-auto" title={acc.lastError}>
@@ -467,7 +471,7 @@ export default function XiaomiPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => openEdit(acc)}
-                        title="编辑"
+                        title={tc("edit")}
                       >
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
@@ -476,7 +480,7 @@ export default function XiaomiPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => handleDelete(acc.id)}
-                        title="删除"
+                        title={tc("delete")}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

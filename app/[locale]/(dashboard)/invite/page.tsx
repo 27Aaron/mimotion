@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { toast } from "sonner";
 import {
   Plus,
@@ -31,6 +32,9 @@ interface InviteCode {
 }
 
 export default function InvitePage() {
+  const t = useTranslations("invite");
+  const tc = useTranslations("common");
+  const locale = useLocale();
   const [codes, setCodes] = useState<InviteCode[]>([]);
   const [newCode, setNewCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,23 +58,23 @@ export default function InvitePage() {
     if (res.ok) {
       setNewCode(data.code);
       fetchCodes();
-      toast.success("邀请码已生成");
+      toast.success(t("toastGenerated"));
     }
     setLoading(false);
   }
 
   async function handleDelete(code: string) {
-    if (!confirm("确定删除该邀请码？")) return;
+    if (!confirm(t("confirmDelete"))) return;
     await fetch(`/api/invite?code=${code}`, { method: "DELETE" });
     fetchCodes();
-    toast.success("邀请码已删除");
+    toast.success(t("toastDeleted"));
   }
 
   async function handleCopy(code: string) {
-    const url = `${window.location.origin}/login?code=${code}`;
+    const url = `${window.location.origin}/${locale}/login?code=${code}`;
     await navigator.clipboard.writeText(url);
     setCopiedCode(code);
-    toast.success("注册链接已复制到剪贴板");
+    toast.success(t("toastCopied"));
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     copiedTimerRef.current = setTimeout(() => setCopiedCode(null), 2000);
   }
@@ -95,28 +99,28 @@ export default function InvitePage() {
     filter: FilterType;
   }[] = [
     {
-      title: "邀请码总数",
+      title: t("statTotal"),
       value: totalCodes,
       icon: Hash,
-      detail: "已生成的邀请码",
+      detail: t("statTotalDetail"),
       color: "text-blue-500",
       bg: "bg-blue-500/10",
       filter: "all",
     },
     {
-      title: "已使用",
+      title: t("statUsed"),
       value: usedCodes,
       icon: Users,
-      detail: "已注册的用户",
+      detail: t("statUsedDetail"),
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
       filter: "used",
     },
     {
-      title: "待使用",
+      title: t("statUnused"),
       value: unusedCodes,
       icon: Gift,
-      detail: unusedCodes > 0 ? "可分享给好友" : "生成新的邀请码",
+      detail: unusedCodes > 0 ? t("statUnusedDetailOk") : t("statUnusedDetailEmpty"),
       color: "text-amber-500",
       bg: "bg-amber-500/10",
       filter: "unused",
@@ -128,14 +132,14 @@ export default function InvitePage() {
       {/* Page header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="page-title">邀请码管理</h1>
+          <h1 className="page-title">{t("title")}</h1>
           <p className="mt-1 text-muted-foreground">
-            生成注册邀请码，控制新用户注册
+            {t("description")}
           </p>
         </div>
         <Button onClick={handleCreate} disabled={loading}>
           <IconSparkles className="mr-1.5 h-4 w-4 stroke-[1.5]" />
-          {loading ? "生成中..." : "生成邀请码"}
+          {loading ? t("generating") : t("generateCode")}
         </Button>
       </div>
 
@@ -147,7 +151,7 @@ export default function InvitePage() {
           </div>
           <div className="flex-1">
             <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              新邀请码
+              {t("newCode")}
             </p>
             <code className="text-lg font-semibold text-primary">
               {newCode}
@@ -160,11 +164,11 @@ export default function InvitePage() {
           >
             {copiedCode === newCode ? (
               <>
-                <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> 已复制
+                <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> {tc("copied")}
               </>
             ) : (
               <>
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> 复制链接
+                <Copy className="mr-1.5 h-3.5 w-3.5" /> {tc("copyLink")}
               </>
             )}
           </Button>
@@ -217,13 +221,13 @@ export default function InvitePage() {
             <div>
               <p className="font-medium">
                 {filter === "used"
-                  ? "暂无已使用的邀请码"
+                  ? t("emptyUsed")
                   : filter === "all"
-                    ? "暂无邀请码"
-                    : "暂无待使用的邀请码"}
+                    ? t("emptyAll")
+                    : t("emptyUnused")}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                点击上方按钮生成邀请码，分享给需要注册的用户
+                {t("emptyDesc")}
               </p>
             </div>
           </CardContent>
@@ -255,11 +259,11 @@ export default function InvitePage() {
                           variant={c.usedBy ? "default" : "secondary"}
                           className="text-[10px]"
                         >
-                          {c.usedBy ? "已使用" : "待使用"}
+                          {c.usedBy ? t("codeUsed") : t("codeUnused")}
                         </Badge>
                       </div>
                       <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleString("zh-CN", {
+                        {new Date(c.createdAt).toLocaleString(locale, {
                           month: "2-digit",
                           day: "2-digit",
                           hour: "2-digit",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { toast } from "sonner";
 import {
   Users,
@@ -49,6 +50,10 @@ interface UserRow {
 }
 
 export default function AdminPage() {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
+  const tn = useTranslations("nav");
+  const locale = useLocale();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetOpen, setResetOpen] = useState(false);
@@ -71,13 +76,13 @@ export default function AdminPage() {
   }
 
   async function handleDelete(id: string, username: string) {
-    if (!confirm(`确定删除用户 ${username}？该操作不可恢复。`)) return;
+    if (!confirm(t("confirmDeleteUser", { username }))) return;
     const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       fetchUsers();
-      toast.success("用户已删除");
+      toast.success(t("toastDeleted"));
     } else {
-      let msg = "删除失败";
+      let msg = t("deleteFailed");
       try { msg = (await res.json()).error || msg; } catch {}
       toast.error(msg);
     }
@@ -107,10 +112,10 @@ export default function AdminPage() {
     if (res.ok) {
       setResetOpen(false);
       setResetUser(null);
-      toast.success("密码已重置");
+      toast.success(t("toastPasswordReset"));
     } else {
       const data = await res.json();
-      setResetError(data.error || "重置失败");
+      setResetError(data.error || t("resetFailed"));
     }
   }
 
@@ -122,8 +127,8 @@ export default function AdminPage() {
     <div className="flex flex-col">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="page-title">用户管理</h1>
-        <p className="mt-1 text-muted-foreground">查看和管理所有注册用户</p>
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="mt-1 text-muted-foreground">{t("description")}</p>
       </div>
 
       {/* Overview stats */}
@@ -131,7 +136,7 @@ export default function AdminPage() {
         <Card className="stat-card">
           <CardHeader className="pb-0">
             <div className="flex items-center justify-between">
-              <CardTitle className="stat-label">注册用户</CardTitle>
+              <CardTitle className="stat-label">{t("statUsers")}</CardTitle>
               <div className="stat-icon-box bg-blue-500/10">
                 <Users className="text-blue-500" />
               </div>
@@ -139,13 +144,13 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="pt-0 pb-1">
             <div className="stat-value">{totalUsers}</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">注册用户</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("statUsersDetail")}</p>
           </CardContent>
         </Card>
         <Card className="stat-card">
           <CardHeader className="pb-0">
             <div className="flex items-center justify-between">
-              <CardTitle className="stat-label">绑定账号</CardTitle>
+              <CardTitle className="stat-label">{t("statAccounts")}</CardTitle>
               <div className="stat-icon-box bg-emerald-500/10">
                 <Smartphone className="text-emerald-500" />
               </div>
@@ -153,13 +158,13 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="pt-0 pb-1">
             <div className="stat-value">{totalAccounts}</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">绑定账号总数</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("statAccountsDetail")}</p>
           </CardContent>
         </Card>
         <Card className="stat-card">
           <CardHeader className="pb-0">
             <div className="flex items-center justify-between">
-              <CardTitle className="stat-label">活跃任务</CardTitle>
+              <CardTitle className="stat-label">{t("statActiveTasks")}</CardTitle>
               <div className="stat-icon-box bg-amber-500/10">
                 <Calendar className="text-amber-500" />
               </div>
@@ -167,7 +172,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="pt-0 pb-1">
             <div className="stat-value">{totalActive}</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">活跃任务总数</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("statActiveTasksDetail")}</p>
           </CardContent>
         </Card>
       </div>
@@ -176,23 +181,23 @@ export default function AdminPage() {
       <Card>
         {loading ? (
           <CardContent className="flex h-32 items-center justify-center text-muted-foreground">
-            加载中...
+            {tc("loading")}
           </CardContent>
         ) : users.length === 0 ? (
           <CardContent className="flex h-32 items-center justify-center text-muted-foreground">
-            暂无用户
+            {t("noUsers")}
           </CardContent>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[180px] text-center">用户</TableHead>
-                <TableHead className="text-center">角色</TableHead>
-                <TableHead className="text-center">推送配置</TableHead>
-                <TableHead className="text-center">小米账号</TableHead>
-                <TableHead className="text-center">定时任务</TableHead>
-                <TableHead className="text-center">最后活跃</TableHead>
-                <TableHead className="text-center w-[100px]">操作</TableHead>
+                <TableHead className="w-[180px] text-center">{t("colUser")}</TableHead>
+                <TableHead className="text-center">{t("colRole")}</TableHead>
+                <TableHead className="text-center">{t("colPush")}</TableHead>
+                <TableHead className="text-center">{t("colAccounts")}</TableHead>
+                <TableHead className="text-center">{t("colSchedules")}</TableHead>
+                <TableHead className="text-center">{t("colLastActive")}</TableHead>
+                <TableHead className="text-center w-[100px]">{t("colActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -212,17 +217,17 @@ export default function AdminPage() {
                     {u.isAdmin ? (
                       <Badge variant="default" className="gap-1">
                         <Shield className="h-3 w-3" />
-                        管理员
+                        {tn("roleAdmin")}
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">用户</Badge>
+                      <Badge variant="secondary">{tn("roleUser")}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="inline-flex items-center gap-2">
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded ${u.barkUrl ? "bg-emerald-500/10" : "bg-muted"}`}
-                        title={u.barkUrl ? "Bark 已配置" : "Bark 未配置"}
+                        title={u.barkUrl ? t("barkConfigured") : t("barkNotConfigured")}
                       >
                         <Smartphone
                           className={`h-3 w-3 ${u.barkUrl ? "text-emerald-500" : "text-muted-foreground/40"}`}
@@ -230,7 +235,7 @@ export default function AdminPage() {
                       </span>
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded ${u.telegramBotToken ? "bg-blue-500/10" : "bg-muted"}`}
-                        title={u.telegramBotToken ? "Telegram 已配置" : "Telegram 未配置"}
+                        title={u.telegramBotToken ? t("telegramConfigured") : t("telegramNotConfigured")}
                       >
                         <Send
                           className={`h-3 w-3 ${u.telegramBotToken ? "text-blue-500" : "text-muted-foreground/40"}`}
@@ -246,7 +251,7 @@ export default function AdminPage() {
                     <span className="text-muted-foreground"> / {u.totalSchedules}</span>
                   </TableCell>
                   <TableCell className="text-center font-mono text-sm text-muted-foreground">
-                    {new Date(u.updatedAt).toLocaleString("zh-CN", {
+                    {new Date(u.updatedAt).toLocaleString(locale, {
                       month: "2-digit",
                       day: "2-digit",
                       hour: "2-digit",
@@ -262,7 +267,7 @@ export default function AdminPage() {
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => openResetDialog(u)}
-                            title="重置密码"
+                            title={t("resetPassword")}
                           >
                             <KeyRound className="h-4 w-4 text-muted-foreground" />
                           </Button>
@@ -271,7 +276,7 @@ export default function AdminPage() {
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => handleDelete(u.id, u.username)}
-                            title="删除用户"
+                            title={t("deleteUser")}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -290,20 +295,20 @@ export default function AdminPage() {
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>重置密码</DialogTitle>
+            <DialogTitle>{t("resetPasswordTitle")}</DialogTitle>
             <DialogDescription>
-              为用户 <strong>{resetUser?.username}</strong> 设置新密码
+              {t("resetPasswordDesc", { username: resetUser?.username ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>新密码</Label>
+                <Label>{t("newPassword")}</Label>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="请输入新密码"
+                  placeholder={t("newPasswordPlaceholder")}
                   required
                 />
               </div>
@@ -319,11 +324,11 @@ export default function AdminPage() {
                 variant="outline"
                 onClick={() => setResetOpen(false)}
               >
-                取消
+                {tc("cancel")}
               </Button>
               <Button type="submit" disabled={resetLoading}>
                 {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {resetLoading ? "重置中..." : "确认重置"}
+                {resetLoading ? t("resetting") : t("confirmReset")}
               </Button>
             </DialogFooter>
           </form>

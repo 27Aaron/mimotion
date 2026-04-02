@@ -12,10 +12,15 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getTranslations, getLocale } from "next-intl/server";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
+
+  const locale = await getLocale();
+  const t = await getTranslations("dashboard");
+  const tc = await getTranslations("common");
 
   const [accounts, allSchedules] = await Promise.all([
     db.select().from(xiaomiAccounts).where(eq(xiaomiAccounts.userId, user.userId)),
@@ -45,35 +50,35 @@ export default async function DashboardPage() {
   const hour = new Date().getHours();
   const greeting =
     hour < 6
-      ? "夜深了"
+      ? t("greetingLateNight")
       : hour < 12
-        ? "早上好"
+        ? t("greetingMorning")
         : hour < 18
-          ? "下午好"
-          : "晚上好";
+          ? t("greetingAfternoon")
+          : t("greetingEvening");
 
   const stats = [
     {
-      title: "小米账号",
+      title: t("statAccounts"),
       value: accounts.length,
       icon: Smartphone,
-      detail: `${accounts.filter((a) => a.status === "active").length} 个正常`,
+      detail: t("statAccountsDetail", { count: accounts.filter((a) => a.status === "active").length }),
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
-      title: "活跃任务",
+      title: t("statActiveTasks"),
       value: activeCount,
       icon: ClockCheck,
-      detail: `共 ${allSchedules.length} 个任务`,
+      detail: t("statActiveTasksDetail", { count: allSchedules.length }),
       color: "text-amber-500",
       bg: "bg-amber-500/10",
     },
     {
-      title: "今日执行",
+      title: t("statTodayExec"),
       value: todayLogs.length,
       icon: Footprints,
-      detail: `${todaySuccess} 成功 / ${todayFailed} 失败`,
+      detail: t("statTodayExecDetail", { success: todaySuccess, failed: todayFailed }),
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
     },
@@ -84,18 +89,18 @@ export default async function DashboardPage() {
       {/* 欢迎头部 */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="page-title">控制台</h1>
+          <h1 className="page-title">{t("title")}</h1>
           <p className="mt-1 text-muted-foreground">
             {greeting}，{user.username}
             {activeCount > 0
-              ? ` · ${activeCount} 个任务正在运行`
-              : " · 暂无运行中的任务"}
+              ? ` · ${t("tasksRunning", { count: activeCount })}`
+              : ` · ${t("noRunningTasks")}`}
           </p>
         </div>
         <div className="hidden items-center gap-2 rounded-lg border bg-background/80 backdrop-blur-sm px-3 py-2 sm:flex">
           <TrendingUp className="h-4 w-4 text-primary" />
           <div>
-            <p className="text-xs text-muted-foreground">今日成功率</p>
+            <p className="text-xs text-muted-foreground">{t("todaySuccessRate")}</p>
             <p className="text-sm font-semibold">
               {todayLogs.length > 0
                 ? Math.round((todaySuccess / todayLogs.length) * 100)
@@ -142,9 +147,9 @@ export default async function DashboardPage() {
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium">开始使用</p>
+              <p className="font-medium">{t("gettingStarted")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                先添加一个小米账号，然后创建定时任务自动刷步
+                {t("gettingStartedDesc")}
               </p>
             </div>
             <div className="fade-divider max-w-[200px]" />
@@ -153,19 +158,19 @@ export default async function DashboardPage() {
                 <span className="step-circle">
                   1
                 </span>
-                添加账号
+                {t("step1")}
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="step-circle">
                   2
                 </span>
-                创建任务
+                {t("step2")}
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="step-circle">
                   3
                 </span>
-                自动刷步
+                {t("step3")}
               </div>
             </div>
           </CardContent>
@@ -178,12 +183,12 @@ export default async function DashboardPage() {
           <Footprints className="h-3 w-3 text-primary" />
         </div>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          最近执行记录
+          {t("recentLogs")}
         </h2>
         <div className="ml-2 h-px flex-1 bg-border" />
         {recentLogs.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            最近 {recentLogs.length} 条
+            {t("recentCount", { count: recentLogs.length })}
           </span>
         )}
       </div>
@@ -196,9 +201,9 @@ export default async function DashboardPage() {
                 <Footprints className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium">暂无执行记录</p>
+                <p className="font-medium">{t("noLogs")}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  创建定时任务后将在此显示执行结果
+                  {t("noLogsDesc")}
                 </p>
               </div>
             </CardContent>
@@ -218,14 +223,14 @@ export default async function DashboardPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">
-                          {log.status === "success" ? "同步成功" : "同步失败"}
+                          {log.status === "success" ? t("syncSuccess") : t("syncFailed")}
                         </span>
                         {log.stepWritten && (
                           <Badge
                             variant="secondary"
                             className="font-mono text-xs"
                           >
-                            {Number(log.stepWritten).toLocaleString()} 步
+                            {tc("steps", { count: Number(log.stepWritten).toLocaleString() })}
                           </Badge>
                         )}
                       </div>
@@ -237,7 +242,7 @@ export default async function DashboardPage() {
                     </div>
                     <time className="flex-shrink-0 font-mono text-xs text-muted-foreground">
                       {log.executedAt
-                        ? new Date(log.executedAt).toLocaleString("zh-CN", {
+                        ? new Date(log.executedAt).toLocaleString(locale, {
                             month: "2-digit",
                             day: "2-digit",
                             hour: "2-digit",
