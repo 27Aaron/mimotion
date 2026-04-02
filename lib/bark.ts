@@ -6,6 +6,7 @@ interface BarkPushOptions {
   userId: string
   title: string
   body: string
+  subtitle?: string
 }
 
 async function getBarkUrl(userId: string): Promise<string | null> {
@@ -31,7 +32,10 @@ export async function sendBarkPush(options: BarkPushOptions): Promise<boolean> {
       body: JSON.stringify({
         title: options.title,
         body: options.body,
-        sound: 'alarm',
+        sound: 'fanfare',
+        group: 'MiMotion',
+        ...(options.subtitle && { subtitle: options.subtitle }),
+        ...(process.env.APP_URL && { icon: `${process.env.APP_URL}/icon.svg` }),
       }),
     })
 

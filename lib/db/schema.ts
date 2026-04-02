@@ -31,6 +31,8 @@ export const xiaomiAccounts = sqliteTable('xiaomi_accounts', {
   tokenIv: text('token_iv'),
   loginTokenData: text('login_token_data'),
   loginTokenIv: text('login_token_iv'),
+  passwordData: text('password_data'),
+  passwordIv: text('password_iv'),
   deviceId: text('device_id'),
   nickname: text('nickname'),
   status: text('status').default('active'),

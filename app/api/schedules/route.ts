@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { schedules, xiaomiAccounts } from '@/lib/db/schema'
+import { schedules, xiaomiAccounts, runLogs } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
@@ -189,6 +189,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
+  // 先删关联的执行记录，再删定时任务
+  await db.delete(runLogs).where(eq(runLogs.scheduleId, id))
   await db
     .delete(schedules)
     .where(and(eq(schedules.id, id), eq(schedules.userId, current.userId)))
