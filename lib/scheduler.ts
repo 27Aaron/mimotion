@@ -93,6 +93,18 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
       .set({ lastRunAt: now, updatedAt: now })
       .where(eq(schedules.id, schedule.id))
 
+    // 回写账号状态
+    await db
+      .update(xiaomiAccounts)
+      .set({
+        lastSyncAt: now,
+        updatedAt: now,
+        ...(result.success
+          ? { status: 'active', lastError: null }
+          : { status: 'error', lastError: result.error || '同步失败' }),
+      })
+      .where(eq(xiaomiAccounts.id, schedule.xiaomiAccountId))
+
     if (result.success) {
       const pushOpts = { userId: schedule.userId, title: '刷步数成功', body: `已设置步数: ${steps}` }
       await Promise.all([sendBarkPush(pushOpts), sendTelegramPush(pushOpts)])
