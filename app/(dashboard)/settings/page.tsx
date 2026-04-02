@@ -111,11 +111,11 @@ export default function SettingsPage() {
       if (username) {
         setCurrentUsername(username);
         setUsername("");
-        // 改用户名后刷新页面以更新 JWT 和侧边栏
+        // 改用户名后刷新 JWT
         window.location.reload();
         return;
       }
-      // 更新初始值以便重置按钮使用
+      // 更新初始值
       setInitialValues({
         barkUrl: barkUrl || "",
         telegramBotToken: telegramBotToken || "",
@@ -128,13 +128,13 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Page header */}
+      {/* 页面标题 */}
       <div className="mb-6">
         <h1 className="page-title">设置</h1>
         <p className="mt-1 text-muted-foreground">管理你的账号和安全偏好</p>
       </div>
 
-      {/* Profile */}
+      {/* 用户信息 */}
       <Card className="mb-3">
         <CardContent className="px-4 py-4">
           <div className="flex items-center gap-3">
@@ -160,7 +160,7 @@ export default function SettingsPage() {
       </Card>
 
       <form onSubmit={handleSubmit}>
-        {/* Section headers */}
+        {/* 分区标题 */}
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="flex items-center gap-2">
             <div className="section-icon">
@@ -182,7 +182,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Row 1: Username ↔ Bark */}
+        {/* 第一行：用户名 + Bark */}
         <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
@@ -251,7 +251,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        {/* Row 2: Password ↔ Telegram */}
+        {/* 第二行：密码 + Telegram */}
         <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
@@ -338,7 +338,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        {/* Action buttons */}
+        {/* 操作按钮 */}
         <div className="mt-6 flex items-center justify-end gap-3 border-t pt-6">
           <Button
             type="button"

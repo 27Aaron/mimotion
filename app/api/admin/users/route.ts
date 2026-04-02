@@ -36,7 +36,7 @@ export async function GET() {
     .from(users)
     .orderBy(users.createdAt)
 
-  // Get stats per user
+  // 用户统计
   const userStats = await db
     .select({
       userId: xiaomiAccounts.userId,
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '不能删除自己' }, { status: 400 })
   }
 
-  // 事务内级联删除
+  // 级联删除
   await db.transaction(async (tx) => {
     const userSchedules = await tx
       .select({ id: schedules.id })
@@ -123,7 +123,7 @@ export async function DELETE(request: NextRequest) {
     await tx.delete(schedules).where(eq(schedules.userId, userId))
     await tx.delete(xiaomiAccounts).where(eq(xiaomiAccounts.userId, userId))
 
-    // Unlink invite codes used by this user, delete codes created by this user
+    // 释放邀请码关联
     await tx.update(inviteCodes).set({ usedBy: null }).where(eq(inviteCodes.usedBy, userId))
     await tx.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId))
 

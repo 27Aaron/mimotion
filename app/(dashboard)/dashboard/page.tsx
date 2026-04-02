@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     db.select().from(schedules).where(eq(schedules.userId, user.userId)),
   ]);
 
-  // 只查当前用户的执行记录（通过 schedule 关联）
+  // 查当前用户执行记录
   const scheduleIds = allSchedules.map((s) => s.id);
   const recentLogs = scheduleIds.length > 0
     ? await db
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Welcome header */}
+      {/* 欢迎头部 */}
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="page-title">控制台</h1>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats grid */}
+      {/* 统计概览 */}
       <div className="stats-grid">
         {stats.map((stat) => (
           <Card key={stat.title} className="stat-card card-glow relative overflow-hidden">
@@ -134,7 +134,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Quick tips when empty */}
+      {/* 空态引导 */}
       {accounts.length === 0 && (
         <Card className="mb-3 border-dashed">
           <CardContent className="empty-state">
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* Recent activity */}
+      {/* 最近执行 */}
       <div className="-mt-3 flex items-center gap-2">
         <div className="section-icon">
           <Footprints className="h-3 w-3 text-primary" />

@@ -77,16 +77,43 @@ function cronToHuman(cron: string): string {
   const hh = hour !== "*" ? hour.padStart(2, "0") : null;
   const mm = minute !== "*" ? minute.padStart(2, "0") : "00";
   const timeStr = hh ? `${hh}:${mm}` : "每小时";
-  const dowStr =
-    dow === "*"
-      ? "每天"
-      : dow === "1-5"
-        ? "工作日"
-        : dow === "1-6"
-          ? "周一至周六"
-          : dow === "0-6"
-            ? "每天"
-            : `周${["日", "一", "二", "三", "四", "五", "六"][parseInt(dow) % 7]}`;
+
+  const DAY_NAMES = ["日", "一", "二", "三", "四", "五", "六"];
+
+  function formatDow(d: string): string {
+    if (d === "*") return "每天";
+    if (d === "1-5") return "工作日";
+    if (d === "1-6") return "周一至周六";
+    if (d === "0-6" || d === "0,1,2,3,4,5,6") return "每天";
+    // 单天
+    if (!d.includes(",") && !d.includes("-")) {
+      return `周${DAY_NAMES[parseInt(d) % 7]}`;
+    }
+    // 多天展开
+    const days: number[] = [];
+    for (const seg of d.split(",")) {
+      if (seg.includes("-")) {
+        const [s, e] = seg.split("-").map(Number);
+        for (let i = s; i <= e; i++) days.push(i);
+      } else {
+        days.push(parseInt(seg));
+      }
+    }
+    // 连续区间
+    if (days.length >= 3) {
+      const sorted = [...days].sort((a, b) => a - b);
+      let isConsecutive = true;
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] !== sorted[i - 1] + 1) { isConsecutive = false; break; }
+      }
+      if (isConsecutive) return `周${DAY_NAMES[sorted[0] % 7]}至周${DAY_NAMES[sorted[sorted.length - 1] % 7]}`;
+    }
+    // 非连续
+    const sorted = [...days].sort((a, b) => ((a % 7) - (b % 7)));
+    return `周${sorted.map((v) => DAY_NAMES[v % 7]).join("、")}`;
+  }
+
+  const dowStr = formatDow(dow);
   if (!hh) return `${dowStr}，每小时执行`;
   return `${dowStr} ${timeStr}`;
 }
@@ -167,7 +194,7 @@ export default function SchedulesPage() {
 
     setLoading(true);
 
-    // Build cron: minute hour * * dow
+    // 构建 cron 表达式
     const sorted = [...form.days].sort((a, b) => Number(a) - Number(b));
     let dow: string;
     if (sorted.length === 7) {
@@ -717,7 +744,7 @@ export default function SchedulesPage() {
                       {s.accountNickname}
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="inline-flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-sm">{cronToHuman(s.cronExpression)}</span>
                       </div>

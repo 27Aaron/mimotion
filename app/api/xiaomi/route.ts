@@ -18,7 +18,6 @@ export async function GET() {
     .from(xiaomiAccounts)
     .where(eq(xiaomiAccounts.userId, current.userId))
 
-  // 查询每个账号的定时任务统计
   const scheduleStats = await db
     .select({
       xiaomiAccountId: schedules.xiaomiAccountId,
@@ -31,8 +30,7 @@ export async function GET() {
 
   const scheduleMap = new Map(scheduleStats.map(s => [s.xiaomiAccountId, s]))
 
-  // 查每个账号最近一次执行的步数
-  // 先获取 scheduleId -> accountId 映射
+  // 查每个账号最近步数
   const userSchedules = await db
     .select({ id: schedules.id, xiaomiAccountId: schedules.xiaomiAccountId })
     .from(schedules)
@@ -41,7 +39,7 @@ export async function GET() {
   const scheduleToAccount = new Map(userSchedules.map(s => [s.id, s.xiaomiAccountId]))
   const scheduleIds = userSchedules.map(s => s.id)
 
-  // 查最近一条执行记录（按账号）
+  // 查最近执行记录
   const lastStepMap = new Map<string, number | null>()
   if (scheduleIds.length > 0) {
     const logs = await db
@@ -122,9 +120,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // 加密存储 app_token
   const { encrypted, iv } = encrypt(loginResult.token)
-  // 加密存储 login_token（用于自动刷新 app_token）
   const loginToken = loginResult.loginToken
   const ltEncrypted = loginToken ? encrypt(loginToken) : null
 
@@ -177,7 +173,7 @@ export async function PUT(request: NextRequest) {
   if (nickname !== undefined) updates.nickname = nickname
   if (status !== undefined) updates.status = status
 
-  // 如果提供了账号密码，重新登录刷新 token
+  // 重新登录刷新 token
   if (account && password) {
     let loginResult
     try {
@@ -204,7 +200,6 @@ export async function PUT(request: NextRequest) {
     updates.status = 'active'
     updates.lastError = null
 
-    // 同时更新 login_token
     const loginToken = loginResult.loginToken
     if (loginToken) {
       const ltEncrypted = encrypt(loginToken)
@@ -234,7 +229,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少 id' }, { status: 400 })
   }
 
-  // 级联删除：先删 runLogs -> schedules -> account
+  // 级联删除
   const accountSchedules = await db
     .select({ id: schedules.id })
     .from(schedules)

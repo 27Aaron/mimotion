@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
 
-  // 验证 cron 表达式格式
+  // 验证 cron 格式
   const cronParts = String(cronExpression).trim().split(/\s+/)
   if (cronParts.length !== 5) {
     return NextResponse.json({ error: 'Cron 表达式格式错误，需 5 段（分 时 日 月 周）' }, { status: 400 })

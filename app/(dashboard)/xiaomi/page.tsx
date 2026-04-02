@@ -397,8 +397,8 @@ export default function XiaomiPage() {
             <TableBody>
               {accounts.map((acc) => (
                 <TableRow key={acc.id}>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-2.5">
+                  <TableCell className="text-center">
+                    <div className="inline-flex items-center gap-2.5 text-left">
                       <div
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                           acc.status === "active"
@@ -412,7 +412,7 @@ export default function XiaomiPage() {
                           <AlertCircle className="h-4 w-4 text-red-500" />
                         )}
                       </div>
-                      <div className="min-w-0 text-left">
+                      <div className="min-w-0">
                         <p className="font-medium">{acc.nickname}</p>
                         {acc.account && (
                           <p className="truncate text-xs text-muted-foreground">

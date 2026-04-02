@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 
-// 与 Python 源码 aes_help.py 完全一致的密钥
+// Zepp/Huami 登录加密密钥
 const HM_AES_KEY = Buffer.from('xeNtBVqzDc6tuNTh') // 16 bytes
 const HM_AES_IV = Buffer.from('MAAAYAAAAAAAAABg') // 16 bytes
 
@@ -36,7 +36,6 @@ function generateDeviceId(): string {
  */
 function normalizeUser(user: string): { user: string; isPhone: boolean } {
   if (user.startsWith('+86') || user.includes('@')) {
-    // 已经是国际格式或是邮箱
   } else {
     user = '+86' + user
   }
@@ -69,7 +68,7 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
     redirect_uri: 'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html',
   })
 
-  // Python: plaintext = query.encode('utf-8')，然后 encrypt_data(plaintext, key, iv) 返回 raw bytes
+  // AES 加密登录参数
   const plaintext = Buffer.from(loginData.toString(), 'utf-8')
   const cipherData = encryptAes128Cbc(pkcs7Pad(plaintext), HM_AES_KEY, HM_AES_IV)
 
@@ -99,7 +98,7 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
       return { token: null, error: '获取accessToken失败：无重定向' }
     }
 
-    // Python: code_pattern = re.compile("(?<=access=).*?(?=&)")
+    // 从重定向 URL 提取 access_token
     const accessMatch = location.match(/(?<=access=).*?(?=&)/)
     const errorMatch = location.match(/(?<=error=).*?(?=&)/)
 
@@ -138,7 +137,7 @@ async function grantLoginTokens(
     'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
   }
 
-  // 与 Python 源码完全一致：手机号和邮箱使用不同的参数
+  // 手机号和邮箱使用不同参数
   let data: Record<string, string>
   if (isPhone) {
     data = {
@@ -153,7 +152,7 @@ async function grantLoginTokens(
     }
   } else {
     data = {
-      'allow_registration=': 'false', // Python 源码 key 带 = 号，URL编码后为 allow_registration%3D=false
+      'allow_registration=': 'false',
       'app_name': 'com.xiaomi.hm.health',
       'app_version': '6.14.0',
       'code': accessToken,
@@ -279,7 +278,6 @@ export async function loginXiaomiAccount(
   account: string,
   password: string
 ): Promise<LoginResult> {
-  // 自动加 +86 前缀，与 Python 一致
   const { user, isPhone } = normalizeUser(account)
   const deviceId = generateDeviceId()
 
