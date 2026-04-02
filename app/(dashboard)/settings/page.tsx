@@ -40,9 +40,11 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
+    let mounted = true;
     fetch("/api/user/settings")
       .then((res) => res.json())
       .then((data) => {
+        if (!mounted) return;
         if (data.username) setCurrentUsername(data.username);
         if (data.barkUrl) setBarkUrl(data.barkUrl);
         if (data.telegramBotToken) setTelegramBotToken(data.telegramBotToken);
@@ -54,6 +56,7 @@ export default function SettingsPage() {
         });
       })
       .catch(() => {});
+    return () => { mounted = false; };
   }, []);
 
   async function handleTestPush(type: "bark" | "telegram") {
@@ -86,6 +89,12 @@ export default function SettingsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (newPassword && !currentPassword) {
+      toast.error("修改密码需要输入当前密码");
+      return;
+    }
+
     setLoading(true);
 
     const res = await fetch("/api/user/settings", {

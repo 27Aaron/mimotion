@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   Plus,
@@ -35,6 +35,7 @@ export default function InvitePage() {
   const [newCode, setNewCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [filter, setFilter] = useState<FilterType>("unused");
 
   useEffect(() => {
@@ -70,7 +71,8 @@ export default function InvitePage() {
     await navigator.clipboard.writeText(url);
     setCopiedCode(code);
     toast.success("注册链接已复制到剪贴板");
-    setTimeout(() => setCopiedCode(null), 2000);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopiedCode(null), 2000);
   }
 
   const totalCodes = codes.length;

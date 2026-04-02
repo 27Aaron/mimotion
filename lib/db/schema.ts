@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -17,7 +17,9 @@ export const inviteCodes = sqliteTable('invite_codes', {
   createdBy: text('created_by').notNull().references(() => users.id),
   usedBy: text('used_by').references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-})
+}, (table) => [
+  index('invite_codes_used_by_idx').on(table.usedBy),
+])
 
 export const xiaomiAccounts = sqliteTable('xiaomi_accounts', {
   id: text('id').primaryKey(),
@@ -35,7 +37,9 @@ export const xiaomiAccounts = sqliteTable('xiaomi_accounts', {
   lastError: text('last_error'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-})
+}, (table) => [
+  index('xiaomi_accounts_user_id_idx').on(table.userId),
+])
 
 export const schedules = sqliteTable('schedules', {
   id: text('id').primaryKey(),
@@ -49,7 +53,10 @@ export const schedules = sqliteTable('schedules', {
   nextRunAt: integer('next_run_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-})
+}, (table) => [
+  index('schedules_user_id_idx').on(table.userId),
+  index('schedules_is_active_idx').on(table.isActive),
+])
 
 export const runLogs = sqliteTable('run_logs', {
   id: text('id').primaryKey(),
@@ -58,4 +65,6 @@ export const runLogs = sqliteTable('run_logs', {
   stepWritten: integer('step_written'),
   status: text('status'),
   errorMessage: text('error_message'),
-})
+}, (table) => [
+  index('run_logs_schedule_id_idx').on(table.scheduleId),
+])
