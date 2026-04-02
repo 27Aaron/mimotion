@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { users, xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { users, xiaomiAccounts, schedules, runLogs, inviteCodes } from '@/lib/db/schema'
+import { eq, sql, isNull } from 'drizzle-orm'
 import { verifyToken, hashPassword } from '@/lib/auth'
 import { cookies } from 'next/headers'
 
@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '不能删除自己' }, { status: 400 })
   }
 
-  // Delete in order: logs -> schedules -> accounts -> user
+  // Delete in order: logs -> schedules -> accounts -> invite codes -> user
   const userSchedules = await db
     .select({ id: schedules.id })
     .from(schedules)
@@ -117,6 +117,11 @@ export async function DELETE(request: NextRequest) {
   }
   await db.delete(schedules).where(eq(schedules.userId, userId))
   await db.delete(xiaomiAccounts).where(eq(xiaomiAccounts.userId, userId))
+
+  // Unlink invite codes used by this user, delete codes created by this user
+  await db.update(inviteCodes).set({ usedBy: null }).where(eq(inviteCodes.usedBy, userId))
+  await db.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId))
+
   await db.delete(users).where(eq(users.id, userId))
 
   return NextResponse.json({ success: true })
