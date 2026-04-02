@@ -111,7 +111,7 @@ export default function SettingsPage() {
     <div className="flex flex-col">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">设置</h1>
+        <h1 className="page-title">设置</h1>
         <p className="mt-1 text-muted-foreground">管理你的账号和安全偏好</p>
       </div>
 

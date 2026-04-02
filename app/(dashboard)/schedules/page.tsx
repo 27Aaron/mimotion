@@ -178,7 +178,7 @@ export default function SchedulesPage() {
       {/* Page header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">定时任务</h1>
+          <h1 className="page-title">定时任务</h1>
           <p className="mt-1 text-muted-foreground">
             创建自动刷步计划，设置时间和步数范围
           </p>
@@ -285,7 +285,7 @@ export default function SchedulesPage() {
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <CardTitle className="stat-label">
                   {stat.title}
                 </CardTitle>
                 <div
@@ -296,7 +296,7 @@ export default function SchedulesPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold font-mono tracking-tight">
+              <div className="stat-value">
                 {stat.value}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -310,7 +310,7 @@ export default function SchedulesPage() {
       {/* Task list */}
       {schedules.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+          <CardContent className="empty-state">
             <div className="empty-icon">
               <Timer className="h-5 w-5 text-primary" />
             </div>
@@ -344,7 +344,7 @@ export default function SchedulesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="card-grid">
           {schedules.map((s) => (
             <Card
               key={s.id}
@@ -408,9 +408,9 @@ export default function SchedulesPage() {
 
                 <div className="fade-divider my-4" />
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="info-grid">
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <p className="label-tiny">
                       步数范围
                     </p>
                     <p className="mt-0.5 font-mono text-sm font-medium">
@@ -419,7 +419,7 @@ export default function SchedulesPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <p className="label-tiny">
                       上次执行
                     </p>
                     <p className="mt-0.5 font-mono text-sm">

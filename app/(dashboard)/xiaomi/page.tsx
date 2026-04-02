@@ -122,7 +122,7 @@ export default function XiaomiPage() {
       {/* Page header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">小米账号</h1>
+          <h1 className="page-title">小米账号</h1>
           <p className="mt-1 text-muted-foreground">
             管理你的小米运动账号，添加后可用于创建定时刷步任务
           </p>
@@ -204,7 +204,7 @@ export default function XiaomiPage() {
           <Card key={stat.title} className="card-glow relative overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <CardTitle className="stat-label">
                   {stat.title}
                 </CardTitle>
                 <div
@@ -215,7 +215,7 @@ export default function XiaomiPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold font-mono tracking-tight">
+              <div className="stat-value">
                 {stat.value}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -229,7 +229,7 @@ export default function XiaomiPage() {
       {/* Account list */}
       {accounts.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+          <CardContent className="empty-state">
             <div className="empty-icon">
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
@@ -263,7 +263,7 @@ export default function XiaomiPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="card-grid">
           {accounts.map((acc) => (
             <Card key={acc.id} className="card-glow group relative overflow-hidden">
               <CardContent className="p-5">
@@ -308,9 +308,9 @@ export default function XiaomiPage() {
 
                 <div className="fade-divider my-4" />
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="info-grid">
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <p className="label-tiny">
                       最后同步
                     </p>
                     <p className="mt-0.5 font-mono text-sm">
@@ -325,7 +325,7 @@ export default function XiaomiPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <p className="label-tiny">
                       状态
                     </p>
                     <p className="mt-0.5 text-sm">
