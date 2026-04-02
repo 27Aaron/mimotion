@@ -339,10 +339,13 @@
     "UNKNOWN_ERROR": "未知错误"
   },
   "scheduler": {
-    "pushSuccessTitle": "刷步数成功",
+    "pushSuccessSubtitle": "刷步成功",
     "pushSuccessBody": "已设置步数: {steps}",
-    "pushFailTitle": "刷步数失败",
-    "pushFailBody": "{error}",
-    "syncFailed": "同步失败"
+    "pushFailSubtitle": "刷步失败",
+    "pushFailBody": "错误: {error}",
+    "pushTokenExpiredSubtitle": "Token 已过期",
+    "pushTokenExpiredBody": "请重新绑定小米账号以继续刷步",
+    "syncFailed": "同步失败",
+    "tokenExpired": "登录凭证已过期，请重新绑定账号"
   }
 }

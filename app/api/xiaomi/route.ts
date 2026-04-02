@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
   const { encrypted, iv } = encrypt(loginResult.token)
   const loginToken = loginResult.loginToken
   const ltEncrypted = loginToken ? encrypt(loginToken) : null
+  const pwdEncrypted = encrypt(password)
 
   const now = new Date()
   const id = uuid()
@@ -136,6 +137,8 @@ export async function POST(request: NextRequest) {
     tokenIv: iv,
     loginTokenData: ltEncrypted?.encrypted || null,
     loginTokenIv: ltEncrypted?.iv || null,
+    passwordData: pwdEncrypted.encrypted,
+    passwordIv: pwdEncrypted.iv,
     deviceId: loginResult.deviceId || null,
     nickname: nickname || account,
     status: 'active',
@@ -206,6 +209,10 @@ export async function PUT(request: NextRequest) {
       updates.loginTokenData = ltEncrypted.encrypted
       updates.loginTokenIv = ltEncrypted.iv
     }
+
+    const pwdEncrypted = encrypt(password)
+    updates.passwordData = pwdEncrypted.encrypted
+    updates.passwordIv = pwdEncrypted.iv
   }
 
   await db

@@ -339,10 +339,13 @@
     "UNKNOWN_ERROR": "Unknown error"
   },
   "scheduler": {
-    "pushSuccessTitle": "Steps Synced",
+    "pushSuccessSubtitle": "Steps Synced",
     "pushSuccessBody": "Steps set to: {steps}",
-    "pushFailTitle": "Step Sync Failed",
-    "pushFailBody": "{error}",
-    "syncFailed": "Sync failed"
+    "pushFailSubtitle": "Step Sync Failed",
+    "pushFailBody": "Error: {error}",
+    "pushTokenExpiredSubtitle": "Token Expired",
+    "pushTokenExpiredBody": "Please rebind your Xiaomi account to continue",
+    "syncFailed": "Sync failed",
+    "tokenExpired": "Login credentials expired, please rebind your account"
   }
 }

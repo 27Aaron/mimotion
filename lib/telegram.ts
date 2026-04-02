@@ -6,6 +6,7 @@ interface TelegramPushOptions {
   userId: string
   title: string
   body: string
+  subtitle?: string
 }
 
 async function getTelegramConfig(userId: string): Promise<{ botToken: string; chatId: string } | null> {
@@ -28,7 +29,8 @@ export async function sendTelegramPush(options: TelegramPushOptions): Promise<bo
   const config = await getTelegramConfig(options.userId)
   if (!config) return false
 
-  const text = `*${escapeMarkdown(options.title)}*\n${escapeMarkdown(options.body)}`
+  const subtitle = options.subtitle ? `\n_${escapeMarkdown(options.subtitle)}_` : ''
+  const text = `*${escapeMarkdown(options.title)}*${subtitle}\n${escapeMarkdown(options.body)}`
 
   try {
     const response = await fetch(
