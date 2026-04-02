@@ -12,6 +12,7 @@ import {
   Gift,
   Hash,
 } from "lucide-react";
+import { IconSparkles } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -123,7 +124,7 @@ export default function InvitePage() {
   return (
     <div className="flex flex-col">
       {/* Page header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">邀请码管理</h1>
           <p className="mt-1 text-muted-foreground">
@@ -131,7 +132,7 @@ export default function InvitePage() {
           </p>
         </div>
         <Button onClick={handleCreate} disabled={loading}>
-          <Plus className="mr-2 h-4 w-4" />
+          <IconSparkles className="mr-2 h-4 w-4 stroke-[1.5]" />
           {loading ? "生成中..." : "生成邀请码"}
         </Button>
       </div>
