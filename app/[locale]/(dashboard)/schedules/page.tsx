@@ -168,7 +168,7 @@ export default function SchedulesPage() {
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<{ id: string; nickname: string }[]>(
+  const [accounts, setAccounts] = useState<{ id: string; nickname: string; account: string }[]>(
     [],
   );
   const [form, setForm] = useState({ ...DEFAULT_FORM });
@@ -331,8 +331,9 @@ export default function SchedulesPage() {
   }
 
   const activeCount = schedules.filter((s) => s.isActive).length;
-  const totalMin = schedules.reduce((sum, s) => sum + s.minStep, 0);
-  const totalMax = schedules.reduce((sum, s) => sum + s.maxStep, 0);
+  const highestSchedule = schedules.length > 0
+    ? schedules.reduce((a, b) => a.maxStep >= b.maxStep ? a : b)
+    : null;
 
   const stats = [
     {
@@ -353,7 +354,9 @@ export default function SchedulesPage() {
     },
     {
       title: t("statDailySteps"),
-      value: totalMin > 0 ? `${totalMin.toLocaleString()}-${totalMax.toLocaleString()}` : "0",
+      value: highestSchedule
+        ? `${highestSchedule.minStep.toLocaleString()}-${highestSchedule.maxStep.toLocaleString()}`
+        : "0",
       icon: Zap,
       detail: t("statDailyStepsDetail"),
       color: "text-amber-500",
@@ -373,13 +376,19 @@ export default function SchedulesPage() {
               setForm({ ...form, xiaomiAccountId: v ?? "" })
             }
           >
-            <SelectTrigger>
-              <SelectValue placeholder={t("selectAccount")} />
+            <SelectTrigger className="w-full">
+              <span className="flex-1 truncate text-left">
+                {form.xiaomiAccountId
+                  ? (accounts.find((a) => a.id === form.xiaomiAccountId)?.nickname ||
+                     accounts.find((a) => a.id === form.xiaomiAccountId)?.account ||
+                     form.xiaomiAccountId)
+                  : t("selectAccount")}
+              </span>
             </SelectTrigger>
             <SelectContent>
               {accounts.map((acc) => (
                 <SelectItem key={acc.id} value={acc.id}>
-                  {acc.nickname}
+                  {acc.nickname || acc.account || acc.id}
                 </SelectItem>
               ))}
             </SelectContent>
