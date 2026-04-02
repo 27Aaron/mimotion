@@ -132,7 +132,7 @@ export default function InvitePage() {
           </p>
         </div>
         <Button onClick={handleCreate} disabled={loading}>
-          <IconSparkles className="mr-2 h-4 w-4 stroke-[1.5]" />
+          <IconSparkles className="mr-1.5 h-4 w-4 stroke-[1.5]" />
           {loading ? "生成中..." : "生成邀请码"}
         </Button>
       </div>

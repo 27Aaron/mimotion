@@ -186,7 +186,7 @@ export default function SchedulesPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
             <Button>
-              <IconCalendarPlus className="mr-2 h-4 w-4 stroke-[1.5]" /> 创建任务
+              <IconCalendarPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> 创建任务
             </Button>
           </DialogTrigger>
           <DialogContent>
