@@ -6,7 +6,6 @@ import { dirname } from 'path'
 
 const dbPath = process.env.DATABASE_URL || './data/mimotion.db'
 
-// 确保目录存在
 const dir = dirname(dbPath)
 if (!existsSync(dir)) {
   mkdirSync(dir, { recursive: true })

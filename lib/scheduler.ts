@@ -12,7 +12,6 @@ import { v4 as uuid } from 'uuid'
 export function startScheduler() {
   console.log('[Scheduler] Starting...')
 
-  // 每分钟检查一次
   cron.schedule('* * * * *', async () => {
     await checkAndRunSchedules()
   })
@@ -22,7 +21,7 @@ export function startScheduler() {
 
 async function checkAndRunSchedules() {
   const now = new Date()
-  // 用北京时间匹配 cron 表达式，与 Python 源码一致
+  // 北京时间匹配 cron
   const bjOffset = 8 * 60 * 60 * 1000
   const bjNow = new Date(now.getTime() + bjOffset)
   const currentMinute = bjNow.getUTCMinutes()
@@ -47,12 +46,12 @@ async function checkAndRunSchedules() {
     function matchesCronField(field: string, current: number): boolean {
       if (field === '*') return true
       if (field === current.toString()) return true
-      // handle ranges like "1-5"
+      // 范围匹配
       if (field.includes('-')) {
         const [start, end] = field.split('-').map(Number)
         return current >= start && current <= end
       }
-      // handle lists like "1,3,5"
+      // 列表匹配
       if (field.includes(',')) {
         return field.split(',').map(Number).includes(current)
       }
@@ -103,7 +102,7 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
     const steps = generateRandomStep(schedule.minStep, schedule.maxStep)
     let result = await setSteps(token, acc.deviceId || '', acc.xiaomiUserId || '', steps)
 
-    // Token 过期时自动刷新重试
+    // 401 时自动刷新 token
     if (!result.success && result.error?.includes('401') && acc.loginTokenData && acc.loginTokenIv) {
       console.log(`[Scheduler] Token expired for ${acc.id}, attempting refresh...`)
 
@@ -111,14 +110,12 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
       if (loginToken) {
         const refresh = await refreshAppToken(loginToken, acc.deviceId || '')
         if (refresh.appToken) {
-          // 更新存储的 app_token
           const newEncrypted = encrypt(refresh.appToken)
           const ltUpdate: Record<string, unknown> = {
             tokenData: newEncrypted.encrypted,
             tokenIv: newEncrypted.iv,
             updatedAt: new Date(),
           }
-          // login_token 也可能被更新
           if (refresh.loginToken) {
             const ltEncrypted = encrypt(refresh.loginToken)
             ltUpdate.loginTokenData = ltEncrypted.encrypted
@@ -129,7 +126,6 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
             .set(ltUpdate as typeof xiaomiAccounts.$inferInsert)
             .where(eq(xiaomiAccounts.id, acc.id))
 
-          // 用新 token 重试
           token = refresh.appToken
           result = await setSteps(token, acc.deviceId || '', acc.xiaomiUserId || '', steps)
           console.log(`[Scheduler] Retry after refresh: ${result.success ? 'success' : 'failed'}`)

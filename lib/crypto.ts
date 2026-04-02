@@ -5,14 +5,14 @@ const ALGORITHM = 'aes-256-gcm'
 function getKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY
   if (!key) throw new Error('ENCRYPTION_KEY is not set')
-  // 支持 32 字节直接传入或 hex 编码的 32 字节
+  // 支持 hex 编码或原始字节密钥
   if (key.length === 64) {
     return Buffer.from(key, 'hex')
   }
   if (key.length === 32) {
     return Buffer.from(key)
   }
-  // 兼容旧版：使用 scrypt 派生
+  // 兼容：使用 scrypt 派生
   return scryptSync(key, 'mimotion-salt', 32)
 }
 

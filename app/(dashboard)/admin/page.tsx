@@ -218,8 +218,8 @@ export default function AdminPage() {
                       <Badge variant="secondary">用户</Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-2">
+                  <TableCell className="text-center">
+                    <div className="inline-flex items-center gap-2">
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded ${u.barkUrl ? "bg-emerald-500/10" : "bg-muted"}`}
                         title={u.barkUrl ? "Bark 已配置" : "Bark 未配置"}

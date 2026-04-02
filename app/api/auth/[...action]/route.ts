@@ -129,14 +129,14 @@ async function handleRegister(request: NextRequest) {
     return NextResponse.json({ error: '密码长度需在 6-128 之间' }, { status: 400 })
   }
 
-  // 使用事务防止邀请码竞态
+  // 事务防止邀请码竞态
   const userId = uuid()
   const passwordHash = await hashPassword(password)
   const now = new Date()
 
   try {
     await db.transaction(async (tx) => {
-      // 校验邀请码（事务内加锁读取）
+      // 校验邀请码
       const codeResult = await tx
         .select()
         .from(inviteCodes)
@@ -156,7 +156,6 @@ async function handleRegister(request: NextRequest) {
 
       if (existing[0]) throw new Error('USERNAME_TAKEN')
 
-      // 插入用户
       await tx.insert(users).values({
         id: userId,
         username,
@@ -166,7 +165,6 @@ async function handleRegister(request: NextRequest) {
         updatedAt: now,
       })
 
-      // 标记邀请码已使用
       await tx
         .update(inviteCodes)
         .set({ usedBy: userId })

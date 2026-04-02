@@ -21,13 +21,13 @@ function AuthPage() {
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<"login" | "register">("login");
 
-  // Login
+  // 登录
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Register
+  // 注册
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regInviteCode, setRegInviteCode] = useState("");
@@ -92,20 +92,20 @@ function AuthPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      {/* Background */}
+      {/* 背景 */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-primary/3 blur-3xl" />
       </div>
 
-      {/* Theme toggle */}
+      {/* 主题切换 */}
       <div className="absolute right-6 top-6">
         <ThemeToggle />
       </div>
 
-      {/* Card */}
+      {/* 登录卡片 */}
       <div className="relative z-10 grid w-full max-w-3xl overflow-hidden rounded-2xl border border-border/50 shadow-2xl md:grid-cols-2">
-        {/* Left panel - branding */}
+        {/* 左侧品牌 */}
         <div className="relative hidden flex-col justify-between bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 md:flex">
           <div>
             <div className="flex items-center gap-3">
@@ -150,7 +150,7 @@ function AuthPage() {
           </div>
         </div>
 
-        {/* Right panel - form */}
+        {/* 右侧表单 */}
         <div className="bg-card p-8">
           {mode === "login" ? (
             <>

@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
-// 不需要鉴权的路径
 const publicPaths = ['/login', '/api/auth/login', '/api/auth/register', '/api/auth/me']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 公开路径直接放行
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
     return NextResponse.next()
   }
 
-  // 静态资源和 Next.js 内部路径放行
+  // 静态资源放行
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
@@ -21,10 +19,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 检查 auth cookie
   const token = request.cookies.get('auth_token')?.value
   if (!token) {
-    // API 路由返回 401，页面路由重定向到登录
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
@@ -33,7 +29,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // 验证 token 有效性
   const payload = await verifyToken(token)
   if (!payload) {
     if (pathname.startsWith('/api/')) {
