@@ -77,8 +77,9 @@ export default function AdminPage() {
       fetchUsers();
       toast.success("用户已删除");
     } else {
-      const data = await res.json();
-      toast.error(data.error || "删除失败");
+      let msg = "删除失败";
+      try { msg = (await res.json()).error || msg; } catch {}
+      toast.error(msg);
     }
   }
 
