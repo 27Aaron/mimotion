@@ -95,9 +95,14 @@ export default function XiaomiPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("确定删除该账号？")) return;
-    await fetch(`/api/xiaomi?id=${id}`, { method: "DELETE" });
-    fetchAccounts();
-    toast.success("账号已删除");
+    const res = await fetch(`/api/xiaomi?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      fetchAccounts();
+      toast.success("账号已删除");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "删除失败");
+    }
   }
 
   function openEdit(acc: Account) {

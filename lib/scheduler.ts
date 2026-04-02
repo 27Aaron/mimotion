@@ -25,6 +25,9 @@ async function checkAndRunSchedules() {
   const bjNow = new Date(now.getTime() + bjOffset)
   const currentMinute = bjNow.getUTCMinutes()
   const currentHour = bjNow.getUTCHours()
+  const currentDay = bjNow.getUTCDate()
+  const currentMonth = bjNow.getUTCMonth() + 1
+  const currentDow = bjNow.getUTCDay()
 
   const activeSchedules = await db
     .select()
@@ -37,11 +40,29 @@ async function checkAndRunSchedules() {
     const cronParts = schedule.cronExpression.split(' ')
     if (cronParts.length !== 5) continue
 
-    const [minute, hour] = cronParts
+    const [minute, hour, dom, month, dow] = cronParts
+
+    function matchesCronField(field: string, current: number): boolean {
+      if (field === '*') return true
+      if (field === current.toString()) return true
+      // handle ranges like "1-5"
+      if (field.includes('-')) {
+        const [start, end] = field.split('-').map(Number)
+        return current >= start && current <= end
+      }
+      // handle lists like "1,3,5"
+      if (field.includes(',')) {
+        return field.split(',').map(Number).includes(current)
+      }
+      return false
+    }
 
     const shouldRun =
-      (minute === '*' || parseInt(minute) === currentMinute) &&
-      (hour === '*' || parseInt(hour) === currentHour)
+      matchesCronField(minute, currentMinute) &&
+      matchesCronField(hour, currentHour) &&
+      matchesCronField(dom, currentDay) &&
+      matchesCronField(month, currentMonth) &&
+      matchesCronField(dow, currentDow)
 
     if (!shouldRun) continue
 

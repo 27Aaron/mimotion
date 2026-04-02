@@ -49,10 +49,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '未登录' }, { status: 401 })
   }
 
-  const { xiaomiAccountId, cronExpression, minStep, maxStep } = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: '请求格式错误' }, { status: 400 })
+  }
+
+  const { xiaomiAccountId, cronExpression, minStep, maxStep } = body
 
   if (!xiaomiAccountId || !cronExpression || minStep === undefined || maxStep === undefined) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
+  }
+
+  // 验证 cron 表达式格式
+  const cronParts = String(cronExpression).trim().split(/\s+/)
+  if (cronParts.length !== 5) {
+    return NextResponse.json({ error: 'Cron 表达式格式错误，需 5 段（分 时 日 月 周）' }, { status: 400 })
+  }
+  const cronFieldPattern = /^(\*|\d+|\d+-\d+|\d+(,\d+)+)$/
+  if (!cronParts.every(p => cronFieldPattern.test(p))) {
+    return NextResponse.json({ error: 'Cron 表达式包含无效字符' }, { status: 400 })
+  }
+
+  // 验证步数
+  const min = Number(minStep)
+  const max = Number(maxStep)
+  if (!Number.isInteger(min) || !Number.isInteger(max) || min <= 0 || max <= 0) {
+    return NextResponse.json({ error: '步数必须为正整数' }, { status: 400 })
+  }
+  if (min > max) {
+    return NextResponse.json({ error: '最小步数不能大于最大步数' }, { status: 400 })
   }
 
   const account = await db

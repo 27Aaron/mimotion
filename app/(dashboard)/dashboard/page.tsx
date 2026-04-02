@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { xiaomiAccounts, schedules, runLogs } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import {
   Smartphone,
   ClockCheck,
@@ -17,21 +17,21 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const accounts = await db
-    .select()
-    .from(xiaomiAccounts)
-    .where(eq(xiaomiAccounts.userId, user.userId));
+  const [accounts, allSchedules] = await Promise.all([
+    db.select().from(xiaomiAccounts).where(eq(xiaomiAccounts.userId, user.userId)),
+    db.select().from(schedules).where(eq(schedules.userId, user.userId)),
+  ]);
 
-  const allSchedules = await db
-    .select()
-    .from(schedules)
-    .where(eq(schedules.userId, user.userId));
-
-  const recentLogs = await db
-    .select()
-    .from(runLogs)
-    .orderBy(desc(runLogs.executedAt))
-    .limit(20);
+  // 只查当前用户的执行记录（通过 schedule 关联）
+  const scheduleIds = allSchedules.map((s) => s.id);
+  const recentLogs = scheduleIds.length > 0
+    ? await db
+        .select()
+        .from(runLogs)
+        .where(inArray(runLogs.scheduleId, scheduleIds))
+        .orderBy(desc(runLogs.executedAt))
+        .limit(20)
+    : [];
 
   const todayLogs = recentLogs.filter(
     (l) =>

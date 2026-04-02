@@ -1,16 +1,9 @@
+import crypto from 'crypto'
 import { decrypt } from '../crypto'
 
 interface SetStepResult {
   success: boolean
   error?: string
-}
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
 }
 
 function getTime(): string {
@@ -30,7 +23,7 @@ export async function setSteps(
   // Build data_json with fake step data, URL-encode to match Python behavior
   const dataJson = encodeURIComponent(`{"date":"${today}","data":[{"ttl":${steps},"dis":0,"code":0}]}`)
 
-  const url = `https://api-mifit-cn.huami.com/v1/data/band_data.json?&t=${t}&r=${generateUUID()}`
+  const url = `https://api-mifit-cn.huami.com/v1/data/band_data.json?&t=${t}&r=${crypto.randomUUID()}`
   const postData = `userid=${xiaomiUserId}&last_sync_data_time=1597306380&device_type=0&last_deviceid=${deviceId || 'DA932FFFFE8816E7'}&data_json=${dataJson}`
 
   try {

@@ -76,7 +76,6 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
   const url1 = 'https://api-user.zepp.com/v2/registrations/tokens'
 
   console.log('[Xiaomi Auth] Step 1: POST', url1)
-  console.log('[Xiaomi Auth] Step 1: cipher body length:', cipherData.length)
 
   try {
     const r1 = await fetch(url1, {
@@ -87,7 +86,6 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
     })
 
     console.log('[Xiaomi Auth] Step 1 status:', r1.status)
-    console.log('[Xiaomi Auth] Step 1 resp Content-Type:', r1.headers.get('content-type'))
 
     if (r1.status !== 303) {
       const errorBody = await r1.text().catch(() => 'unreadable')
@@ -112,7 +110,7 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
       return { token: null, error: '获取accessToken失败: ' + location.slice(0, 200) }
     }
 
-    console.log('[Xiaomi Auth] Step 1 access_token:', accessMatch[0].slice(0, 20) + '...')
+    console.log('[Xiaomi Auth] Step 1: access token obtained')
     return { token: accessMatch[0], error: null }
   } catch (error) {
     return { token: null, error: error instanceof Error ? error.message : '网络错误' }
@@ -182,7 +180,6 @@ async function grantLoginTokens(
 
     console.log('[Xiaomi Auth] Step 2 status:', resp.status)
     const respData = await resp.json()
-    console.log('[Xiaomi Auth] Step 2 response:', JSON.stringify(respData).slice(0, 500))
 
     const result = respData.result
     if (result !== 'ok') {
@@ -198,7 +195,7 @@ async function grantLoginTokens(
     const appToken = tokenInfo.app_token || null
     const userId = tokenInfo.user_id || null
 
-    console.log('[Xiaomi Auth] Step 2 success. userId:', userId, 'appToken:', appToken ? appToken.slice(0, 20) + '...' : 'null')
+    console.log('[Xiaomi Auth] Step 2 success. userId:', userId)
 
     return { loginToken, appToken, userId, error: null }
   } catch (error) {
