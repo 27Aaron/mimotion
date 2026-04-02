@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { xiaomiAccounts } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
 import { encrypt } from '@/lib/crypto'
@@ -18,15 +18,70 @@ export async function GET() {
     .from(xiaomiAccounts)
     .where(eq(xiaomiAccounts.userId, current.userId))
 
+  // 查询每个账号的定时任务统计
+  const scheduleStats = await db
+    .select({
+      xiaomiAccountId: schedules.xiaomiAccountId,
+      total: sql<number>`count(*)`,
+      active: sql<number>`sum(case when ${schedules.isActive} = 1 then 1 else 0 end)`,
+    })
+    .from(schedules)
+    .where(eq(schedules.userId, current.userId))
+    .groupBy(schedules.xiaomiAccountId)
+
+  const scheduleMap = new Map(scheduleStats.map(s => [s.xiaomiAccountId, s]))
+
+  // 查每个账号最近一次执行的步数
+  // 先获取 scheduleId -> accountId 映射
+  const userSchedules = await db
+    .select({ id: schedules.id, xiaomiAccountId: schedules.xiaomiAccountId })
+    .from(schedules)
+    .where(eq(schedules.userId, current.userId))
+
+  const scheduleToAccount = new Map(userSchedules.map(s => [s.id, s.xiaomiAccountId]))
+  const scheduleIds = userSchedules.map(s => s.id)
+
+  // 查最近一条执行记录（按账号）
+  const lastStepMap = new Map<string, number | null>()
+  if (scheduleIds.length > 0) {
+    const logs = await db
+      .select({
+        scheduleId: runLogs.scheduleId,
+        stepWritten: runLogs.stepWritten,
+        executedAt: runLogs.executedAt,
+      })
+      .from(runLogs)
+      .where(sql`${runLogs.scheduleId} in (${sql.join(scheduleIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(runLogs.executedAt))
+
+    const seen = new Set<string>()
+    for (const log of logs) {
+      const accId = scheduleToAccount.get(log.scheduleId)
+      if (accId && !seen.has(accId)) {
+        seen.add(accId)
+        lastStepMap.set(accId, log.stepWritten)
+      }
+    }
+  }
+
   return NextResponse.json(
-    accounts.map((a) => ({
-      id: a.id,
-      nickname: a.nickname,
-      status: a.status,
-      lastSyncAt: a.lastSyncAt,
-      lastError: a.lastError,
-      createdAt: a.createdAt,
-    }))
+    accounts.map((a) => {
+      const ss = scheduleMap.get(a.id)
+      const ls = lastStepMap.get(a.id)
+      return {
+        id: a.id,
+        nickname: a.nickname,
+        account: a.account,
+        status: a.status,
+        lastSyncAt: a.lastSyncAt,
+        lastError: a.lastError,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+        scheduleCount: ss?.total ?? 0,
+        activeScheduleCount: ss?.active ?? 0,
+        lastStep: ls ?? null,
+      }
+    })
   )
 }
 
@@ -77,6 +132,7 @@ export async function POST(request: NextRequest) {
     id,
     userId: current.userId,
     xiaomiUserId: loginResult.userId || null,
+    account: account,
     tokenData: encrypted,
     tokenIv: iv,
     deviceId: loginResult.deviceId || null,
@@ -107,7 +163,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { nickname, status } = body
+  const { nickname, status, account, password } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
@@ -115,6 +171,34 @@ export async function PUT(request: NextRequest) {
 
   if (nickname !== undefined) updates.nickname = nickname
   if (status !== undefined) updates.status = status
+
+  // 如果提供了账号密码，重新登录刷新 token
+  if (account && password) {
+    let loginResult
+    try {
+      loginResult = await loginXiaomiAccount(account, password)
+    } catch (err) {
+      return NextResponse.json(
+        { error: `登录异常: ${err instanceof Error ? err.message : String(err)}` },
+        { status: 500 }
+      )
+    }
+
+    if (!loginResult.success || !loginResult.token) {
+      return NextResponse.json(
+        { error: loginResult.error || '小米账号验证失败' },
+        { status: 400 }
+      )
+    }
+
+    const { encrypted, iv } = encrypt(loginResult.token)
+    updates.tokenData = encrypted
+    updates.tokenIv = iv
+    updates.xiaomiUserId = loginResult.userId || null
+    updates.deviceId = loginResult.deviceId || null
+    updates.status = 'active'
+    updates.lastError = null
+  }
 
   await db
     .update(xiaomiAccounts)

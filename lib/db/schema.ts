@@ -23,6 +23,7 @@ export const xiaomiAccounts = sqliteTable('xiaomi_accounts', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id),
   xiaomiUserId: text('xiaomi_user_id'),
+  account: text('account'),
   tokenData: text('token_data').notNull(),
   tokenIv: text('token_iv'),
   deviceId: text('device_id'),

@@ -3,25 +3,28 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
-  Plus,
   Trash2,
   Smartphone,
   CheckCircle2,
   AlertCircle,
   Wifi,
   WifiOff,
+  Pencil,
 } from "lucide-react";
 import { IconUserPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -35,16 +38,26 @@ import {
 interface Account {
   id: string;
   nickname: string;
+  account: string | null;
   status: string;
   lastSyncAt: string | null;
   lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+  scheduleCount: number;
+  activeScheduleCount: number;
+  lastStep: number | null;
 }
 
 export default function XiaomiPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ account: "", password: "", nickname: "" });
+  const [editForm, setEditForm] = useState({ nickname: "", account: "", password: "" });
   const [error, setError] = useState("");
+  const [editError, setEditError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -87,6 +100,44 @@ export default function XiaomiPage() {
     toast.success("账号已删除");
   }
 
+  function openEdit(acc: Account) {
+    setEditingId(acc.id);
+    setEditForm({ nickname: acc.nickname, account: acc.account || "", password: "" });
+    setEditError("");
+    setEditOpen(true);
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingId) return;
+    setEditError("");
+    setLoading(true);
+
+    const body: Record<string, string> = { nickname: editForm.nickname };
+    if (editForm.account && editForm.password) {
+      body.account = editForm.account;
+      body.password = editForm.password;
+    }
+
+    const res = await fetch(`/api/xiaomi?id=${editingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (res.ok) {
+      setEditOpen(false);
+      setEditingId(null);
+      fetchAccounts();
+      toast.success("账号已更新");
+    } else {
+      setEditError(data.error || "更新失败");
+    }
+  }
+
   const activeCount = accounts.filter((a) => a.status === "active").length;
   const errorCount = accounts.filter((a) => a.status !== "active").length;
 
@@ -116,6 +167,16 @@ export default function XiaomiPage() {
       bg: "bg-amber-500/10",
     },
   ];
+
+  function formatDate(d: string | null) {
+    if (!d) return "-";
+    return new Date(d).toLocaleString("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   return (
     <div className="flex flex-col">
@@ -196,37 +257,90 @@ export default function XiaomiPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Edit account dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>编辑账号</DialogTitle>
+              <DialogDescription>
+                修改信息或重新登录以刷新凭证
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEdit}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>小米账号（手机号 / 邮箱）</Label>
+                  <Input
+                    value={editForm.account}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, account: e.target.value })
+                    }
+                    placeholder="请输入手机号或邮箱"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>密码</Label>
+                  <Input
+                    type="password"
+                    value={editForm.password}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, password: e.target.value })
+                    }
+                    placeholder="填写密码以重新验证登录"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>显示名称（可选）</Label>
+                  <Input
+                    value={editForm.nickname}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, nickname: e.target.value })
+                    }
+                    placeholder="给账号起个名字"
+                  />
+                </div>
+                {editError && (
+                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {editError}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditOpen(false)}
+                >
+                  取消
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "保存中..." : "保存"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats overview */}
-      <div className="stats-grid">
+      <div className="stats-grid mb-6">
         {stats.map((stat) => (
-          <Card key={stat.title} className="card-glow relative overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="stat-label">
-                  {stat.title}
-                </CardTitle>
-                <div
-                  className={`stat-icon-box ${stat.bg}`}
-                >
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
+          <Card key={stat.title}>
+            <CardContent className="flex items-center gap-4 py-4">
+              <div className={`stat-icon-box ${stat.bg}`}>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="stat-value">
-                {stat.value}
+              <div>
+                <p className="text-2xl font-bold font-mono">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.detail}</p>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {stat.detail}
-              </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Account list */}
+      {/* Account table */}
       {accounts.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="empty-state">
@@ -242,109 +356,119 @@ export default function XiaomiPage() {
             <div className="fade-divider max-w-[240px]" />
             <div className="flex gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <span className="step-circle">
-                  1
-                </span>
-                添加账号
+                <span className="step-circle">1</span> 添加账号
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="step-circle">
-                  2
-                </span>
-                创建任务
+                <span className="step-circle">2</span> 创建任务
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="step-circle">
-                  3
-                </span>
-                自动刷步
+                <span className="step-circle">3</span> 自动刷步
               </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="card-grid">
-          {accounts.map((acc) => (
-            <Card key={acc.id} className="card-glow group relative overflow-hidden">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                        acc.status === "active"
-                          ? "bg-emerald-500/10"
-                          : "bg-red-500/10"
-                      }`}
-                    >
-                      {acc.status === "active" ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-red-500" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-semibold">{acc.nickname}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge
-                          variant={
-                            acc.status === "active" ? "default" : "destructive"
-                          }
-                          className="text-[10px]"
-                        >
-                          {acc.status === "active" ? "正常" : "异常"}
-                        </Badge>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px] text-center">账号</TableHead>
+                <TableHead className="text-center">状态</TableHead>
+                <TableHead className="text-center">定时任务</TableHead>
+                <TableHead className="text-center">最近步数</TableHead>
+                <TableHead className="text-center">最后同步</TableHead>
+                <TableHead className="text-center">添加时间</TableHead>
+                <TableHead className="text-center">更新时间</TableHead>
+                <TableHead className="text-center w-[100px]">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts.map((acc) => (
+                <TableRow key={acc.id}>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-2.5">
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                          acc.status === "active"
+                            ? "bg-emerald-500/10"
+                            : "bg-red-500/10"
+                        }`}
+                      >
+                        {acc.status === "active" ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <p className="font-medium">{acc.nickname}</p>
+                        {acc.account && (
+                          <p className="truncate text-xs text-muted-foreground">
+                            {acc.account}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => handleDelete(acc.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-
-                <div className="fade-divider my-4" />
-
-                <div className="info-grid">
-                  <div>
-                    <p className="label-tiny">
-                      最后同步
-                    </p>
-                    <p className="mt-0.5 font-mono text-sm">
-                      {acc.lastSyncAt
-                        ? new Date(acc.lastSyncAt).toLocaleString("zh-CN", {
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="label-tiny">
-                      状态
-                    </p>
-                    <p className="mt-0.5 text-sm">
-                      {acc.lastError ? (
-                        <span className="text-destructive/80 truncate">
-                          {acc.lastError}
-                        </span>
-                      ) : acc.status === "active" ? (
-                        <span className="text-emerald-500">运行正常</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      variant={acc.status === "active" ? "default" : "destructive"}
+                    >
+                      {acc.status === "active" ? "正常" : "异常"}
+                    </Badge>
+                    {acc.lastError && (
+                      <p className="mt-1 text-xs text-destructive/80 truncate max-w-[160px] mx-auto" title={acc.lastError}>
+                        {acc.lastError}
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-mono text-sm">{acc.activeScheduleCount}</span>
+                    <span className="text-muted-foreground"> / {acc.scheduleCount}</span>
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-sm">
+                    {acc.lastStep != null ? (
+                      <span>{acc.lastStep.toLocaleString()}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                    {formatDate(acc.lastSyncAt)}
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                    {formatDate(acc.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                    {formatDate(acc.updatedAt)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(acc)}
+                        title="编辑"
+                      >
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDelete(acc.id)}
+                        title="删除"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );
