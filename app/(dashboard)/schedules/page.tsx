@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
-  Plus,
   Trash2,
   Clock,
   Play,
   Pause,
+  Pencil,
   CalendarClock,
   Activity,
   Zap,
@@ -52,33 +52,76 @@ interface Schedule {
   lastRunAt: string | null;
 }
 
+const DAY_OPTIONS = [
+  { value: "1", label: "周一" },
+  { value: "2", label: "周二" },
+  { value: "3", label: "周三" },
+  { value: "4", label: "周四" },
+  { value: "5", label: "周五" },
+  { value: "6", label: "周六" },
+  { value: "0", label: "周日" },
+];
+
 function cronToHuman(cron: string): string {
   const parts = cron.trim().split(/\s+/);
   if (parts.length < 5) return cron;
-  const [, hour, , , dow] = parts;
-  const hourStr = hour !== "*" ? `${hour}:00` : "每小时";
+  const [minute, hour, , , dow] = parts;
+  const hh = hour !== "*" ? hour.padStart(2, "0") : null;
+  const mm = minute !== "*" ? minute.padStart(2, "0") : "00";
+  const timeStr = hh ? `${hh}:${mm}` : "每小时";
   const dowStr =
     dow === "*"
       ? "每天"
       : dow === "1-5"
         ? "工作日"
-        : `周${["日", "一", "二", "三", "四", "五", "六"][parseInt(dow) % 7]}`;
-  if (hour === "*") return `${dowStr}，每小时执行`;
-  return `${dowStr} ${hourStr}`;
+        : dow === "1-6"
+          ? "周一至周六"
+          : dow === "0-6"
+            ? "每天"
+            : `周${["日", "一", "二", "三", "四", "五", "六"][parseInt(dow) % 7]}`;
+  if (!hh) return `${dowStr}，每小时执行`;
+  return `${dowStr} ${timeStr}`;
 }
+
+function parseCron(cron: string) {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length < 5) return { hour: 9, minute: 0, days: ["1","2","3","4","5"] };
+  const [minute, hour, , , dow] = parts;
+  let days: string[];
+  if (dow === "*") {
+    days = DAY_OPTIONS.map((d) => d.value);
+  } else if (dow.includes("-")) {
+    const [start, end] = dow.split("-").map(Number);
+    days = [];
+    for (let i = start; i <= end; i++) days.push(String(i));
+  } else {
+    days = dow.split(",");
+  }
+  return {
+    hour: hour !== "*" ? parseInt(hour) : 9,
+    minute: minute !== "*" ? parseInt(minute) : 0,
+    days,
+  };
+}
+
+const DEFAULT_FORM = {
+  xiaomiAccountId: "",
+  hour: 9,
+  minute: 0,
+  days: ["1", "2", "3", "4", "5"] as string[],
+  minStep: 1000,
+  maxStep: 1500,
+};
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<{ id: string; nickname: string }[]>(
     [],
   );
-  const [form, setForm] = useState({
-    xiaomiAccountId: "",
-    cronExpression: "0 9 * * *",
-    minStep: 1000,
-    maxStep: 1500,
-  });
+  const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -100,12 +143,38 @@ export default function SchedulesPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (form.days.length === 0) {
+      setError("请至少选择一天");
+      return;
+    }
+
     setLoading(true);
+
+    // Build cron: minute hour * * dow
+    const sorted = [...form.days].sort((a, b) => Number(a) - Number(b));
+    let dow: string;
+    if (sorted.length === 7) {
+      dow = "*";
+    } else if (
+      sorted.length === 5 &&
+      sorted.join(",") === "1,2,3,4,5"
+    ) {
+      dow = "1-5";
+    } else {
+      dow = sorted.join(",");
+    }
+    const cronExpression = `${form.minute} ${form.hour} * * ${dow}`;
 
     const res = await fetch("/api/schedules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        xiaomiAccountId: form.xiaomiAccountId,
+        cronExpression,
+        minStep: form.minStep,
+        maxStep: form.maxStep,
+      }),
     });
 
     const data = await res.json();
@@ -113,16 +182,74 @@ export default function SchedulesPage() {
 
     if (res.ok) {
       setOpen(false);
-      setForm({
-        xiaomiAccountId: "",
-        cronExpression: "0 9 * * *",
-        minStep: 1000,
-        maxStep: 1500,
-      });
+      setForm({ ...DEFAULT_FORM });
       fetchSchedules();
       toast.success("任务创建成功");
     } else {
       toast.error(data.error || "创建失败");
+    }
+  }
+
+  function openEdit(s: Schedule) {
+    const { hour, minute, days } = parseCron(s.cronExpression);
+    setEditingId(s.id);
+    setForm({
+      xiaomiAccountId: s.xiaomiAccountId,
+      hour,
+      minute,
+      days,
+      minStep: s.minStep,
+      maxStep: s.maxStep,
+    });
+    setError("");
+    setEditOpen(true);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (!editingId) return;
+    if (form.days.length === 0) {
+      setError("请至少选择一天");
+      return;
+    }
+
+    setLoading(true);
+
+    const sorted = [...form.days].sort((a, b) => Number(a) - Number(b));
+    let dow: string;
+    if (sorted.length === 7) {
+      dow = "*";
+    } else if (sorted.length === 5 && sorted.join(",") === "1,2,3,4,5") {
+      dow = "1-5";
+    } else {
+      dow = sorted.join(",");
+    }
+    const cronExpression = `${form.minute} ${form.hour} * * ${dow}`;
+
+    const res = await fetch(`/api/schedules?id=${editingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cronExpression,
+        minStep: form.minStep,
+        maxStep: form.maxStep,
+        xiaomiAccountId: form.xiaomiAccountId,
+      }),
+    });
+
+    setLoading(false);
+
+    if (res.ok) {
+      setEditOpen(false);
+      setEditingId(null);
+      setForm({ ...DEFAULT_FORM });
+      fetchSchedules();
+      toast.success("任务已更新");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "更新失败");
     }
   }
 
@@ -189,10 +316,8 @@ export default function SchedulesPage() {
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger>
-            <Button>
-              <IconCalendarPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> 创建任务
-            </Button>
+          <DialogTrigger render={<Button />}>
+            <IconCalendarPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> 创建任务
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -224,18 +349,70 @@ export default function SchedulesPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Cron 表达式</Label>
-                  <Input
-                    value={form.cronExpression}
-                    onChange={(e) =>
-                      setForm({ ...form, cronExpression: e.target.value })
-                    }
-                    placeholder="0 9 * * *"
-                    required
-                  />
-                  <p className="font-mono text-xs text-muted-foreground">
-                    例: 0 9 * * * = 每天9点 | 0 12 * * * = 每天12点
-                  </p>
+                  <Label>执行时间</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select
+                      value={String(form.hour)}
+                      onValueChange={(v) =>
+                        setForm({ ...form, hour: parseInt(v ?? "0") })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, "0")} 时
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={String(form.minute)}
+                      onValueChange={(v) =>
+                        setForm({ ...form, minute: parseInt(v ?? "0") })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from({ length: 60 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, "0")} 分
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>重复日期</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DAY_OPTIONS.map((d) => {
+                      const selected = form.days.includes(d.value);
+                      return (
+                        <button
+                          key={d.value}
+                          type="button"
+                          onClick={() => {
+                            const next = selected
+                              ? form.days.filter((v) => v !== d.value)
+                              : [...form.days, d.value];
+                            setForm({ ...form, days: next });
+                          }}
+                          className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -277,6 +454,149 @@ export default function SchedulesPage() {
                 </Button>
                 <Button type="submit" disabled={loading}>
                   {loading ? "创建中..." : "创建"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>编辑定时任务</DialogTitle>
+              <DialogDescription>
+                修改时间、步数或关联账号
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSaveEdit}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>小米账号</Label>
+                  <Select
+                    value={form.xiaomiAccountId}
+                    onValueChange={(v) =>
+                      setForm({ ...form, xiaomiAccountId: v ?? "" })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择账号" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.nickname}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>执行时间</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select
+                      value={String(form.hour)}
+                      onValueChange={(v) =>
+                        setForm({ ...form, hour: parseInt(v ?? "0") })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, "0")} 时
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={String(form.minute)}
+                      onValueChange={(v) =>
+                        setForm({ ...form, minute: parseInt(v ?? "0") })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from({ length: 60 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, "0")} 分
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>重复日期</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DAY_OPTIONS.map((d) => {
+                      const selected = form.days.includes(d.value);
+                      return (
+                        <button
+                          key={d.value}
+                          type="button"
+                          onClick={() => {
+                            const next = selected
+                              ? form.days.filter((v) => v !== d.value)
+                              : [...form.days, d.value];
+                            setForm({ ...form, days: next });
+                          }}
+                          className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>最小步数</Label>
+                    <Input
+                      type="number"
+                      value={form.minStep}
+                      onChange={(e) =>
+                        setForm({ ...form, minStep: parseInt(e.target.value) })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>最大步数</Label>
+                    <Input
+                      type="number"
+                      value={form.maxStep}
+                      onChange={(e) =>
+                        setForm({ ...form, maxStep: parseInt(e.target.value) })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+                {error && (
+                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditOpen(false)}
+                >
+                  取消
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "保存中..." : "保存"}
                 </Button>
               </DialogFooter>
             </form>
@@ -399,6 +719,14 @@ export default function SchedulesPage() {
                       ) : (
                         <Play className="h-4 w-4 text-emerald-500" />
                       )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={() => openEdit(s)}
+                    >
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
