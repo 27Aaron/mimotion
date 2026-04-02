@@ -25,6 +25,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -112,6 +120,14 @@ const DEFAULT_FORM = {
   minStep: 1000,
   maxStep: 1500,
 };
+
+function cronSortKey(cron: string): number {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length < 5) return 0;
+  const minute = parts[0] !== "*" ? parseInt(parts[0]) : 0;
+  const hour = parts[1] !== "*" ? parseInt(parts[1]) : 0;
+  return hour * 60 + minute;
+}
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -632,7 +648,7 @@ export default function SchedulesPage() {
         ))}
       </div>
 
-      {/* Task list */}
+      {/* Task table */}
       {schedules.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="empty-state">
@@ -669,24 +685,24 @@ export default function SchedulesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="card-grid">
-          {schedules.map((s) => (
-            <Card
-              key={s.id}
-              className={`card-glow group relative overflow-hidden ${
-                !s.isActive ? "opacity-60" : ""
-              }`}
-            >
-              {/* Active indicator bar */}
-              {s.isActive && (
-                <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500" />
-              )}
-
-              <CardContent className="p-5 pl-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{s.accountNickname}</p>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center">状态</TableHead>
+                <TableHead className="text-center">小米账号</TableHead>
+                <TableHead className="text-center">执行时间</TableHead>
+                <TableHead className="text-center">步数范围</TableHead>
+                <TableHead className="text-center">上次执行</TableHead>
+                <TableHead className="text-center w-[120px]">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...schedules]
+                .sort((a, b) => cronSortKey(a.cronExpression) - cronSortKey(b.cronExpression))
+                .map((s) => (
+                  <TableRow key={s.id} className={!s.isActive ? "opacity-50" : ""}>
+                    <TableCell className="text-center">
                       {s.isActive ? (
                         <Badge variant="default" className="text-[10px]">
                           运行中
@@ -696,66 +712,20 @@ export default function SchedulesPage() {
                           已暂停
                         </Badge>
                       )}
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{cronToHuman(s.cronExpression)}</span>
-                      <span className="text-muted-foreground/40">|</span>
-                      <code className="font-mono text-xs">
-                        {s.cronExpression}
-                      </code>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleToggle(s.id, s.isActive)}
-                    >
-                      {s.isActive ? (
-                        <Pause className="h-4 w-4 text-amber-500" />
-                      ) : (
-                        <Play className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => openEdit(s)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => handleDelete(s.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="fade-divider my-4" />
-
-                <div className="info-grid">
-                  <div>
-                    <p className="label-tiny">
-                      步数范围
-                    </p>
-                    <p className="mt-0.5 font-mono text-sm font-medium">
-                      {s.minStep.toLocaleString()} -{" "}
-                      {s.maxStep.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="label-tiny">
-                      上次执行
-                    </p>
-                    <p className="mt-0.5 font-mono text-sm">
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {s.accountNickname}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm">{cronToHuman(s.cronExpression)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-sm">
+                      {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-sm text-muted-foreground">
                       {s.lastRunAt
                         ? new Date(s.lastRunAt).toLocaleString("zh-CN", {
                             month: "2-digit",
@@ -764,13 +734,47 @@ export default function SchedulesPage() {
                             minute: "2-digit",
                           })
                         : "-"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleToggle(s.id, s.isActive)}
+                          title={s.isActive ? "暂停" : "启动"}
+                        >
+                          {s.isActive ? (
+                            <Pause className="h-4 w-4 text-amber-500" />
+                          ) : (
+                            <Play className="h-4 w-4 text-emerald-500" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(s)}
+                          title="编辑"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDelete(s.id)}
+                          title="删除"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );
