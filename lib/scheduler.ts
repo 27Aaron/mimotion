@@ -1,5 +1,5 @@
 import cron from 'node-cron'
-import { db } from './db'
+import { db, sqlite } from './db'
 import { schedules, xiaomiAccounts, runLogs, users } from './db/schema'
 import { eq } from 'drizzle-orm'
 import { setSteps, decryptTokenData, generateRandomStep } from './xiaomi/client'
@@ -9,8 +9,7 @@ import { sendBarkPush } from './bark'
 import { loginXiaomiAccount } from './xiaomi/auth'
 import { sendTelegramPush } from './telegram'
 import { v4 as uuid } from 'uuid'
-
-let schedulerRunning = false
+import { claimScheduleExecution } from './scheduler-claim'
 
 // 直接加载消息文件（scheduler 无 HTTP 请求上下文，不能用 next-intl）
 import zhMessages from '../messages/zh.json'
@@ -20,9 +19,21 @@ const messagesMap: Record<string, Record<string, string>> = {
   en: enMessages.scheduler,
 }
 
+// 硬编码 fallback，防止 i18n 加载失败时显示 raw key
+const fallbackMessages: Record<string, string> = {
+  pushSuccessSubtitle: '刷步成功',
+  pushSuccessBody: '已设置步数: {steps}',
+  pushFailSubtitle: '刷步失败',
+  pushFailBody: '错误: {error}',
+  pushTokenExpiredSubtitle: 'Token 已过期',
+  pushTokenExpiredBody: '请重新绑定小米账号以继续刷步',
+  syncFailed: '同步失败',
+  tokenExpired: '登录凭证已过期，请重新绑定账号',
+}
+
 function t(locale: string, key: string, params?: Record<string, string>): string {
   const msgs = messagesMap[locale] || messagesMap.zh
-  let text = msgs[key] || `${key}`
+  let text = msgs?.[key] || fallbackMessages[key] || key
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       text = text.replace(`{${k}}`, v)
@@ -31,9 +42,12 @@ function t(locale: string, key: string, params?: Record<string, string>): string
   return text
 }
 
-// 用 globalThis 防止 HMR 热更新重复注册 cron
+// 用 globalThis 存储所有可变状态，防止 HMR 热更新导致状态重置
 const globalForScheduler = globalThis as typeof globalThis & {
   __schedulerTask?: ReturnType<typeof cron.schedule>
+  __schedulerRunning?: boolean
+  __schedulerExecutionKey?: string        // 当前执行分钟标识 "YYYY-MM-DD HH:mm"
+  __schedulerExecutedIds?: Set<string>    // 当前分钟已执行的 schedule ID 集合
 }
 
 export function startScheduler() {
@@ -46,12 +60,12 @@ export function startScheduler() {
   console.log('[Scheduler] Starting...')
 
   globalForScheduler.__schedulerTask = cron.schedule('* * * * *', async () => {
-    if (schedulerRunning) return
-    schedulerRunning = true
+    if (globalForScheduler.__schedulerRunning) return
+    globalForScheduler.__schedulerRunning = true
     try {
       await checkAndRunSchedules()
     } finally {
-      schedulerRunning = false
+      globalForScheduler.__schedulerRunning = false
     }
   })
 
@@ -60,6 +74,8 @@ export function startScheduler() {
 
 async function checkAndRunSchedules() {
   const now = new Date()
+  const currentMinuteStart = new Date(now)
+  currentMinuteStart.setSeconds(0, 0)
   // 北京时间匹配 cron
   const bjOffset = 8 * 60 * 60 * 1000
   const bjNow = new Date(now.getTime() + bjOffset)
@@ -68,6 +84,14 @@ async function checkAndRunSchedules() {
   const currentDay = bjNow.getUTCDate()
   const currentMonth = bjNow.getUTCMonth() + 1
   const currentDow = bjNow.getUTCDay()
+
+  // 分钟级去重：同一分钟内每个 schedule 只执行一次，跨 HMR/多实例生效
+  const executionKey = `${bjNow.getUTCFullYear()}-${currentMonth}-${currentDay}-${currentHour}-${currentMinute}`
+  if (globalForScheduler.__schedulerExecutionKey !== executionKey) {
+    globalForScheduler.__schedulerExecutionKey = executionKey
+    globalForScheduler.__schedulerExecutedIds = new Set()
+  }
+  const executedIds = globalForScheduler.__schedulerExecutedIds!
 
   const activeSchedules = await db
     .select()
@@ -113,16 +137,24 @@ async function checkAndRunSchedules() {
 
     if (!shouldRun) continue
 
+    // 分钟级去重：同一分钟内该 schedule 已经执行过则跳过
+    if (executedIds.has(schedule.id)) continue
+
     // 同一账号同一分钟内只执行一次
     if (executedAccounts.has(schedule.xiaomiAccountId)) continue
 
-    if (schedule.lastRunAt) {
-      const diff = now.getTime() - new Date(schedule.lastRunAt).getTime()
-      if (diff < 60000) continue
+    // 跨进程原子抢占执行资格，防止多个 Next.js worker 在同一分钟重复执行
+    const claimed = claimScheduleExecution(sqlite, schedule.id, currentMinuteStart, now)
+    if (!claimed) {
+      executedIds.add(schedule.id)
+      continue
     }
 
-    await executeSchedule(schedule)
+    // 进程内去重仅作为性能优化，真正的防重由数据库 claim 保证
+    executedIds.add(schedule.id)
     executedAccounts.add(schedule.xiaomiAccountId)
+
+    await executeSchedule(schedule)
   }
 }
 
@@ -247,7 +279,7 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
 
     await db
       .update(schedules)
-      .set({ lastRunAt: now, updatedAt: now })
+      .set({ updatedAt: now })
       .where(eq(schedules.id, schedule.id))
 
     // 回写账号状态

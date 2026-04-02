@@ -13,5 +13,6 @@ if (!existsSync(dir)) {
 
 const sqlite = new Database(dbPath)
 export const db = drizzle(sqlite, { schema })
+export { sqlite }
 
 export type DB = typeof db
