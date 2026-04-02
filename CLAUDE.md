@@ -113,9 +113,90 @@ scripts/
 
 ## Database Schema
 
-5 张表：`users`, `xiaomi_accounts`, `schedules`, `run_logs`, `invite_codes`
-
 Schema 定义在 `lib/db/schema.ts`，使用 Drizzle ORM。修改后运行 `npm run db:push` 同步。
+
+### 关系图
+
+```
+users 1──N xiaomi_accounts   一个用户可绑定多个小米账号
+users 1──N schedules         一个用户可创建多个定时任务
+users 1──N invite_codes      管理员创建 / 用户使用
+xiaomi_accounts 1──N schedules  一个小米账号可配多个任务（不同 cron）
+schedules 1──N run_logs      一个任务每次执行产生一条日志
+```
+
+### `users` — 用户表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | text PK | UUID |
+| username | text unique | 用户名（登录凭证） |
+| passwordHash | text | bcrypt 哈希 |
+| isAdmin | boolean | 管理员标记 |
+| locale | text | 语言偏好，默认 `zh` |
+| barkUrl | text? | Bark 推送地址（用户级） |
+| telegramBotToken / telegramChatId | text? | Telegram 推送配置（用户级） |
+| createdAt / updatedAt | timestamp | 时间戳 |
+
+业务逻辑：系统核心实体。推送配置（Bark/Telegram）存储在用户级别，该用户所有任务共享同一推送通道。
+
+### `invite_codes` — 邀请码表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| code | text PK | 8 位十六进制短码 |
+| createdBy | text FK→users.id | 创建者（管理员） |
+| usedBy | text FK→users.id? | 使用者，null = 未使用 |
+| createdAt | timestamp | 创建时间 |
+
+业务逻辑：注册准入控制。管理员生成 → 用户注册时填入 → `usedBy` 被标记后不可重复使用。索引 `usedBy` 用于快速查询某个用户的邀请来源。
+
+### `xiaomi_accounts` — 小米账号表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | text PK | UUID |
+| userId | text FK→users.id | 所属用户 |
+| xiaomiUserId | text? | 小米用户 ID |
+| account | text? | 账号标识（手机/邮箱） |
+| tokenData + tokenIv | text | AES-256-GCM 加密的 Xiaomi token |
+| loginTokenData + loginTokenIv | text? | AES-256-GCM 加密的 login token（用于自动重登录） |
+| passwordData + passwordIv | text? | AES-256-GCM 加密的密码（用于自动重登录） |
+| deviceId | text? | 设备标识 |
+| nickname | text? | 昵称 |
+| status | text | 状态，默认 `active` |
+| lastSyncAt | timestamp? | 最后同步时间 |
+| lastError | text? | 最后错误信息 |
+
+业务逻辑：一个用户可绑定多个小米账号。三组加密字段（token/loginToken/password）均使用 AES-256-GCM + 独立 IV，密钥来自 `ENCRYPTION_KEY`。存储 loginToken 和加密密码是为了 token 过期时自动重登录。`status` 控制账号可用性（active/error），`lastError` 记录最近失败原因。索引 `userId` 用于按用户查询账号列表。
+
+### `schedules` — 定时任务表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | text PK | UUID |
+| userId | text FK→users.id | 所属用户 |
+| xiaomiAccountId | text FK→xiaomi_accounts.id | 关联的小米账号 |
+| cronExpression | text | cron 表达式（Asia/Shanghai 时区） |
+| minStep / maxStep | integer | 步数范围 |
+| isActive | boolean | 是否启用，默认 true |
+| lastRunAt / nextRunAt | timestamp? | 执行时间跟踪 |
+| createdAt / updatedAt | timestamp | 时间戳 |
+
+业务逻辑：每个任务绑定一个小米账号 + cron 时间 + 步数范围。调度器按 cron 表达式触发，在 [minStep, maxStep] 区间内随机生成步数写入小米。双重外键（userId + xiaomiAccountId）保证数据隔离。索引 `isActive` 用于调度器快速获取所有活跃任务。`nextRunAt` 用于前端展示下次执行时间。
+
+### `run_logs` — 执行日志表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | text PK | UUID |
+| scheduleId | text FK→schedules.id | 关联定时任务 |
+| executedAt | timestamp | 执行时间 |
+| stepWritten | integer? | 实际写入的步数 |
+| status | text? | 执行状态（success/error） |
+| errorMessage | text? | 错误信息 |
+
+业务逻辑：每次调度执行产生一条记录。成功记录 `stepWritten`，失败记录 `errorMessage`。通过 `scheduleId` 可追溯某个任务的完整执行历史，用于 Dashboard 展示和控制台统计。索引 `scheduleId` 用于按任务查询日志。
 
 ## Environment Variables
 
