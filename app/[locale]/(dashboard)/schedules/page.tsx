@@ -403,8 +403,10 @@ export default function SchedulesPage() {
                 setForm({ ...form, hour: parseInt(v ?? "0") })
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full">
+                <span className="flex-1 text-left">
+                  {String(form.hour).padStart(2, "0")} {t("hour")}
+                </span>
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {Array.from({ length: 24 }, (_, i) => (
@@ -420,8 +422,10 @@ export default function SchedulesPage() {
                 setForm({ ...form, minute: parseInt(v ?? "0") })
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full">
+                <span className="flex-1 text-left">
+                  {String(form.minute).padStart(2, "0")} {t("minute")}
+                </span>
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {Array.from({ length: 60 }, (_, i) => (
