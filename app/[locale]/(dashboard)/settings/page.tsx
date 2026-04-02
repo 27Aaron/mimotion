@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   User,
@@ -23,6 +24,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 export default function SettingsPage() {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
+
   const [username, setUsername] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -75,12 +79,12 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(`${type === "bark" ? "Bark" : "Telegram"} 推送测试成功`);
+        toast.success(type === "bark" ? t("barkTestSuccess") : t("telegramTestSuccess"));
       } else {
-        toast.error(data.error || "推送测试失败");
+        toast.error(data.error || t("pushTestFailed"));
       }
     } catch {
-      toast.error("请求失败");
+      toast.error(tc("requestFailed"));
     } finally {
       if (type === "bark") setTestingBark(false);
       else setTestingTelegram(false);
@@ -91,7 +95,7 @@ export default function SettingsPage() {
     e.preventDefault();
 
     if (newPassword && !currentPassword) {
-      toast.error("修改密码需要输入当前密码");
+      toast.error(t("passwordRequiredForChange"));
       return;
     }
 
@@ -114,36 +118,34 @@ export default function SettingsPage() {
     setLoading(false);
 
     if (res.ok) {
-      toast.success("设置已保存");
+      toast.success(t("settingsSaved"));
       setCurrentPassword("");
       setNewPassword("");
       if (username) {
         setCurrentUsername(username);
         setUsername("");
-        // 改用户名后刷新 JWT
         window.location.reload();
         return;
       }
-      // 更新初始值
       setInitialValues({
         barkUrl: barkUrl || "",
         telegramBotToken: telegramBotToken || "",
         telegramChatId: telegramChatId || "",
       });
     } else {
-      toast.error(data.error || "保存失败");
+      toast.error(data.error || t("saveFailed"));
     }
   }
 
   return (
     <div className="flex flex-col">
-      {/* 页面标题 */}
+      {/* Page header */}
       <div className="mb-6">
-        <h1 className="page-title">设置</h1>
-        <p className="mt-1 text-muted-foreground">管理你的账号和安全偏好</p>
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="mt-1 text-muted-foreground">{t("description")}</p>
       </div>
 
-      {/* 用户信息 */}
+      {/* User info */}
       <Card className="mb-3">
         <CardContent className="px-4 py-4">
           <div className="flex items-center gap-3">
@@ -153,15 +155,15 @@ export default function SettingsPage() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-base font-semibold">
-                  {currentUsername || "加载中..."}
+                  {currentUsername || tc("loading")}
                 </p>
                 <Badge variant="secondary" className="text-[10px]">
                   <User className="mr-1 h-3 w-3" />
-                  用户名
+                  {t("usernameLabel")}
                 </Badge>
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                用于登录 MiMotion 的用户名
+                {t("usernameDesc")}
               </p>
             </div>
           </div>
@@ -169,14 +171,14 @@ export default function SettingsPage() {
       </Card>
 
       <form onSubmit={handleSubmit}>
-        {/* 分区标题 */}
+        {/* Section headers */}
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="flex items-center gap-2">
             <div className="section-icon">
               <Shield className="h-3 w-3 text-primary" />
             </div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              安全设置
+              {t("security")}
             </h2>
             <div className="ml-2 h-px flex-1 bg-border" />
           </div>
@@ -185,37 +187,37 @@ export default function SettingsPage() {
               <Bell className="h-3 w-3 text-primary" />
             </div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              推送通知
+              {t("pushNotifications")}
             </h2>
             <div className="ml-2 h-px flex-1 bg-border" />
           </div>
         </div>
 
-        {/* 第一行：用户名 + Bark */}
+        {/* Row 1: Username + Bark */}
         <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base">修改用户名</CardTitle>
+                <CardTitle className="text-base">{t("changeUsername")}</CardTitle>
               </div>
-              <CardDescription>修改后使用新用户名登录</CardDescription>
+              <CardDescription>{t("changeUsernameDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="username" className="text-xs">
-                  新用户名
+                  {t("newUsername")}
                 </Label>
                 <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="请输入新用户名"
+                  placeholder={t("newUsernamePlaceholder")}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                留空则不修改。更换后需用新用户名登录。
+                {t("newUsernameHint")}
               </p>
             </CardContent>
           </Card>
@@ -225,7 +227,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Smartphone className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">Bark 推送</CardTitle>
+                  <CardTitle className="text-base">{t("barkPush")}</CardTitle>
                 </div>
                 <Button
                   type="button"
@@ -235,10 +237,10 @@ export default function SettingsPage() {
                   onClick={(e) => { e.preventDefault(); handleTestPush("bark"); }}
                 >
                   {testingBark && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                  {testingBark ? "发送中..." : "测试推送"}
+                  {testingBark ? tc("sending") : tc("testPush")}
                 </Button>
               </div>
-              <CardDescription>填入完整的 Bark 推送地址</CardDescription>
+              <CardDescription>{t("barkPushDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
@@ -254,45 +256,45 @@ export default function SettingsPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                留空则不推送，填入后任务执行结果将推送至 Bark
+                {t("barkHint")}
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* 第二行：密码 + Telegram */}
+        {/* Row 2: Password + Telegram */}
         <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Key className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base">修改密码</CardTitle>
+                <CardTitle className="text-base">{t("changePassword")}</CardTitle>
               </div>
-              <CardDescription>修改后需重新登录</CardDescription>
+              <CardDescription>{t("changePasswordDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="currentPassword" className="text-xs">
-                  当前密码
+                  {t("currentPassword")}
                 </Label>
                 <Input
                   id="currentPassword"
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="请输入当前密码"
+                  placeholder={t("currentPasswordPlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="newPassword" className="text-xs">
-                  新密码
+                  {t("newPassword")}
                 </Label>
                 <Input
                   id="newPassword"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="请输入新密码"
+                  placeholder={t("newPasswordPlaceholder")}
                 />
               </div>
             </CardContent>
@@ -303,7 +305,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Send className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">Telegram 推送</CardTitle>
+                  <CardTitle className="text-base">{t("telegramPush")}</CardTitle>
                 </div>
                 <Button
                   type="button"
@@ -313,10 +315,10 @@ export default function SettingsPage() {
                   onClick={(e) => { e.preventDefault(); handleTestPush("telegram"); }}
                 >
                   {testingTelegram && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                  {testingTelegram ? "发送中..." : "测试推送"}
+                  {testingTelegram ? tc("sending") : tc("testPush")}
                 </Button>
               </div>
-              <CardDescription>通过 @userinfobot 获取 Chat ID</CardDescription>
+              <CardDescription>{t("telegramPushDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
@@ -347,7 +349,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        {/* 操作按钮 */}
+        {/* Action buttons */}
         <div className="mt-6 flex items-center justify-end gap-3 border-t pt-6">
           <Button
             type="button"
@@ -361,11 +363,11 @@ export default function SettingsPage() {
               setTelegramChatId(initialValues.telegramChatId);
             }}
           >
-            重置
+            {tc("reset")}
           </Button>
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? "保存中..." : "保存设置"}
+            {loading ? tc("saving") : tc("saveSettings")}
           </Button>
         </div>
       </form>

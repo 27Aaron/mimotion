@@ -10,7 +10,7 @@ import { loginXiaomiAccount } from '@/lib/xiaomi/auth'
 export async function GET() {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
 
   const accounts = await db
@@ -86,13 +86,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
 
   const { account, password, nickname } = await request.json()
 
   if (!account || !password) {
-    return NextResponse.json({ error: '缺少参数' }, { status: 400 })
+    return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
   }
 
   console.log('[Xiaomi API] Login attempt:', account)
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error('[Xiaomi API] Login exception:', err)
     return NextResponse.json(
-      { error: `登录异常: ${err instanceof Error ? err.message : String(err)}` },
+      { error: `登录异常: ${err instanceof Error ? err.message : String(err)}`, code: 'XIAOMI_LOGIN_EXCEPTION' },
       { status: 500 }
     )
   }
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
   if (!loginResult.success || !loginResult.token) {
     return NextResponse.json(
-      { error: loginResult.error || '小米账号验证失败' },
+      { error: loginResult.error || '小米账号验证失败', code: 'XIAOMI_LOGIN_FAILED' },
       { status: 400 }
     )
   }
@@ -153,14 +153,14 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 
   if (!id) {
-    return NextResponse.json({ error: '缺少 id' }, { status: 400 })
+    return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
   const body = await request.json()
@@ -219,14 +219,14 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 
   if (!id) {
-    return NextResponse.json({ error: '缺少 id' }, { status: 400 })
+    return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
   // 级联删除

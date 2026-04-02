@@ -1,12 +1,13 @@
 import cron from 'node-cron'
 import { db } from './db'
-import { schedules, xiaomiAccounts, runLogs } from './db/schema'
+import { schedules, xiaomiAccounts, runLogs, users } from './db/schema'
 import { eq } from 'drizzle-orm'
 import { setSteps, decryptTokenData, generateRandomStep } from './xiaomi/client'
 import { refreshAppToken } from './xiaomi/auth'
 import { encrypt, decrypt } from './crypto'
 import { sendBarkPush } from './bark'
 import { sendTelegramPush } from './telegram'
+import { getTranslations } from 'next-intl/server'
 import { v4 as uuid } from 'uuid'
 
 let schedulerRunning = false
@@ -105,6 +106,13 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
 
   const acc = account[0]
 
+  const userRow = await db
+    .select({ locale: users.locale })
+    .from(users)
+    .where(eq(users.id, schedule.userId))
+    .limit(1)
+  const userLocale = userRow[0]?.locale || 'zh'
+
   try {
     let token = decryptTokenData(acc.tokenData, acc.tokenIv || '')
     if (!token) {
@@ -165,6 +173,7 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
       .where(eq(schedules.id, schedule.id))
 
     // 回写账号状态
+    const t = await getTranslations({ locale: userLocale, namespace: 'scheduler' })
     await db
       .update(xiaomiAccounts)
       .set({
@@ -172,15 +181,15 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
         updatedAt: now,
         ...(result.success
           ? { status: 'active', lastError: null }
-          : { status: 'error', lastError: result.error || '同步失败' }),
+          : { status: 'error', lastError: result.error || await t('syncFailed') }),
       })
       .where(eq(xiaomiAccounts.id, schedule.xiaomiAccountId))
 
     if (result.success) {
-      const pushOpts = { userId: schedule.userId, title: '刷步数成功', body: `已设置步数: ${steps}` }
+      const pushOpts = { userId: schedule.userId, title: t('pushSuccessTitle'), body: t('pushSuccessBody', { steps: String(steps) }) }
       await Promise.all([sendBarkPush(pushOpts), sendTelegramPush(pushOpts)])
     } else {
-      const pushOpts = { userId: schedule.userId, title: '刷步数失败', body: result.error || '未知错误' }
+      const pushOpts = { userId: schedule.userId, title: t('pushFailTitle'), body: result.error || t('pushFailBody', { error: '' }) }
       await Promise.all([sendBarkPush(pushOpts), sendTelegramPush(pushOpts)])
     }
   } catch (error) {

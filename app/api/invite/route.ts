@@ -8,10 +8,10 @@ import { randomBytes } from 'crypto'
 export async function GET() {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
   if (!current.isAdmin) {
-    return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+    return NextResponse.json({ error: '需要管理员权限', code: 'ADMIN_REQUIRED' }, { status: 403 })
   }
 
   const codes = await db
@@ -25,10 +25,10 @@ export async function GET() {
 export async function POST() {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
   if (!current.isAdmin) {
-    return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+    return NextResponse.json({ error: '需要管理员权限', code: 'ADMIN_REQUIRED' }, { status: 403 })
   }
 
   const code = randomBytes(4).toString('hex').toUpperCase()
@@ -46,17 +46,17 @@ export async function POST() {
 export async function DELETE(request: NextRequest) {
   const current = await getCurrentUser()
   if (!current) {
-    return NextResponse.json({ error: '未登录' }, { status: 401 })
+    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
   if (!current.isAdmin) {
-    return NextResponse.json({ error: '需要管理员权限' }, { status: 403 })
+    return NextResponse.json({ error: '需要管理员权限', code: 'ADMIN_REQUIRED' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
 
   if (!code) {
-    return NextResponse.json({ error: '缺少 code' }, { status: 400 })
+    return NextResponse.json({ error: '缺少 code', code: 'MISSING_CODE' }, { status: 400 })
   }
 
   const result = await db
@@ -67,10 +67,10 @@ export async function DELETE(request: NextRequest) {
 
   const inviteCode = result[0]
   if (!inviteCode) {
-    return NextResponse.json({ error: '邀请码不存在' }, { status: 404 })
+    return NextResponse.json({ error: '邀请码不存在', code: 'CODE_NOT_FOUND' }, { status: 404 })
   }
   if (inviteCode.usedBy) {
-    return NextResponse.json({ error: '只能删除未使用的邀请码' }, { status: 400 })
+    return NextResponse.json({ error: '只能删除未使用的邀请码', code: 'CODE_ONLY_DELETE_UNUSED' }, { status: 400 })
   }
 
   await db.delete(inviteCodes).where(eq(inviteCodes.code, code))
