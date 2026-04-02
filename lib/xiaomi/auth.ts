@@ -204,6 +204,75 @@ async function grantLoginTokens(
 }
 
 /**
+ * Step 3: 用 login_token 刷新 app_token（无需重新输入密码）
+ * login_token 与 access_token 使用相同的 grant_type=access_token，只是 code 字段不同
+ */
+export async function refreshAppToken(
+  loginToken: string,
+  deviceId: string
+): Promise<{ appToken: string | null; loginToken: string | null; error: string | null }> {
+  const url = 'https://account.huami.com/v2/client/login'
+  const headers: Record<string, string> = {
+    'app_name': 'com.xiaomi.hm.health',
+    'x-request-id': crypto.randomUUID(),
+    'accept-language': 'zh-CN',
+    'appname': 'com.xiaomi.hm.health',
+    'cv': '50818_6.14.0',
+    'v': '2.0',
+    'appplatform': 'android_phone',
+    'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+  }
+
+  const data: Record<string, string> = {
+    'app_name': 'com.xiaomi.hm.health',
+    'app_version': '6.14.0',
+    'code': loginToken,
+    'country_code': 'CN',
+    'device_id': deviceId,
+    'device_model': 'phone',
+    'grant_type': 'access_token',
+    'third_name': 'huami_phone',
+  }
+
+  console.log('[Xiaomi Auth] Refresh: POST', url)
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: new URLSearchParams(data).toString(),
+    })
+
+    console.log('[Xiaomi Auth] Refresh status:', resp.status)
+    const respData = await resp.json()
+
+    if (resp.status !== 200) {
+      const msg = respData.error || respData.message || respData.result || JSON.stringify(respData).slice(0, 200)
+      return { appToken: null, loginToken: null, error: `刷新token失败(${resp.status}): ${msg}` }
+    }
+
+    const result = respData.result
+    if (result !== 'ok') {
+      return { appToken: null, loginToken: null, error: `刷新token失败: ${result}` }
+    }
+
+    const tokenInfo = respData.token_info
+    if (!tokenInfo) {
+      return { appToken: null, loginToken: null, error: '刷新token失败: 无 token_info' }
+    }
+
+    const newAppToken = tokenInfo.app_token || null
+    const newLoginToken = tokenInfo.login_token || null
+
+    console.log('[Xiaomi Auth] Refresh success. New appToken obtained.')
+
+    return { appToken: newAppToken, loginToken: newLoginToken, error: null }
+  } catch (error) {
+    return { appToken: null, loginToken: null, error: error instanceof Error ? error.message : '网络错误' }
+  }
+}
+
+/**
  * 完整登录流程：与 Python MiMotionRunner.login() 对齐
  */
 export async function loginXiaomiAccount(

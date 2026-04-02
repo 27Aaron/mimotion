@@ -124,6 +124,9 @@ export async function POST(request: NextRequest) {
 
   // 加密存储 app_token
   const { encrypted, iv } = encrypt(loginResult.token)
+  // 加密存储 login_token（用于自动刷新 app_token）
+  const loginToken = loginResult.loginToken
+  const ltEncrypted = loginToken ? encrypt(loginToken) : null
 
   const now = new Date()
   const id = uuid()
@@ -135,6 +138,8 @@ export async function POST(request: NextRequest) {
     account: account,
     tokenData: encrypted,
     tokenIv: iv,
+    loginTokenData: ltEncrypted?.encrypted || null,
+    loginTokenIv: ltEncrypted?.iv || null,
     deviceId: loginResult.deviceId || null,
     nickname: nickname || account,
     status: 'active',
@@ -198,6 +203,14 @@ export async function PUT(request: NextRequest) {
     updates.deviceId = loginResult.deviceId || null
     updates.status = 'active'
     updates.lastError = null
+
+    // 同时更新 login_token
+    const loginToken = loginResult.loginToken
+    if (loginToken) {
+      const ltEncrypted = encrypt(loginToken)
+      updates.loginTokenData = ltEncrypted.encrypted
+      updates.loginTokenIv = ltEncrypted.iv
+    }
   }
 
   await db

@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { cronExpression, minStep, maxStep, isActive } = body
+  const { cronExpression, minStep, maxStep, isActive, xiaomiAccountId } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
@@ -139,6 +139,7 @@ export async function PUT(request: NextRequest) {
   if (minStep !== undefined) updates.minStep = minStep
   if (maxStep !== undefined) updates.maxStep = maxStep
   if (isActive !== undefined) updates.isActive = isActive
+  if (xiaomiAccountId !== undefined) updates.xiaomiAccountId = xiaomiAccountId
 
   await db
     .update(schedules)

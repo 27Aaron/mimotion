@@ -3,6 +3,8 @@ import { db } from './db'
 import { schedules, xiaomiAccounts, runLogs } from './db/schema'
 import { eq } from 'drizzle-orm'
 import { setSteps, decryptTokenData, generateRandomStep } from './xiaomi/client'
+import { refreshAppToken } from './xiaomi/auth'
+import { encrypt, decrypt } from './crypto'
 import { sendBarkPush } from './bark'
 import { sendTelegramPush } from './telegram'
 import { v4 as uuid } from 'uuid'
@@ -89,14 +91,53 @@ async function executeSchedule(schedule: typeof schedules.$inferSelect) {
     return
   }
 
+  const acc = account[0]
+
   try {
-    const token = decryptTokenData(account[0].tokenData, account[0].tokenIv || '')
+    let token = decryptTokenData(acc.tokenData, acc.tokenIv || '')
     if (!token) {
-      console.error(`[Scheduler] Token decryption failed for account ${account[0].id}`)
+      console.error(`[Scheduler] Token decryption failed for account ${acc.id}`)
       return
     }
+
     const steps = generateRandomStep(schedule.minStep, schedule.maxStep)
-    const result = await setSteps(token, account[0].deviceId || '', account[0].xiaomiUserId || '', steps)
+    let result = await setSteps(token, acc.deviceId || '', acc.xiaomiUserId || '', steps)
+
+    // Token 过期时自动刷新重试
+    if (!result.success && result.error?.includes('401') && acc.loginTokenData && acc.loginTokenIv) {
+      console.log(`[Scheduler] Token expired for ${acc.id}, attempting refresh...`)
+
+      const loginToken = decrypt(acc.loginTokenData, acc.loginTokenIv)
+      if (loginToken) {
+        const refresh = await refreshAppToken(loginToken, acc.deviceId || '')
+        if (refresh.appToken) {
+          // 更新存储的 app_token
+          const newEncrypted = encrypt(refresh.appToken)
+          const ltUpdate: Record<string, unknown> = {
+            tokenData: newEncrypted.encrypted,
+            tokenIv: newEncrypted.iv,
+            updatedAt: new Date(),
+          }
+          // login_token 也可能被更新
+          if (refresh.loginToken) {
+            const ltEncrypted = encrypt(refresh.loginToken)
+            ltUpdate.loginTokenData = ltEncrypted.encrypted
+            ltUpdate.loginTokenIv = ltEncrypted.iv
+          }
+          await db
+            .update(xiaomiAccounts)
+            .set(ltUpdate as typeof xiaomiAccounts.$inferInsert)
+            .where(eq(xiaomiAccounts.id, acc.id))
+
+          // 用新 token 重试
+          token = refresh.appToken
+          result = await setSteps(token, acc.deviceId || '', acc.xiaomiUserId || '', steps)
+          console.log(`[Scheduler] Retry after refresh: ${result.success ? 'success' : 'failed'}`)
+        } else {
+          console.error(`[Scheduler] Token refresh failed: ${refresh.error}`)
+        }
+      }
+    }
 
     const now = new Date()
 
