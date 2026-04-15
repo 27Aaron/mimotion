@@ -36,7 +36,7 @@ RUN rm -rf node_modules/typescript \
     && rm -rf node_modules/better-sqlite3/prebuilds/win32-* \
     && rm -rf node_modules/better-sqlite3/prebuilds/darwin-* \
     && rm -rf node_modules/better-sqlite3/deps \
-    && rm -rf node_modules/better-sqlite3/build \
+    && rm -rf node_modules/better-sqlite3/build/Debug \
     && find node_modules -name "*.ts" -delete \
     && find node_modules -name "*.md" -delete \
     && find node_modules -name "*.d.ts" -delete \
