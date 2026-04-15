@@ -52,7 +52,7 @@ English | [中文](README_CN.md)
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/mimotion.git
+git clone https://github.com/27aaron/mimotion.git
 cd mimotion
 
 # 安装依赖
@@ -182,7 +182,7 @@ pm2 start npm --name mimotion -- start
 ### Docker 部署
 
 ```bash
-docker build -t mimotion .
+docker pull ghcr.io/27aaron/mimotion:main
 docker run -d \
   -p 3000:3000 \
   -v ./data:/app/data \
@@ -191,8 +191,10 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
-  mimotion
+  ghcr.io/27aaron/mimotion:main
 ```
+
+> 支持 `linux/amd64` 和 `linux/arm64` 双架构，Docker 自动匹配当前机器架构。
 
 ## 安全说明
 
