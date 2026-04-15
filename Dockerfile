@@ -46,7 +46,7 @@ RUN rm -rf node_modules/typescript \
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-RUN apk add --no-cache libstdc++
+RUN apk add --no-cache libstdc++ su-exec
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -55,13 +55,12 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=cleaner /app ./
-RUN mkdir -p data && chown nextjs:nodejs data
-
-USER nextjs
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && mkdir -p data && chown nextjs:nodejs data
 
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
