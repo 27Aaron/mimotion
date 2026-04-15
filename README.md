@@ -52,7 +52,7 @@ Automated Xiaomi/Zepp step counter service. Bind your Xiaomi account, set up cro
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/mimotion.git
+git clone https://github.com/27aaron/mimotion.git
 cd mimotion
 
 # Install dependencies
@@ -182,7 +182,7 @@ pm2 start npm --name mimotion -- start
 ### Docker
 
 ```bash
-docker build -t mimotion .
+docker pull ghcr.io/27aaron/mimotion:main
 docker run -d \
   -p 3000:3000 \
   -v ./data:/app/data \
@@ -191,8 +191,10 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
-  mimotion
+  ghcr.io/27aaron/mimotion:main
 ```
+
+> Supports `linux/amd64` and `linux/arm64`. Docker auto-selects the correct architecture.
 
 ## Security
 

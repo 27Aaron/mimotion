@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+data
+*.db
+*.db-journal
+.env
+.env*.local
+.claude
+README.md
+README_CN.md
+LICENSE
