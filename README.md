@@ -182,7 +182,7 @@ pm2 start npm --name mimotion -- start
 ### Docker
 
 ```bash
-docker pull ghcr.io/27aaron/mimotion:main
+docker pull ghcr.io/27aaron/mimotion:latest
 docker run -d \
   -p 3000:3000 \
   -v ./data:/app/data \
@@ -191,7 +191,7 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
-  ghcr.io/27aaron/mimotion:main
+  ghcr.io/27aaron/mimotion:latest
 ```
 
 > Supports `linux/amd64` and `linux/arm64`. Docker auto-selects the correct architecture.
