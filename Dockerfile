@@ -1,11 +1,13 @@
-FROM node:22-alpine AS base
+FROM node:22-slim AS base
 
+# Install build dependencies for native modules
 FROM base AS deps
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install --omit=dev
 
+# Build stage
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -13,53 +15,54 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 
-ENV DATABASE_URL=/tmp/dummy.db
-RUN npm run db:push || true
+# Build Next.js
 RUN npm run build
 
+# Clean up dev-only files and unnecessary native bindings
 FROM base AS cleaner
 WORKDIR /app
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/lib/db ./lib/db
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/messages ./messages
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=builder /app/scripts ./scripts
 
-RUN rm -rf node_modules/typescript \
-    && rm -rf node_modules/@img/sharp-linux-x64 \
-    && rm -rf node_modules/@img/sharp-win32-x64 \
-    && rm -rf node_modules/@img/sharp-darwin-x64 \
-    && rm -rf node_modules/@img/sharp-darwin-arm64 \
-    && rm -rf node_modules/caniuse-lite \
-    && rm -rf node_modules/better-sqlite3/prebuilds/win32-* \
-    && rm -rf node_modules/better-sqlite3/prebuilds/darwin-* \
-    && rm -rf node_modules/better-sqlite3/deps \
-    && rm -rf node_modules/better-sqlite3/build/Debug \
+# Keep only what's needed at runtime
+# - better-sqlite3: native binding for linux (glibc)
+# - bcryptjs: pure JS, no native deps
+# Remove: sharp (not used), typescript, type definitions, markdown, LICENSE files
+RUN rm -rf node_modules/@img \
+    node_modules/caniuse-lite \
+    node_modules/typescript \
+    node_modules/*/LICENSE* \
+    node_modules/*/CHANGELOG* \
+    node_modules/.cache \
     && find node_modules -name "*.ts" -delete \
     && find node_modules -name "*.md" -delete \
-    && find node_modules -name "*.d.ts" -delete \
-    && find node_modules -name "LICENSE*" -delete \
-    && find node_modules -name "CHANGELOG*" -delete
+    && find node_modules -name "*.d.ts" -delete 2>/dev/null || true
 
-FROM node:22-alpine AS runner
+# Runtime stage
+FROM base AS runner
 WORKDIR /app
 
-RUN apk add --no-cache libstdc++ su-exec
+# Install gosu for privilege dropping
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs nextjs
 
-COPY --from=cleaner /app ./
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh && mkdir -p data && chown nextjs:nodejs data
+# Copy cleaned node_modules and app files
+COPY --from=cleaner --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=cleaner --chown=nextjs:nodejs /app ./
+
+# Copy and setup entrypoint
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 3000
-
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 

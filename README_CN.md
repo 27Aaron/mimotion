@@ -182,7 +182,7 @@ pm2 start npm --name mimotion -- start
 ### Docker 部署
 
 ```bash
-docker pull ghcr.io/27aaron/mimotion:main
+docker pull ghcr.io/27aaron/mimotion:latest
 docker run -d \
   -p 3000:3000 \
   -v ./data:/app/data \
@@ -191,7 +191,7 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
-  ghcr.io/27aaron/mimotion:main
+  ghcr.io/27aaron/mimotion:latest
 ```
 
 > 支持 `linux/amd64` 和 `linux/arm64` 双架构，Docker 自动匹配当前机器架构。

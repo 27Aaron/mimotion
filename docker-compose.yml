@@ -1,6 +1,6 @@
 services:
   mimotion:
-    image: ghcr.io/27aaron/mimotion:main
+    image: ghcr.io/27aaron/mimotion:latest
     container_name: mimotion
     restart: unless-stopped
     ports:
@@ -9,7 +9,7 @@ services:
       - ./data:/app/data
     environment:
       - DATABASE_URL=/app/data/mimotion.db
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password}
