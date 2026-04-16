@@ -203,8 +203,13 @@ async function handleLogout(request: NextRequest) {
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value
   const locale = (localeCookie === 'en') ? 'en' : 'zh'
 
-  const url = request.nextUrl.clone()
-  url.pathname = `/${locale}/login`
+  // Use X-Forwarded-Host to avoid redirecting to internal Docker hostname
+  const host =
+    request.headers.get('x-forwarded-host')?.split(',')[0].trim() ||
+    request.headers.get('host') ||
+    'localhost'
+  const protocol = request.headers.get('x-forwarded-proto') || 'http'
+  const url = new URL(`${protocol}://${host}/${locale}/login`)
   return NextResponse.redirect(url)
 }
 
