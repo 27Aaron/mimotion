@@ -75,12 +75,12 @@
 
               mkdir -p $out/share/mimotion
 
-              # Standalone output
-              cp -r .next/standalone/* $out/share/mimotion/
+              # Standalone output (use . instead of * to include hidden .next dir)
+              cp -r .next/standalone/. $out/share/mimotion/
 
-              # Static assets (not bundled in standalone)
+              # Static assets (overwrite standalone's with full versions)
               mkdir -p $out/share/mimotion/.next/static
-              cp -r .next/static/* $out/share/mimotion/.next/static/
+              cp -r .next/static/. $out/share/mimotion/.next/static/
 
               # Database init script
               mkdir -p $out/share/mimotion/scripts
