@@ -11,6 +11,8 @@
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
       pkgsFor = system: import nixpkgs { inherit system; };
@@ -50,14 +52,16 @@
                 );
             };
 
-            npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            npmDepsHash = "sha256-nAgxWrW14CKWG6vuyUTf2aOPgDI2+iEiIzwpx4Ww6+w=";
+
+            makeCacheWritable = true;
+            npmFlags = [ "--legacy-peer-deps" ];
 
             nodejs = pkgs.nodejs_22;
 
             nativeBuildInputs = with pkgs; [
-              nodejs_22
               python3
-              make
+              gnumake
               gcc
             ];
 
@@ -103,7 +107,7 @@
 
             meta = with pkgs.lib; {
               description = "Xiaomi/Zepp auto step counter service";
-              homepage = "https://github.com/..."; # TODO: fill in
+              homepage = "https://github.com/27Aaron/mimotion";
               license = licenses.mit;
               mainProgram = "mimotion";
               platforms = supportedSystems;
@@ -123,7 +127,7 @@
               nodejs_22
               python3
               gcc
-              make
+              gnumake
             ];
           };
         }

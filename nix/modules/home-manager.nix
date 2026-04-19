@@ -7,6 +7,20 @@ self:
 }:
 let
   cfg = config.services.mimotion;
+
+  envVars =
+    {
+      NODE_ENV = "production";
+      PORT = toString cfg.port;
+      HOSTNAME = "0.0.0.0";
+      DATABASE_URL = "${cfg.dataDir}/mimotion.db";
+      ADMIN_USERNAME = cfg.adminUsername;
+      ADMIN_PASSWORD = cfg.adminPassword;
+    }
+    // (lib.optionalAttrs (cfg.encryptionKey != null) { ENCRYPTION_KEY = cfg.encryptionKey; })
+    // (lib.optionalAttrs (cfg.jwtSecret != null) { JWT_SECRET = cfg.jwtSecret; })
+    // (lib.optionalAttrs (cfg.appUrl != null) { APP_URL = cfg.appUrl; })
+    // cfg.environment;
 in
 {
   options.services.mimotion = {
@@ -33,13 +47,15 @@ in
     };
 
     encryptionKey = lib.mkOption {
-      type = lib.types.str;
-      description = "AES-256-GCM encryption key (64-char hex string) for Xiaomi token storage.";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "AES-256-GCM encryption key (64-char hex string). WARNING: stored in Nix store. Prefer environmentFile for secrets.";
     };
 
     jwtSecret = lib.mkOption {
-      type = lib.types.str;
-      description = "JWT signing secret (64-char hex string).";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "JWT signing secret (64-char hex string). WARNING: stored in Nix store. Prefer environmentFile for secrets.";
     };
 
     adminUsername = lib.mkOption {
@@ -70,39 +86,68 @@ in
       '';
       description = "Extra environment variables for the service.";
     };
-  };
 
-  config = lib.mkIf cfg.enable {
-    systemd.user.services.mimotion = {
-      Unit = {
-        Description = "MiMotion auto step counter service";
-        After = [ "network.target" ];
-      };
-
-      Service = {
-        Type = "simple";
-        ExecStart = "${cfg.package}/bin/mimotion";
-        Restart = "on-failure";
-        RestartSec = 5;
-
-        Environment =
-          [
-            "NODE_ENV=production"
-            "PORT=${toString cfg.port}"
-            "HOSTNAME=0.0.0.0"
-            "DATABASE_URL=${cfg.dataDir}/mimotion.db"
-            "ENCRYPTION_KEY=${cfg.encryptionKey}"
-            "JWT_SECRET=${cfg.jwtSecret}"
-            "ADMIN_USERNAME=${cfg.adminUsername}"
-            "ADMIN_PASSWORD=${cfg.adminPassword}"
-          ]
-          ++ (lib.optional (cfg.appUrl != null) "APP_URL=${cfg.appUrl}")
-          ++ (lib.mapAttrsToList (k: v: "${k}=${v}") cfg.environment);
-      };
-
-      Install = {
-        WantedBy = [ "default.target" ];
-      };
+    environmentFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      example = "/run/secrets/mimotion.env";
+      description = "File with environment variables (KEY=VALUE). Use for secrets like ENCRYPTION_KEY and JWT_SECRET.";
     };
   };
+
+  config = lib.mkIf cfg.enable (lib.mkMerge [
+    # --- Linux: systemd user service ---
+    (lib.mkIf pkgs.stdenv.isLinux {
+      systemd.user.services.mimotion = {
+        Unit = {
+          Description = "MiMotion auto step counter service";
+          After = [ "network.target" ];
+        };
+
+        Service =
+          {
+            Type = "simple";
+            ExecStart = "${cfg.package}/bin/mimotion";
+            Restart = "on-failure";
+            RestartSec = 5;
+            Environment = lib.mapAttrsToList (k: v: "${k}=${v}") envVars;
+          }
+          // lib.optionalAttrs (cfg.environmentFile != null) {
+            EnvironmentFile = cfg.environmentFile;
+          };
+
+        Install = {
+          WantedBy = [ "default.target" ];
+        };
+      };
+    })
+
+    # --- macOS: launchd agent ---
+    (lib.mkIf pkgs.stdenv.isDarwin {
+      launchd.agents.mimotion = {
+        enable = true;
+        config = {
+          ProgramArguments =
+            if cfg.environmentFile != null then
+              [
+                "${
+                  pkgs.writeShellScript "mimotion-launchd" ''
+                    set -a
+                    . ${cfg.environmentFile}
+                    set +a
+                    exec ${cfg.package}/bin/mimotion
+                  ''
+                }"
+              ]
+            else
+              [ "${cfg.package}/bin/mimotion" ];
+          EnvironmentVariables = envVars;
+          RunAtLoad = true;
+          KeepAlive.Crashed = true;
+          StandardOutPath = "${cfg.dataDir}/mimotion.log";
+          StandardErrorPath = "${cfg.dataDir}/mimotion.err";
+        };
+      };
+    })
+  ]);
 }
