@@ -1,8 +1,8 @@
-const Database = require('better-sqlite3')
-const bcrypt = require('bcryptjs')
-const crypto = require('crypto')
-const path = require('path')
-const fs = require('fs')
+import Database from 'better-sqlite3'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs'
 
 const dbPath = process.env.DATABASE_URL || './data/mimotion.db'
 
