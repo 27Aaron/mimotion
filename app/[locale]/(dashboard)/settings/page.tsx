@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import {
   User,
@@ -26,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 export default function SettingsPage() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
+  const locale = useLocale();
 
   const [username, setUsername] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -118,6 +120,11 @@ export default function SettingsPage() {
     setLoading(false);
 
     if (res.ok) {
+      if (data.sessionInvalidated) {
+        toast.success(t("settingsSaved"));
+        setTimeout(() => { window.location.href = `/${locale}/login`; }, 1500);
+        return;
+      }
       toast.success(t("settingsSaved"));
       setCurrentPassword("");
       setNewPassword("");

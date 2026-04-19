@@ -6,6 +6,13 @@ import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
 import { deleteOwnedSchedule, isOwnedXiaomiAccount } from '@/lib/ownership'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function validateUUID(id: string | null): string | null {
+  if (!id) return null
+  return UUID_RE.test(id) ? id : null
+}
+
 export async function GET() {
   const current = await getCurrentUser()
   if (!current) {
@@ -74,10 +81,14 @@ export async function POST(request: NextRequest) {
   }
 
   // 验证步数
+  const MAX_STEP = 200000
   const min = Number(minStep)
   const max = Number(maxStep)
   if (!Number.isInteger(min) || !Number.isInteger(max) || min <= 0 || max <= 0) {
     return NextResponse.json({ error: '步数必须为正整数', code: 'STEP_MUST_BE_POSITIVE' }, { status: 400 })
+  }
+  if (min > MAX_STEP || max > MAX_STEP) {
+    return NextResponse.json({ error: `步数不能超过 ${MAX_STEP}`, code: 'STEP_EXCEEDS_MAX' }, { status: 400 })
   }
   if (min > max) {
     return NextResponse.json({ error: '最小步数不能大于最大步数', code: 'STEP_MIN_EXCEEDS_MAX' }, { status: 400 })
@@ -123,13 +134,18 @@ export async function PUT(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
+  const id = validateUUID(searchParams.get('id'))
 
   if (!id) {
-    return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
+    return NextResponse.json({ error: '缺少有效的 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
-  const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { cronExpression, minStep, maxStep, isActive, xiaomiAccountId } = body
 
   const updates: Record<string, unknown> = {
@@ -149,8 +165,12 @@ export async function PUT(request: NextRequest) {
     updates.cronExpression = cronExpression
   }
 
-  // 校验步数
+  // 校验步数（必须同时提供 min 和 max）
   if (minStep !== undefined || maxStep !== undefined) {
+    if (minStep === undefined || maxStep === undefined) {
+      return NextResponse.json({ error: '需同时提供最小和最大步数', code: 'STEP_BOTH_REQUIRED' }, { status: 400 })
+    }
+    const MAX_STEP = 200000
     const min = Number(minStep)
     const max = Number(maxStep)
     if (!Number.isInteger(min) || min <= 0) {
@@ -159,6 +179,9 @@ export async function PUT(request: NextRequest) {
     if (!Number.isInteger(max) || max <= 0) {
       return NextResponse.json({ error: '最大步数必须为正整数', code: 'STEP_MAX_INVALID' }, { status: 400 })
     }
+    if (min > MAX_STEP || max > MAX_STEP) {
+      return NextResponse.json({ error: `步数不能超过 ${MAX_STEP}`, code: 'STEP_EXCEEDS_MAX' }, { status: 400 })
+    }
     if (min > max) {
       return NextResponse.json({ error: '最小步数不能大于最大步数', code: 'STEP_MIN_EXCEEDS_MAX' }, { status: 400 })
     }
@@ -166,7 +189,12 @@ export async function PUT(request: NextRequest) {
     updates.maxStep = max
   }
 
-  if (isActive !== undefined) updates.isActive = isActive
+  if (isActive !== undefined) {
+    if (typeof isActive !== 'boolean') {
+      return NextResponse.json({ error: 'isActive 必须为布尔值', code: 'INVALID_IS_ACTIVE' }, { status: 400 })
+    }
+    updates.isActive = isActive
+  }
   if (xiaomiAccountId !== undefined) {
     if (!isOwnedXiaomiAccount(sqlite, current.userId, xiaomiAccountId)) {
       return NextResponse.json({ error: '小米账号不存在', code: 'ACCOUNT_NOT_FOUND' }, { status: 404 })
@@ -189,10 +217,10 @@ export async function DELETE(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
+  const id = validateUUID(searchParams.get('id'))
 
   if (!id) {
-    return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
+    return NextResponse.json({ error: '缺少有效的 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
   const deleted = deleteOwnedSchedule(sqlite, id, current.userId)

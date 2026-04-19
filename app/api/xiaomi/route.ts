@@ -7,6 +7,8 @@ import { v4 as uuid } from 'uuid'
 import { encrypt } from '@/lib/crypto'
 import { loginXiaomiAccount } from '@/lib/xiaomi/auth'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function GET() {
   const current = await getCurrentUser()
   if (!current) {
@@ -89,29 +91,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
 
-  const { account, password, nickname } = await request.json()
+  let postBody
+  try {
+    postBody = await request.json()
+  } catch {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
+  const { account, password, nickname } = postBody
 
   if (!account || !password) {
     return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
   }
 
-  console.log('[Xiaomi API] Login attempt:', account)
   let loginResult
   try {
     loginResult = await loginXiaomiAccount(account, password)
   } catch (err) {
-    console.error('[Xiaomi API] Login exception:', err)
+    console.error('[Xiaomi API] Login exception')
     return NextResponse.json(
-      { error: `登录异常: ${err instanceof Error ? err.message : String(err)}`, code: 'XIAOMI_LOGIN_EXCEPTION' },
+      { error: '小米账号登录异常，请稍后再试', code: 'XIAOMI_LOGIN_EXCEPTION' },
       { status: 500 }
     )
   }
-  console.log('[Xiaomi API] Login result:', JSON.stringify({
-    success: loginResult.success,
-    error: loginResult.error,
-    userId: loginResult.userId,
-    hasToken: !!loginResult.token,
-  }))
 
   if (!loginResult.success || !loginResult.token) {
     return NextResponse.json(
@@ -162,11 +163,16 @@ export async function PUT(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 
-  if (!id) {
-    return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
+  if (!id || !UUID_RE.test(id)) {
+    return NextResponse.json({ error: '缺少有效的 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
-  const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { nickname, status, account, password } = body
 
   const updates: Record<string, unknown> = {
@@ -181,9 +187,9 @@ export async function PUT(request: NextRequest) {
     let loginResult
     try {
       loginResult = await loginXiaomiAccount(account, password)
-    } catch (err) {
+    } catch {
       return NextResponse.json(
-        { error: `登录异常: ${err instanceof Error ? err.message : String(err)}` },
+        { error: '小米账号登录异常，请稍后再试' },
         { status: 500 }
       )
     }
@@ -232,8 +238,8 @@ export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 
-  if (!id) {
-    return NextResponse.json({ error: '缺少 id', code: 'MISSING_ID' }, { status: 400 })
+  if (!id || !UUID_RE.test(id)) {
+    return NextResponse.json({ error: '缺少有效的 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
   // 级联删除
