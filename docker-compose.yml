@@ -1,6 +1,6 @@
 services:
   mimotion:
-    image: ghcr.io/27aaron/mimotion:latest
+    build: .
     container_name: mimotion
     restart: unless-stopped
     ports:
