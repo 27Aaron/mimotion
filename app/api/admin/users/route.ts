@@ -5,6 +5,8 @@ import { eq, sql, isNull } from 'drizzle-orm'
 import { verifyToken, hashPassword } from '@/lib/auth'
 import { cookies } from 'next/headers'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 async function requireAdmin() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
@@ -73,15 +75,29 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: '无权限', code: 'FORBIDDEN' }, { status: 403 })
   }
 
-  const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { userId, newPassword } = body
 
   if (!userId || !newPassword) {
     return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
   }
 
-  if (typeof newPassword !== 'string' || newPassword.length < 6) {
-    return NextResponse.json({ error: '密码长度至少 6 位', code: 'PASSWORD_MIN_LENGTH' }, { status: 400 })
+  if (typeof userId !== 'string' || !UUID_RE.test(userId)) {
+    return NextResponse.json({ error: '无效的用户 ID', code: 'INVALID_USER_ID' }, { status: 400 })
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < 8 || !/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    return NextResponse.json({ error: '密码需 8 位以上，包含字母和数字', code: 'PASSWORD_INVALID' }, { status: 400 })
+  }
+
+  // Admin 不能重置自己的密码（应通过设置页）
+  if (userId === admin.userId) {
+    return NextResponse.json({ error: '请通过设置页修改自己的密码', code: 'CANNOT_RESET_SELF' }, { status: 400 })
   }
 
   const passwordHash = await hashPassword(newPassword)
@@ -102,8 +118,8 @@ export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('id')
 
-  if (!userId) {
-    return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
+  if (!userId || !UUID_RE.test(userId)) {
+    return NextResponse.json({ error: '缺少有效的用户 ID', code: 'MISSING_PARAMS' }, { status: 400 })
   }
 
   if (userId === admin.userId) {
