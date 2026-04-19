@@ -39,3 +39,7 @@ drizzle/meta/
 
 # data
 data/*.db
+
+# nix
+result
+result-*
