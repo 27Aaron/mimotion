@@ -21,13 +21,21 @@ export async function setSteps(
   steps: number
 ): Promise<SetStepResult> {
   const t = getTime()
-  const today = new Date().toISOString().split('T')[0]
 
-  // 替换模板中的日期和步数
-  const dataJson = DATA_JSON_TEMPLATE.replace('2021-08-07', today).replace('18272', String(steps))
+  // 使用上海时区日期（API 服务器在中国，UTC 日期在上海时间 0-8 点会是"昨天"）
+  const bjOffset = 8 * 60 * 60 * 1000
+  const today = new Date(Date.now() + bjOffset).toISOString().split('T')[0]
+
+  // 精确替换：只改 summary 中的 ttl，避免误改 data_hr/data 活动编码中的巧合数字
+  const dataJson = DATA_JSON_TEMPLATE
+    .replace('2021-08-07', today)
+    .replace('%5C%22ttl%5C%22%3A18272', `%5C%22ttl%5C%22%3A${steps}`)
+
+  // 使用最近的同步时间（硬编码 2020 时间戳可能导致服务器静默拒绝）
+  const lastSyncTime = Math.floor(Date.now() / 1000) - 120
 
   const url = `https://api-mifit-cn.huami.com/v1/data/band_data.json?&t=${t}&r=${crypto.randomUUID()}`
-  const postData = `userid=${xiaomiUserId}&last_sync_data_time=1597306380&device_type=0&last_deviceid=${deviceId || 'DA932FFFFE8816E7'}&data_json=${dataJson}`
+  const postData = `userid=${xiaomiUserId}&last_sync_data_time=${lastSyncTime}&device_type=0&last_deviceid=${deviceId || 'DA932FFFFE8816E7'}&data_json=${dataJson}`
 
   try {
     const controller = new AbortController()
