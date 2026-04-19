@@ -197,12 +197,42 @@ inputs.mimotion.url = "github:27Aaron/mimotion";
   services.mimotion = {
     enable = true;
     port = 3000;
-    encryptionKey = "你的64位hex密钥";    # 或使用 environmentFile
-    jwtSecret = "你的64位hex密钥";        # 或使用 environmentFile
-    # environmentFile = "/run/secrets/mimotion.env";  # 推荐用于密钥管理
+    # 密钥（生产环境建议使用 environmentFile）
+    environmentFile = "/run/secrets/mimotion.env";
+    # 或直接设置（警告：会存入 /nix/store，全局可读）
+    # encryptionKey = "你的64位hex密钥";
+    # jwtSecret = "你的64位hex密钥";
   };
 }
 ```
+
+`environmentFile` 内容：
+
+```env
+ENCRYPTION_KEY=你的64位hex密钥
+JWT_SECRET=你的64位hex密钥
+```
+
+生成密钥：`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+
+**NixOS 选项：**
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `enable` | `false` | 启用服务 |
+| `package` | flake 构建 | MiMotion 包 |
+| `port` | `3000` | 监听端口 |
+| `dataDir` | `/var/lib/mimotion` | 数据库和运行时数据目录 |
+| `encryptionKey` | `null` | AES-256-GCM 密钥（64位hex）。建议用 `environmentFile` |
+| `jwtSecret` | `null` | JWT 签名密钥（64位hex）。建议用 `environmentFile` |
+| `adminUsername` | `"admin"` | 初始管理员用户名 |
+| `adminPassword` | `"password"` | 初始管理员密码 |
+| `appUrl` | `null` | 公网地址（用于 Bark 推送图标） |
+| `user` / `group` | `"mimotion"` | 服务用户/组 |
+| `environment` | `{ }` | 额外环境变量 |
+| `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
+
+服务以 systemd 运行，含安全加固（`ProtectSystem`、`PrivateTmp`、`NoNewPrivileges`）。
 
 #### Home Manager
 
@@ -214,13 +244,28 @@ inputs.mimotion.url = "github:27Aaron/mimotion";
 
   services.mimotion = {
     enable = true;
-    encryptionKey = "你的64位hex密钥";
-    jwtSecret = "你的64位hex密钥";
+    environmentFile = "/path/to/secrets.env";
   };
 }
 ```
 
-**macOS**（launchd agent）—— 配置相同，Home Manager 自动识别平台。
+**macOS**（launchd agent）—— 配置相同，Home Manager 自动识别平台并使用 launchd。
+
+**Home Manager 选项：**
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `enable` | `false` | 启用服务 |
+| `package` | flake 构建 | MiMotion 包 |
+| `port` | `3000` | 监听端口 |
+| `dataDir` | `~/.local/share/mimotion` | 数据目录 |
+| `encryptionKey` | `null` | AES-256-GCM 密钥。建议用 `environmentFile` |
+| `jwtSecret` | `null` | JWT 密钥。建议用 `environmentFile` |
+| `adminUsername` | `"admin"` | 初始管理员用户名 |
+| `adminPassword` | `"password"` | 初始管理员密码 |
+| `appUrl` | `null` | 公网地址（用于 Bark 推送图标） |
+| `environment` | `{ }` | 额外环境变量 |
+| `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
 
 #### 开发环境
 

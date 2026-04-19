@@ -197,12 +197,42 @@ inputs.mimotion.url = "github:27Aaron/mimotion";
   services.mimotion = {
     enable = true;
     port = 3000;
-    encryptionKey = "your-64-char-hex-key";  # or use environmentFile
-    jwtSecret = "your-64-char-hex-secret";    # or use environmentFile
-    # environmentFile = "/run/secrets/mimotion.env";  # recommended for secrets
+    # Secrets (use environmentFile for production)
+    environmentFile = "/run/secrets/mimotion.env";
+    # Or set directly (WARNING: stored in /nix store, world-readable)
+    # encryptionKey = "your-64-char-hex-key";
+    # jwtSecret = "your-64-char-hex-secret";
   };
 }
 ```
+
+The `environmentFile` should contain:
+
+```env
+ENCRYPTION_KEY=your-64-char-hex-key
+JWT_SECRET=your-64-char-hex-secret
+```
+
+Generate keys: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+
+**NixOS options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `enable` | `false` | Enable the service |
+| `package` | flake package | MiMotion package |
+| `port` | `3000` | Listening port |
+| `dataDir` | `/var/lib/mimotion` | Database and runtime data directory |
+| `encryptionKey` | `null` | AES-256-GCM key (64-char hex). Prefer `environmentFile` |
+| `jwtSecret` | `null` | JWT secret (64-char hex). Prefer `environmentFile` |
+| `adminUsername` | `"admin"` | Initial admin username |
+| `adminPassword` | `"password"` | Initial admin password |
+| `appUrl` | `null` | Public URL (for Bark push icon) |
+| `user` / `group` | `"mimotion"` | Service user/group |
+| `environment` | `{ }` | Extra environment variables |
+| `environmentFile` | `null` | File with secrets (KEY=VALUE format) |
+
+The service runs as a systemd service with security hardening (`ProtectSystem`, `PrivateTmp`, `NoNewPrivileges`).
 
 #### Home Manager
 
@@ -214,13 +244,28 @@ inputs.mimotion.url = "github:27Aaron/mimotion";
 
   services.mimotion = {
     enable = true;
-    encryptionKey = "your-64-char-hex-key";
-    jwtSecret = "your-64-char-hex-secret";
+    environmentFile = "/path/to/secrets.env";
   };
 }
 ```
 
-**macOS** (launchd agent) — same config, Home Manager auto-detects the platform.
+**macOS** (launchd agent) — same config, Home Manager auto-detects the platform and uses launchd instead of systemd.
+
+**Home Manager options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `enable` | `false` | Enable the service |
+| `package` | flake package | MiMotion package |
+| `port` | `3000` | Listening port |
+| `dataDir` | `~/.local/share/mimotion` | Database directory |
+| `encryptionKey` | `null` | AES-256-GCM key. Prefer `environmentFile` |
+| `jwtSecret` | `null` | JWT secret. Prefer `environmentFile` |
+| `adminUsername` | `"admin"` | Initial admin username |
+| `adminPassword` | `"password"` | Initial admin password |
+| `appUrl` | `null` | Public URL (for Bark push icon) |
+| `environment` | `{ }` | Extra environment variables |
+| `environmentFile` | `null` | File with secrets (KEY=VALUE format) |
 
 #### Dev Shell
 
