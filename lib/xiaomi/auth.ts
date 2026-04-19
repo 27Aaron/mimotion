@@ -1,5 +1,13 @@
 import crypto from 'crypto'
 
+const FETCH_TIMEOUT = 30000
+
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeout))
+}
+
 // Zepp/Huami 登录加密密钥
 const HM_AES_KEY = Buffer.from('xeNtBVqzDc6tuNTh') // 16 bytes
 const HM_AES_IV = Buffer.from('MAAAYAAAAAAAAABg') // 16 bytes
@@ -74,10 +82,10 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
 
   const url1 = 'https://api-user.zepp.com/v2/registrations/tokens'
 
-  console.log('[Xiaomi Auth] Step 1: POST', url1)
+  console.log('[Xiaomi Auth] Step 1: loginAccessToken')
 
   try {
-    const r1 = await fetch(url1, {
+    const r1 = await fetchWithTimeout(url1, {
       method: 'POST',
       headers,
       body: new Uint8Array(cipherData),
@@ -93,7 +101,7 @@ async function loginAccessToken(user: string, password: string): Promise<{ token
     }
 
     const location = r1.headers.get('Location')
-    console.log('[Xiaomi Auth] Step 1 Location:', location)
+    console.log('[Xiaomi Auth] Step 1: redirect received')
     if (!location) {
       return { token: null, error: '获取accessToken失败：无重定向' }
     }
@@ -168,10 +176,10 @@ async function grantLoginTokens(
     }
   }
 
-  console.log('[Xiaomi Auth] Step 2: POST', url, 'isPhone:', isPhone)
+  console.log('[Xiaomi Auth] Step 2: grantLoginTokens, isPhone:', isPhone)
 
   try {
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       method: 'POST',
       headers,
       body: new URLSearchParams(data).toString(),
@@ -233,10 +241,10 @@ export async function refreshAppToken(
     'third_name': 'huami_phone',
   }
 
-  console.log('[Xiaomi Auth] Refresh: POST', url)
+  console.log('[Xiaomi Auth] Refresh: refreshAppToken')
 
   try {
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       method: 'POST',
       headers,
       body: new URLSearchParams(data).toString(),
@@ -281,7 +289,7 @@ export async function loginXiaomiAccount(
   const { user, isPhone } = normalizeUser(account)
   const deviceId = generateDeviceId()
 
-  console.log('[Xiaomi Auth] Login for:', user, 'isPhone:', isPhone, 'deviceId:', deviceId)
+  console.log('[Xiaomi Auth] Login start, isPhone:', isPhone)
 
   // Step 1: 获取 access_token
   const { token: accessToken, error: step1Error } = await loginAccessToken(user, password)

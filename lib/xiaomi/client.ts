@@ -30,6 +30,8 @@ export async function setSteps(
   const postData = `userid=${xiaomiUserId}&last_sync_data_time=1597306380&device_type=0&last_deviceid=${deviceId || 'DA932FFFFE8816E7'}&data_json=${dataJson}`
 
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -37,7 +39,9 @@ export async function setSteps(
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: postData,
+      signal: controller.signal,
     })
+    clearTimeout(timeout)
 
     if (response.status !== 200) {
       const text = await response.text().catch(() => '')

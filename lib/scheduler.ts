@@ -93,6 +93,11 @@ async function checkAndRunSchedules() {
   }
   const executedIds = globalForScheduler.__schedulerExecutedIds!
 
+  // 防御：如果 Set 膨胀过大（异常情况），强制重置
+  if (executedIds.size > 10000) {
+    globalForScheduler.__schedulerExecutedIds = new Set()
+  }
+
   const activeSchedules = await db
     .select()
     .from(schedules)
