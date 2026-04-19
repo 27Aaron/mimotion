@@ -32,13 +32,15 @@ in
     };
 
     encryptionKey = lib.mkOption {
-      type = lib.types.str;
-      description = "AES-256-GCM encryption key (64-char hex string) for Xiaomi token storage.";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "AES-256-GCM encryption key (64-char hex string). WARNING: stored in Nix store. Prefer environmentFile for secrets.";
     };
 
     jwtSecret = lib.mkOption {
-      type = lib.types.str;
-      description = "JWT signing secret (64-char hex string).";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "JWT signing secret (64-char hex string). WARNING: stored in Nix store. Prefer environmentFile for secrets.";
     };
 
     adminUsername = lib.mkOption {
@@ -81,6 +83,13 @@ in
       '';
       description = "Extra environment variables for the service.";
     };
+
+    environmentFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      example = "/run/secrets/mimotion.env";
+      description = "File with environment variables (KEY=VALUE). Use for secrets like ENCRYPTION_KEY and JWT_SECRET.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -106,11 +115,11 @@ in
           PORT = toString cfg.port;
           HOSTNAME = "0.0.0.0";
           DATABASE_URL = "${cfg.dataDir}/mimotion.db";
-          ENCRYPTION_KEY = cfg.encryptionKey;
-          JWT_SECRET = cfg.jwtSecret;
           ADMIN_USERNAME = cfg.adminUsername;
           ADMIN_PASSWORD = cfg.adminPassword;
         }
+        // (lib.optionalAttrs (cfg.encryptionKey != null) { ENCRYPTION_KEY = cfg.encryptionKey; })
+        // (lib.optionalAttrs (cfg.jwtSecret != null) { JWT_SECRET = cfg.jwtSecret; })
         // (lib.optionalAttrs (cfg.appUrl != null) { APP_URL = cfg.appUrl; })
         // cfg.environment;
 
@@ -122,6 +131,7 @@ in
         ExecStart = "${cfg.package}/bin/mimotion";
         Restart = "on-failure";
         RestartSec = 5;
+        EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
 
         # Security hardening
         ProtectHome = true;
