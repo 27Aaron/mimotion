@@ -63,6 +63,7 @@
               python3
               gnumake
               gcc
+              makeWrapper
             ];
 
             buildPhase = ''
@@ -101,6 +102,8 @@
 
               substituteInPlace $out/bin/mimotion --subst-var out
               chmod +x $out/bin/mimotion
+
+              wrapProgram $out/bin/mimotion --prefix PATH : ${pkgs.nodejs_22}/bin
 
               runHook postInstall
             '';
