@@ -180,6 +180,56 @@ npm install -g pm2
 pm2 start npm --name mimotion -- start
 ```
 
+### Nix / NixOS
+
+Add the flake to your inputs:
+
+```nix
+inputs.mimotion.url = "github:27Aaron/mimotion";
+```
+
+#### NixOS Module
+
+```nix
+{
+  imports = [ inputs.mimotion.nixosModules.default ];
+
+  services.mimotion = {
+    enable = true;
+    port = 3000;
+    encryptionKey = "your-64-char-hex-key";  # or use environmentFile
+    jwtSecret = "your-64-char-hex-secret";    # or use environmentFile
+    # environmentFile = "/run/secrets/mimotion.env";  # recommended for secrets
+  };
+}
+```
+
+#### Home Manager
+
+**Linux** (systemd user service):
+
+```nix
+{
+  imports = [ inputs.mimotion.homeManagerModules.default ];
+
+  services.mimotion = {
+    enable = true;
+    encryptionKey = "your-64-char-hex-key";
+    jwtSecret = "your-64-char-hex-secret";
+  };
+}
+```
+
+**macOS** (launchd agent) — same config, Home Manager auto-detects the platform.
+
+#### Dev Shell
+
+```bash
+nix develop
+```
+
+> Supports `x86_64-linux`, `aarch64-linux`, `x86_64-darwin`, `aarch64-darwin`.
+
 ### Docker
 
 Using docker compose (recommended):

@@ -180,6 +180,56 @@ npm install -g pm2
 pm2 start npm --name mimotion -- start
 ```
 
+### Nix / NixOS 部署
+
+在 flake inputs 中添加：
+
+```nix
+inputs.mimotion.url = "github:27Aaron/mimotion";
+```
+
+#### NixOS Module
+
+```nix
+{
+  imports = [ inputs.mimotion.nixosModules.default ];
+
+  services.mimotion = {
+    enable = true;
+    port = 3000;
+    encryptionKey = "你的64位hex密钥";    # 或使用 environmentFile
+    jwtSecret = "你的64位hex密钥";        # 或使用 environmentFile
+    # environmentFile = "/run/secrets/mimotion.env";  # 推荐用于密钥管理
+  };
+}
+```
+
+#### Home Manager
+
+**Linux**（systemd 用户服务）：
+
+```nix
+{
+  imports = [ inputs.mimotion.homeManagerModules.default ];
+
+  services.mimotion = {
+    enable = true;
+    encryptionKey = "你的64位hex密钥";
+    jwtSecret = "你的64位hex密钥";
+  };
+}
+```
+
+**macOS**（launchd agent）—— 配置相同，Home Manager 自动识别平台。
+
+#### 开发环境
+
+```bash
+nix develop
+```
+
+> 支持 `x86_64-linux`、`aarch64-linux`、`x86_64-darwin`、`aarch64-darwin` 四平台。
+
 ### Docker 部署
 
 使用 docker compose（推荐）：
