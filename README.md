@@ -2,9 +2,9 @@
 
 # MiMotion
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-000000.svg?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000.svg?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57.svg?logo=sqlite)](https://www.sqlite.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?logo=tailwindcss)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-WTFPL-FF4136.svg)](http://www.wtfpl.net/)
@@ -32,7 +32,7 @@ Automated Xiaomi/Zepp step counter service. Bind your Xiaomi account, set up cro
 
 | Category | Technology |
 |----------|-----------|
-| Framework | Next.js 15 (App Router) + React 19 + TypeScript |
+| Framework | Next.js 16 (App Router) + React 19 + TypeScript 6 |
 | Styling | Tailwind CSS v4 + shadcn/ui (base-ui) |
 | Database | SQLite (better-sqlite3) + Drizzle ORM |
 | Auth | JWT (jose) + bcryptjs + HttpOnly Cookie |
@@ -45,7 +45,7 @@ Automated Xiaomi/Zepp step counter service. Bind your Xiaomi account, set up cro
 
 ### Prerequisites
 
-- Node.js >= 18
+- Node.js >= 22
 - npm >= 9
 
 ### Installation
@@ -137,6 +137,7 @@ lib/
   db/schema.ts             # Database schema (5 tables)
   auth.ts                  # JWT + password utilities
   crypto.ts                # AES-256-GCM encrypt/decrypt
+  rate-limit.ts            # In-memory rate limiter
   scheduler.ts             # Cron scheduler
   xiaomi/auth.ts           # Xiaomi/Zepp login
   xiaomi/client.ts         # Step submission API
@@ -181,8 +182,25 @@ pm2 start npm --name mimotion -- start
 
 ### Docker
 
+Using docker compose (recommended):
+
 ```bash
-docker pull ghcr.io/27aaron/mimotion:latest
+# Clone and configure
+git clone https://github.com/27aaron/mimotion.git
+cd mimotion
+
+# Set required environment variables
+export ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+export JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+
+# Build and start
+docker compose up -d
+```
+
+Or build manually:
+
+```bash
+docker build -t mimotion .
 docker run -d \
   -p 3000:3000 \
   -v ./data:/app/data \
@@ -191,7 +209,7 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
-  ghcr.io/27aaron/mimotion:latest
+  mimotion
 ```
 
 > Supports `linux/amd64` and `linux/arm64`. Docker auto-selects the correct architecture.
@@ -199,10 +217,15 @@ docker run -d \
 ## Security
 
 - Xiaomi tokens encrypted with AES-256-GCM; encryption key never stored in the database
-- User passwords hashed with bcrypt
-- JWT stored in HttpOnly cookies to prevent XSS
+- User passwords hashed with bcrypt (cost 12)
+- JWT stored in HttpOnly + Secure cookies to prevent XSS
+- API rate limiting on login (10 req/15min) and registration (5 req/hour)
 - All API routes require authentication; admin routes additionally verify `isAdmin`
 - Account data isolated per user; cross-user access is not possible
+- Input validation with UUID format checks, step bounds, and cron format verification
+- Security headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+- Password policy: minimum 8 characters, must contain letters and numbers
+- Session invalidated on password change
 
 ## License
 
