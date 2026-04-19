@@ -336,6 +336,7 @@
     "PUSH_REQUEST_FAILED": "Push request failed, check if the URL is correct",
     "PUSH_TELEGRAM_FAILED": "Push request failed, check configuration",
     "PUSH_TYPE_UNKNOWN": "Unknown push type",
+    "networkError": "Network error, please try again",
     "NETWORK_ERROR": "Network error",
     "UNKNOWN_ERROR": "Unknown error"
   },

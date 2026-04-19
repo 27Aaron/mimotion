@@ -336,6 +336,7 @@
     "PUSH_REQUEST_FAILED": "推送请求失败，请检查 URL 是否正确",
     "PUSH_TELEGRAM_FAILED": "推送请求失败，请检查配置是否正确",
     "PUSH_TYPE_UNKNOWN": "未知的推送类型",
+    "networkError": "网络错误，请重试",
     "NETWORK_ERROR": "网络错误",
     "UNKNOWN_ERROR": "未知错误"
   },
