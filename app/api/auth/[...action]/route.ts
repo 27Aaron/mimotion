@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { hashPassword, verifyPassword, createToken, verifyToken } from '@/lib/auth'
 import { cookies } from 'next/headers'
 import { v4 as uuid } from 'uuid'
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
 export async function POST(
   request: NextRequest,
@@ -55,6 +56,16 @@ async function parseJson(request: NextRequest) {
 }
 
 async function handleLogin(request: NextRequest) {
+  // Rate limit: 10 attempts per IP per 15 minutes
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const rl = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: '请求过于频繁，请稍后再试', code: 'RATE_LIMITED' },
+      { status: 429, headers: getRateLimitHeaders(rl.remaining, rl.resetAt) },
+    )
+  }
+
   const body = await parseJson(request)
   if (!body) return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
 
@@ -112,6 +123,16 @@ async function handleLogin(request: NextRequest) {
 }
 
 async function handleRegister(request: NextRequest) {
+  // Rate limit: 5 registrations per IP per hour
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const rl = rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: '注册请求过于频繁，请稍后再试', code: 'RATE_LIMITED' },
+      { status: 429, headers: getRateLimitHeaders(rl.remaining, rl.resetAt) },
+    )
+  }
+
   const body = await parseJson(request)
   if (!body) return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
 
@@ -125,8 +146,11 @@ async function handleRegister(request: NextRequest) {
     return NextResponse.json({ error: '用户名长度需在 2-32 之间', code: 'USERNAME_LENGTH' }, { status: 400 })
   }
 
-  if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
-    return NextResponse.json({ error: '密码长度需在 6-128 之间', code: 'PASSWORD_LENGTH' }, { status: 400 })
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return NextResponse.json({ error: '密码长度需在 8-128 之间', code: 'PASSWORD_LENGTH' }, { status: 400 })
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return NextResponse.json({ error: '密码需包含字母和数字', code: 'PASSWORD_COMPLEXITY' }, { status: 400 })
   }
 
   // 事务防止邀请码竞态
@@ -174,7 +198,7 @@ async function handleRegister(request: NextRequest) {
     const msg = err instanceof Error ? err.message : '注册失败'
     if (msg === 'INVALID_CODE') return NextResponse.json({ error: '邀请码无效', code: 'INVALID_CODE' }, { status: 400 })
     if (msg === 'CODE_USED') return NextResponse.json({ error: '邀请码已使用', code: 'CODE_USED' }, { status: 400 })
-    if (msg === 'USERNAME_TAKEN') return NextResponse.json({ error: '用户名已被注册', code: 'USERNAME_TAKEN' }, { status: 400 })
+    if (msg === 'USERNAME_TAKEN') return NextResponse.json({ error: '注册失败，请检查输入信息', code: 'REGISTER_FAILED' }, { status: 400 })
     return NextResponse.json({ error: '注册失败', code: 'REGISTER_FAILED' }, { status: 500 })
   }
 
