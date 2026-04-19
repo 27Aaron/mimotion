@@ -2,9 +2,9 @@
 
 # MiMotion
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-000000.svg?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000.svg?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57.svg?logo=sqlite)](https://www.sqlite.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?logo=tailwindcss)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-WTFPL-FF4136.svg)](http://www.wtfpl.net/)
@@ -32,7 +32,7 @@ English | [中文](README_CN.md)
 
 | 类别 | 技术 |
 |------|------|
-| 框架 | Next.js 15 (App Router) + React 19 + TypeScript |
+| 框架 | Next.js 16 (App Router) + React 19 + TypeScript 6 |
 | 样式 | Tailwind CSS v4 + shadcn/ui (base-ui) |
 | 数据库 | SQLite (better-sqlite3) + Drizzle ORM |
 | 认证 | JWT (jose) + bcryptjs + HttpOnly Cookie |
@@ -45,7 +45,7 @@ English | [中文](README_CN.md)
 
 ### 环境要求
 
-- Node.js >= 18
+- Node.js >= 22
 - npm >= 9
 
 ### 安装
@@ -137,6 +137,7 @@ lib/
   db/schema.ts             # 数据库 Schema（5 张表）
   auth.ts                  # JWT + 密码工具
   crypto.ts                # AES-256-GCM 加解密
+  rate-limit.ts            # 内存速率限制器
   scheduler.ts             # Cron 调度执行器
   xiaomi/auth.ts           # 小米/Zepp 登录
   xiaomi/client.ts         # 提交步数 API
@@ -181,8 +182,25 @@ pm2 start npm --name mimotion -- start
 
 ### Docker 部署
 
+使用 docker compose（推荐）：
+
 ```bash
-docker pull ghcr.io/27aaron/mimotion:latest
+# 克隆项目
+git clone https://github.com/27aaron/mimotion.git
+cd mimotion
+
+# 设置必需的环境变量
+export ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+export JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+
+# 构建并启动
+docker compose up -d
+```
+
+或手动构建：
+
+```bash
+docker build -t mimotion .
 docker run -d \
   -p 3000:3000 \
   -v ./data:/app/data \
@@ -191,7 +209,7 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
-  ghcr.io/27aaron/mimotion:latest
+  mimotion
 ```
 
 > 支持 `linux/amd64` 和 `linux/arm64` 双架构，Docker 自动匹配当前机器架构。
@@ -199,10 +217,15 @@ docker run -d \
 ## 安全说明
 
 - Xiaomi Token 使用 AES-256-GCM 加密存储，密钥不写入数据库
-- 用户密码使用 bcrypt 哈希存储
-- JWT 存储在 HttpOnly Cookie 中，防止 XSS 窃取
+- 用户密码使用 bcrypt 哈希存储（cost 12）
+- JWT 存储在 HttpOnly + Secure Cookie 中，防止 XSS 窃取
+- 登录限流（10 次/15 分钟）、注册限流（5 次/小时）
 - API 路由统一鉴权，管理接口额外校验 `isAdmin`
 - 所有小米账号数据按用户隔离，跨用户不可访问
+- 输入校验：UUID 格式验证、步数上限、Cron 格式检查
+- 安全响应头：X-Frame-Options、X-Content-Type-Options、Referrer-Policy
+- 密码策略：至少 8 位，必须包含字母和数字
+- 密码修改后自动清除会话，强制重新登录
 
 ## 许可证
 
