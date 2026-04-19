@@ -21,7 +21,7 @@ function buildLoginUrl(request: NextRequest, pathname: string): URL {
   return new URL(`${protocol}://${host}${pathname}`)
 }
 
-const publicPaths = ['/login', '/api/auth/login', '/api/auth/register', '/api/auth/me']
+const publicPaths = ['/login', '/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/auth/me']
 
 function isPublicPath(pathname: string): boolean {
   return publicPaths.some((p) => pathname === p || pathname.startsWith(p + '/'))
