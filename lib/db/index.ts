@@ -12,6 +12,10 @@ if (!existsSync(dir)) {
 }
 
 const sqlite = new Database(dbPath)
+sqlite.pragma('foreign_keys = ON')
+sqlite.pragma('busy_timeout = 5000')
+sqlite.pragma('journal_mode = WAL')
+sqlite.pragma('synchronous = NORMAL')
 export const db = drizzle(sqlite, { schema })
 export { sqlite }
 

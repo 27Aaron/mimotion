@@ -36,6 +36,8 @@ drizzle/meta/
 # sqlite
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 # data
 data/*.db

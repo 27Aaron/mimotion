@@ -12,6 +12,10 @@ if (!fs.existsSync(dir)) {
 }
 
 const db = new Database(dbPath)
+db.pragma('foreign_keys = ON')
+db.pragma('busy_timeout = 5000')
+db.pragma('journal_mode = WAL')
+db.pragma('synchronous = NORMAL')
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -81,6 +85,7 @@ db.exec(`
     error_message text
   );
   CREATE INDEX IF NOT EXISTS run_logs_schedule_id_idx ON run_logs(schedule_id);
+  CREATE INDEX IF NOT EXISTS run_logs_schedule_executed_at_idx ON run_logs(schedule_id, executed_at);
 `)
 
 const adminUsername = process.env.ADMIN_USERNAME || 'admin'
@@ -88,7 +93,7 @@ const adminPassword = process.env.ADMIN_PASSWORD || 'password'
 
 const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername)
 if (!existing) {
-  const passwordHash = bcrypt.hashSync(adminPassword, 10)
+  const passwordHash = bcrypt.hashSync(adminPassword, 12)
   const id = crypto.randomUUID()
   const now = Date.now()
   db.prepare(
