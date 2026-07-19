@@ -101,6 +101,7 @@ npm run dev      # 启动开发服务器
 ```bash
 npm run dev          # 开发服务器
 npm run build        # 生产构建
+npm run check        # 代码、类型、测试与生产构建检查
 npm run start        # 生产运行
 npm run db:studio    # Drizzle Studio 可视化管理数据库
 npm run db:push      # 同步 Schema 到数据库
