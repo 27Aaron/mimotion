@@ -1,6 +1,8 @@
 import { db } from './db'
 import { users } from './db/schema'
 import { eq } from 'drizzle-orm'
+import { fetchWithTimeout } from './http'
+import { isSafeBarkTarget } from './safe-url'
 
 interface BarkPushOptions {
   userId: string
@@ -23,11 +25,12 @@ export async function sendBarkPush(options: BarkPushOptions): Promise<boolean> {
   const barkUrl = await getBarkUrl(options.userId)
   if (!barkUrl) return false
 
-  if (!/^https?:\/\//i.test(barkUrl)) return false
+  if (!(await isSafeBarkTarget(barkUrl))) return false
 
   try {
-    const response = await fetch(`${barkUrl}`, {
+    const response = await fetchWithTimeout(barkUrl, {
       method: 'POST',
+      redirect: 'error',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: options.title,

@@ -35,6 +35,36 @@ export function deleteOwnedSchedule(
   return transaction()
 }
 
+export function deleteOwnedXiaomiAccount(
+  sqlite: Database.Database,
+  xiaomiAccountId: string,
+  userId: string,
+): boolean {
+  const transaction = sqlite.transaction(() => {
+    const ownedAccount = sqlite
+      .prepare('SELECT 1 FROM xiaomi_accounts WHERE id = ? AND user_id = ? LIMIT 1')
+      .get(xiaomiAccountId, userId)
+    if (!ownedAccount) return false
+
+    sqlite.prepare(`
+      DELETE FROM run_logs
+      WHERE schedule_id IN (
+        SELECT id FROM schedules WHERE xiaomi_account_id = ? AND user_id = ?
+      )
+    `).run(xiaomiAccountId, userId)
+    sqlite
+      .prepare('DELETE FROM schedules WHERE xiaomi_account_id = ? AND user_id = ?')
+      .run(xiaomiAccountId, userId)
+    sqlite
+      .prepare('DELETE FROM xiaomi_accounts WHERE id = ? AND user_id = ?')
+      .run(xiaomiAccountId, userId)
+
+    return true
+  })
+
+  return transaction.immediate()
+}
+
 export function deleteOwnedUnusedInviteCode(
   sqlite: Database.Database,
   code: string,

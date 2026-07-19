@@ -1,6 +1,7 @@
 import { db } from './db'
 import { users } from './db/schema'
 import { eq } from 'drizzle-orm'
+import { fetchWithTimeout } from './http'
 
 interface TelegramPushOptions {
   userId: string
@@ -33,7 +34,7 @@ export async function sendTelegramPush(options: TelegramPushOptions): Promise<bo
   const text = `*${escapeMarkdown(options.title)}*${subtitle}\n${escapeMarkdown(options.body)}`
 
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.telegram.org/bot${config.botToken}/sendMessage`,
       {
         method: 'POST',

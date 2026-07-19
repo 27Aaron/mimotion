@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { isSafeBarkUrl } from '@/lib/safe-url'
+import { isSafeBarkTarget } from '@/lib/safe-url'
+import { fetchWithTimeout } from '@/lib/http'
 
 export async function POST(request: NextRequest) {
   const current = await getCurrentUser()
@@ -14,18 +15,22 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { type, barkUrl, telegramBotToken, telegramChatId } = body
 
   if (type === 'bark') {
     if (!barkUrl) {
       return NextResponse.json({ error: '请先填写 Bark URL', code: 'PUSH_BARK_URL_REQUIRED' }, { status: 400 })
     }
-    if (!isSafeBarkUrl(barkUrl)) {
+    if (typeof barkUrl !== 'string' || !(await isSafeBarkTarget(barkUrl))) {
       return NextResponse.json({ error: 'Bark URL 不安全或格式无效', code: 'PUSH_BARK_URL_INVALID' }, { status: 400 })
     }
     try {
-      const res = await fetch(barkUrl, {
+      const res = await fetchWithTimeout(barkUrl, {
         method: 'POST',
+        redirect: 'error',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: 'MiMotion 测试推送',
@@ -43,13 +48,16 @@ export async function POST(request: NextRequest) {
   }
 
   if (type === 'telegram') {
-    if (!telegramBotToken || !telegramChatId) {
+    if (
+      typeof telegramBotToken !== 'string' || !telegramBotToken || telegramBotToken.length > 128 ||
+      typeof telegramChatId !== 'string' || !telegramChatId || telegramChatId.length > 64
+    ) {
       return NextResponse.json({ error: '请先填写 Bot Token 和 Chat ID', code: 'PUSH_TELEGRAM_REQUIRED' }, { status: 400 })
     }
     const text = '*MiMotion 测试推送*\n如果你看到这条消息，说明 Telegram 推送配置成功！'
     const escaped = text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')
     try {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://api.telegram.org/bot${telegramBotToken}/sendMessage`,
         {
           method: 'POST',

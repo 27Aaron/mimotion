@@ -5,20 +5,11 @@ import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 
-/**
- * Build a login redirect URL using X-Forwarded-Host (set by reverse proxy)
- * before falling back to Host header. This prevents redirect loops to internal
- * Docker hostnames (e.g. 0.0.0.0:3000) when behind a reverse proxy.
- */
-function buildLoginUrl(request: NextRequest, pathname: string): URL {
-  // X-Forwarded-Host takes priority — it contains the original public hostname
-  // when behind a reverse proxy (nginx/caddy). Fall back to Host header otherwise.
-  const host =
-    request.headers.get('x-forwarded-host')?.split(',')[0].trim() ||
-    request.headers.get('host') ||
-    'localhost'
-  const protocol = request.headers.get('x-forwarded-proto') || 'http'
-  return new URL(`${protocol}://${host}${pathname}`)
+function redirectToLogin(pathname: string): NextResponse {
+  return new NextResponse(null, {
+    status: 307,
+    headers: { Location: pathname },
+  })
 }
 
 const publicPaths = ['/login', '/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/auth/me']
@@ -84,14 +75,12 @@ export async function proxy(request: NextRequest) {
   // Auth check for protected pages
   const token = request.cookies.get('auth_token')?.value
   if (!token) {
-    const loginUrl = buildLoginUrl(request, `/${locale}/login`)
-    return NextResponse.redirect(loginUrl)
+    return redirectToLogin(`/${locale}/login`)
   }
 
   const payload = await verifyToken(token)
   if (!payload) {
-    const loginUrl = buildLoginUrl(request, `/${locale}/login`)
-    return NextResponse.redirect(loginUrl)
+    return redirectToLogin(`/${locale}/login`)
   }
 
   return response
