@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
 
 import { deleteOwnedUnusedInviteCode, deleteOwnedSchedule, deleteOwnedXiaomiAccount, isOwnedXiaomiAccount } from '../ownership'
+import { buildRedirectUrl } from '../redirect-url'
 import { isSafeBarkUrl } from '../safe-url'
 import { registerUserWithInvite } from '../registration'
 
@@ -122,4 +123,26 @@ test('isSafeBarkUrl rejects localhost and private literal IPs', () => {
   assert.equal(isSafeBarkUrl('http://169.254.169.254/latest/meta-data'), false)
   assert.equal(isSafeBarkUrl('ftp://example.com/push'), false)
   assert.equal(isSafeBarkUrl('not-a-url'), false)
+})
+
+test('buildRedirectUrl returns an absolute URL from the configured app origin', () => {
+  const requestUrl = new URL('http://0.0.0.0:3000/dashboard')
+
+  assert.equal(
+    buildRedirectUrl(requestUrl, '/zh/login', 'https://steps.example.com/base').href,
+    'https://steps.example.com/zh/login'
+  )
+})
+
+test('buildRedirectUrl falls back to the parsed request origin', () => {
+  const requestUrl = new URL('https://steps.example.com/dashboard')
+
+  assert.equal(
+    buildRedirectUrl(requestUrl, '/zh/login', 'not-a-url').href,
+    'https://steps.example.com/zh/login'
+  )
+  assert.equal(
+    buildRedirectUrl(requestUrl, '/en/login', 'javascript:alert(1)').href,
+    'https://steps.example.com/en/login'
+  )
 })

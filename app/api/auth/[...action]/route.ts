@@ -7,6 +7,7 @@ import { cookies } from 'next/headers'
 import { v4 as uuid } from 'uuid'
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 import { registerUserWithInvite } from '@/lib/registration'
+import { buildRedirectUrl } from '@/lib/redirect-url'
 
 export async function POST(
   request: NextRequest,
@@ -208,11 +209,10 @@ async function handleLogout(request: NextRequest) {
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value
   const locale = (localeCookie === 'en') ? 'en' : 'zh'
 
-  // A relative Location avoids trusting spoofable Host/X-Forwarded-Host values.
-  return new NextResponse(null, {
-    status: request.method === 'GET' ? 302 : 303,
-    headers: { Location: `/${locale}/login` },
-  })
+  return NextResponse.redirect(
+    buildRedirectUrl(request.nextUrl, `/${locale}/login`),
+    request.method === 'GET' ? 302 : 303
+  )
 }
 
 async function handleMe() {
