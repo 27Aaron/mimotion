@@ -1,6 +1,8 @@
-const path = require('path')
-const createNextIntlPlugin = require('next-intl/plugin')
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import createNextIntlPlugin from 'next-intl/plugin'
 
+const projectDir = path.dirname(fileURLToPath(import.meta.url))
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 
 const securityHeaders = [
@@ -15,10 +17,10 @@ const securityHeaders = [
 const nextConfig = {
   output: 'standalone',
   serverExternalPackages: ['better-sqlite3', 'bcryptjs'],
-  outputFileTracingRoot: path.join(__dirname),
+  outputFileTracingRoot: projectDir,
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
   },
 }
 
-module.exports = withNextIntl(nextConfig)
+export default withNextIntl(nextConfig)
