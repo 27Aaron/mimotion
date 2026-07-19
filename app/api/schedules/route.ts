@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, sqlite } from '@/lib/db'
-import { schedules, xiaomiAccounts, runLogs } from '@/lib/db/schema'
+import { schedules, xiaomiAccounts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
 import { deleteOwnedSchedule, isOwnedXiaomiAccount } from '@/lib/ownership'
+import { normalizeCronExpression } from '@/lib/validation'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -63,6 +64,9 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
 
   const { xiaomiAccountId, cronExpression, minStep, maxStep } = body
 
@@ -71,13 +75,9 @@ export async function POST(request: NextRequest) {
   }
 
   // 验证 cron 格式
-  const cronParts = String(cronExpression).trim().split(/\s+/)
-  if (cronParts.length !== 5) {
-    return NextResponse.json({ error: 'Cron 表达式格式错误，需 5 段（分 时 日 月 周）', code: 'CRON_INVALID_FORMAT' }, { status: 400 })
-  }
-  const cronFieldPattern = /^(\*|\*\/\d+|\d+|\d+-\d+|\d+(,\d+)+)$/
-  if (!cronParts.every(p => cronFieldPattern.test(p))) {
-    return NextResponse.json({ error: 'Cron 表达式包含无效字符', code: 'CRON_INVALID_CHARS' }, { status: 400 })
+  const normalizedCron = normalizeCronExpression(cronExpression)
+  if (!normalizedCron) {
+    return NextResponse.json({ error: 'Cron 表达式格式或取值无效', code: 'CRON_INVALID' }, { status: 400 })
   }
 
   // 验证步数
@@ -116,9 +116,9 @@ export async function POST(request: NextRequest) {
     id,
     userId: current.userId,
     xiaomiAccountId,
-    cronExpression,
-    minStep,
-    maxStep,
+    cronExpression: normalizedCron,
+    minStep: min,
+    maxStep: max,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -146,6 +146,9 @@ export async function PUT(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { cronExpression, minStep, maxStep, isActive, xiaomiAccountId } = body
 
   const updates: Record<string, unknown> = {
@@ -154,15 +157,11 @@ export async function PUT(request: NextRequest) {
 
   // 校验 cron 表达式
   if (cronExpression !== undefined) {
-    const cronParts = String(cronExpression).trim().split(/\s+/)
-    if (cronParts.length !== 5) {
-      return NextResponse.json({ error: 'Cron 表达式格式错误', code: 'CRON_INVALID_FORMAT_SHORT' }, { status: 400 })
+    const normalizedCron = normalizeCronExpression(cronExpression)
+    if (!normalizedCron) {
+      return NextResponse.json({ error: 'Cron 表达式格式或取值无效', code: 'CRON_INVALID' }, { status: 400 })
     }
-    const cronFieldPattern = /^(\*|\*\/\d+|\d+|\d+-\d+|\d+(,\d+)+)$/
-    if (!cronParts.every(p => cronFieldPattern.test(p))) {
-      return NextResponse.json({ error: 'Cron 表达式包含无效字符', code: 'CRON_INVALID_CHARS' }, { status: 400 })
-    }
-    updates.cronExpression = cronExpression
+    updates.cronExpression = normalizedCron
   }
 
   // 校验步数（必须同时提供 min 和 max）
@@ -196,7 +195,7 @@ export async function PUT(request: NextRequest) {
     updates.isActive = isActive
   }
   if (xiaomiAccountId !== undefined) {
-    if (!isOwnedXiaomiAccount(sqlite, current.userId, xiaomiAccountId)) {
+    if (typeof xiaomiAccountId !== 'string' || !UUID_RE.test(xiaomiAccountId) || !isOwnedXiaomiAccount(sqlite, current.userId, xiaomiAccountId)) {
       return NextResponse.json({ error: '小米账号不存在', code: 'ACCOUNT_NOT_FOUND' }, { status: 404 })
     }
     updates.xiaomiAccountId = xiaomiAccountId

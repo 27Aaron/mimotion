@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { users, inviteCodes } from '@/lib/db/schema'
+import { db, sqlite } from '@/lib/db'
+import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { hashPassword, verifyPassword, createToken, verifyToken } from '@/lib/auth'
+import { hashPassword, verifyPassword, createToken, getCurrentUser } from '@/lib/auth'
 import { cookies } from 'next/headers'
 import { v4 as uuid } from 'uuid'
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
+import { registerUserWithInvite } from '@/lib/registration'
 
 export async function POST(
   request: NextRequest,
@@ -111,6 +112,7 @@ async function handleLogin(request: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24,
+    path: '/',
   })
 
   return NextResponse.json({
@@ -152,6 +154,9 @@ async function handleRegister(request: NextRequest) {
   if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
     return NextResponse.json({ error: '密码需包含字母和数字', code: 'PASSWORD_COMPLEXITY' }, { status: 400 })
   }
+  if (typeof inviteCode !== 'string' || !/^[A-F0-9]{8}$/i.test(inviteCode)) {
+    return NextResponse.json({ error: '邀请码无效', code: 'INVALID_CODE' }, { status: 400 })
+  }
 
   // 事务防止邀请码竞态
   const userId = uuid()
@@ -159,41 +164,16 @@ async function handleRegister(request: NextRequest) {
   const now = new Date()
 
   try {
-    await db.transaction(async (tx) => {
-      // 校验邀请码
-      const codeResult = await tx
-        .select()
-        .from(inviteCodes)
-        .where(eq(inviteCodes.code, inviteCode))
-        .limit(1)
-
-      const code = codeResult[0]
-      if (!code) throw new Error('INVALID_CODE')
-      if (code.usedBy) throw new Error('CODE_USED')
-
-      // 校验用户名唯一
-      const existing = await tx
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1)
-
-      if (existing[0]) throw new Error('USERNAME_TAKEN')
-
-      await tx.insert(users).values({
-        id: userId,
-        username,
-        passwordHash,
-        isAdmin: false,
-        createdAt: now,
-        updatedAt: now,
-      })
-
-      await tx
-        .update(inviteCodes)
-        .set({ usedBy: userId })
-        .where(eq(inviteCodes.code, inviteCode))
+    const result = registerUserWithInvite(sqlite, {
+      userId,
+      username,
+      passwordHash,
+      inviteCode: inviteCode.toUpperCase(),
+      now,
     })
+    if (result === 'invalid_code') throw new Error('INVALID_CODE')
+    if (result === 'code_used') throw new Error('CODE_USED')
+    if (result === 'username_taken') throw new Error('USERNAME_TAKEN')
   } catch (err) {
     const msg = err instanceof Error ? err.message : '注册失败'
     if (msg === 'INVALID_CODE') return NextResponse.json({ error: '邀请码无效', code: 'INVALID_CODE' }, { status: 400 })
@@ -214,6 +194,7 @@ async function handleRegister(request: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24,
+    path: '/',
   })
 
   return NextResponse.json({ user: { id: userId, username, isAdmin: false } })
@@ -227,29 +208,18 @@ async function handleLogout(request: NextRequest) {
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value
   const locale = (localeCookie === 'en') ? 'en' : 'zh'
 
-  // Use X-Forwarded-Host to avoid redirecting to internal Docker hostname
-  const host =
-    request.headers.get('x-forwarded-host')?.split(',')[0].trim() ||
-    request.headers.get('host') ||
-    'localhost'
-  const protocol = request.headers.get('x-forwarded-proto') || 'http'
-  const url = new URL(`${protocol}://${host}/${locale}/login`)
-  return NextResponse.redirect(url)
+  // A relative Location avoids trusting spoofable Host/X-Forwarded-Host values.
+  return new NextResponse(null, {
+    status: request.method === 'GET' ? 302 : 303,
+    headers: { Location: `/${locale}/login` },
+  })
 }
 
 async function handleMe() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
-  }
-
-  const payload = await verifyToken(token)
-
-  if (!payload) {
+  const user = await getCurrentUser()
+  if (!user) {
     return NextResponse.json({ error: 'Token 无效', code: 'TOKEN_INVALID' }, { status: 401 })
   }
 
-  return NextResponse.json({ user: payload })
+  return NextResponse.json({ user })
 }

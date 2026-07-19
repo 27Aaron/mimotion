@@ -4,6 +4,8 @@ import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser, hashPassword, verifyPassword } from '@/lib/auth'
 import { cookies } from 'next/headers'
+import { isSafeBarkTarget } from '@/lib/safe-url'
+import { isNullableString } from '@/lib/validation'
 
 export async function GET() {
   const current = await getCurrentUser()
@@ -40,10 +42,19 @@ export async function PUT(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { username, password, barkUrl, telegramBotToken, telegramChatId, locale, currentPassword } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
+  }
+
+  if (username !== undefined) {
+    if (typeof username !== 'string' || username.length < 2 || username.length > 32) {
+      return NextResponse.json({ error: '用户名长度需在 2-32 之间', code: 'USERNAME_INVALID' }, { status: 400 })
+    }
   }
 
   if (username && username !== current.username) {
@@ -60,7 +71,7 @@ export async function PUT(request: NextRequest) {
   }
 
   if (password) {
-    if (!currentPassword) {
+    if (typeof password !== 'string' || typeof currentPassword !== 'string') {
       return NextResponse.json({ error: '需要当前密码', code: 'CURRENT_PASSWORD_REQUIRED' }, { status: 400 })
     }
 
@@ -83,14 +94,23 @@ export async function PUT(request: NextRequest) {
   }
 
   if (barkUrl !== undefined) {
+    if (!isNullableString(barkUrl, 2048) || (barkUrl && !(await isSafeBarkTarget(barkUrl)))) {
+      return NextResponse.json({ error: 'Bark URL 不安全或格式无效', code: 'BARK_URL_INVALID' }, { status: 400 })
+    }
     updates.barkUrl = barkUrl || null
   }
 
   if (telegramBotToken !== undefined) {
+    if (!isNullableString(telegramBotToken, 128)) {
+      return NextResponse.json({ error: 'Telegram Bot Token 格式无效', code: 'TELEGRAM_TOKEN_INVALID' }, { status: 400 })
+    }
     updates.telegramBotToken = telegramBotToken || null
   }
 
   if (telegramChatId !== undefined) {
+    if (!isNullableString(telegramChatId, 64)) {
+      return NextResponse.json({ error: 'Telegram Chat ID 格式无效', code: 'TELEGRAM_CHAT_ID_INVALID' }, { status: 400 })
+    }
     updates.telegramChatId = telegramChatId || null
   }
 

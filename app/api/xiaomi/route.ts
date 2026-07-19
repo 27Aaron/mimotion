@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { xiaomiAccounts, schedules, runLogs } from '@/lib/db/schema'
-import { eq, and, desc, sql, inArray } from 'drizzle-orm'
+import { db, sqlite } from '@/lib/db'
+import { xiaomiAccounts, schedules } from '@/lib/db/schema'
+import { eq, and, sql } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
 import { encrypt } from '@/lib/crypto'
 import { loginXiaomiAccount } from '@/lib/xiaomi/auth'
+import { deleteOwnedXiaomiAccount } from '@/lib/ownership'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -33,36 +34,25 @@ export async function GET() {
 
   const scheduleMap = new Map(scheduleStats.map(s => [s.xiaomiAccountId, s]))
 
-  const userSchedules = await db
-    .select({ id: schedules.id, xiaomiAccountId: schedules.xiaomiAccountId })
-    .from(schedules)
-    .where(eq(schedules.userId, current.userId))
-
-  const scheduleToAccount = new Map(userSchedules.map(s => [s.id, s.xiaomiAccountId]))
-  const scheduleIds = userSchedules.map(s => s.id)
-
-  // 查最近执行记录
-  const lastStepMap = new Map<string, number | null>()
-  if (scheduleIds.length > 0) {
-    const logs = await db
-      .select({
-        scheduleId: runLogs.scheduleId,
-        stepWritten: runLogs.stepWritten,
-        executedAt: runLogs.executedAt,
-      })
-      .from(runLogs)
-      .where(inArray(runLogs.scheduleId, scheduleIds))
-      .orderBy(desc(runLogs.executedAt))
-
-    const seen = new Set<string>()
-    for (const log of logs) {
-      const accId = scheduleToAccount.get(log.scheduleId)
-      if (accId && !seen.has(accId)) {
-        seen.add(accId)
-        lastStepMap.set(accId, log.stepWritten)
-      }
-    }
-  }
+  // Let SQLite select one latest row per account instead of loading all logs
+  // into application memory as the history grows.
+  const latestSteps = sqlite.prepare(`
+    SELECT xiaomi_account_id AS accountId, step_written AS stepWritten
+    FROM (
+      SELECT
+        s.xiaomi_account_id,
+        rl.step_written,
+        row_number() OVER (
+          PARTITION BY s.xiaomi_account_id
+          ORDER BY rl.executed_at DESC, rl.id DESC
+        ) AS row_number
+      FROM schedules s
+      JOIN run_logs rl ON rl.schedule_id = s.id
+      WHERE s.user_id = ?
+    )
+    WHERE row_number = 1
+  `).all(current.userId) as Array<{ accountId: string; stepWritten: number | null }>
+  const lastStepMap = new Map(latestSteps.map((row) => [row.accountId, row.stepWritten]))
 
   return NextResponse.json(
     accounts.map((a) => {
@@ -97,16 +87,26 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!postBody || typeof postBody !== 'object' || Array.isArray(postBody)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { account, password, nickname } = postBody
 
   if (!account || !password) {
     return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
   }
+  if (
+    typeof account !== 'string' || account.length > 128 ||
+    typeof password !== 'string' || password.length > 128 ||
+    (nickname !== undefined && (typeof nickname !== 'string' || nickname.length > 64))
+  ) {
+    return NextResponse.json({ error: '账号信息格式无效', code: 'INVALID_ACCOUNT_INPUT' }, { status: 400 })
+  }
 
   let loginResult
   try {
     loginResult = await loginXiaomiAccount(account, password)
-  } catch (err) {
+  } catch {
     console.error('[Xiaomi API] Login exception')
     return NextResponse.json(
       { error: '小米账号登录异常，请稍后再试', code: 'XIAOMI_LOGIN_EXCEPTION' },
@@ -173,17 +173,33 @@ export async function PUT(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { nickname, status, account, password } = body
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
   }
 
-  if (nickname !== undefined) updates.nickname = nickname
-  if (status !== undefined) updates.status = status
+  if (nickname !== undefined) {
+    if (typeof nickname !== 'string' || nickname.length > 64) {
+      return NextResponse.json({ error: '昵称格式无效', code: 'INVALID_NICKNAME' }, { status: 400 })
+    }
+    updates.nickname = nickname
+  }
+  if (status !== undefined) {
+    if (status !== 'active' && status !== 'error') {
+      return NextResponse.json({ error: '账号状态无效', code: 'INVALID_STATUS' }, { status: 400 })
+    }
+    updates.status = status
+  }
 
   // 重新登录刷新 token
   if (account && password) {
+    if (typeof account !== 'string' || account.length > 128 || typeof password !== 'string' || password.length > 128) {
+      return NextResponse.json({ error: '账号信息格式无效', code: 'INVALID_ACCOUNT_INPUT' }, { status: 400 })
+    }
     let loginResult
     try {
       loginResult = await loginXiaomiAccount(account, password)
@@ -242,20 +258,10 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少有效的 id', code: 'MISSING_ID' }, { status: 400 })
   }
 
-  // 级联删除
-  const accountSchedules = await db
-    .select({ id: schedules.id })
-    .from(schedules)
-    .where(and(eq(schedules.xiaomiAccountId, id), eq(schedules.userId, current.userId)))
-
-  for (const s of accountSchedules) {
-    await db.delete(runLogs).where(eq(runLogs.scheduleId, s.id))
+  const deleted = deleteOwnedXiaomiAccount(sqlite, id, current.userId)
+  if (!deleted) {
+    return NextResponse.json({ error: '小米账号不存在', code: 'ACCOUNT_NOT_FOUND' }, { status: 404 })
   }
-  await db.delete(schedules).where(and(eq(schedules.xiaomiAccountId, id), eq(schedules.userId, current.userId)))
-
-  await db
-    .delete(xiaomiAccounts)
-    .where(and(eq(xiaomiAccounts.id, id), eq(xiaomiAccounts.userId, current.userId)))
 
   return NextResponse.json({ success: true })
 }

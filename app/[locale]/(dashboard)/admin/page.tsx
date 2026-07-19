@@ -39,9 +39,8 @@ interface UserRow {
   id: string;
   username: string;
   isAdmin: boolean;
-  barkUrl: string | null;
-  telegramBotToken: string | null;
-  telegramChatId: string | null;
+  barkConfigured: boolean;
+  telegramConfigured: boolean;
   createdAt: string;
   updatedAt: string;
   accountCount: number;
@@ -226,19 +225,19 @@ export default function AdminPage() {
                   <TableCell className="text-center">
                     <div className="inline-flex items-center gap-2">
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded ${u.barkUrl ? "bg-emerald-500/10" : "bg-muted"}`}
-                        title={u.barkUrl ? t("barkConfigured") : t("barkNotConfigured")}
+                        className={`flex h-6 w-6 items-center justify-center rounded ${u.barkConfigured ? "bg-emerald-500/10" : "bg-muted"}`}
+                        title={u.barkConfigured ? t("barkConfigured") : t("barkNotConfigured")}
                       >
                         <Smartphone
-                          className={`h-3 w-3 ${u.barkUrl ? "text-emerald-500" : "text-muted-foreground/40"}`}
+                          className={`h-3 w-3 ${u.barkConfigured ? "text-emerald-500" : "text-muted-foreground/40"}`}
                         />
                       </span>
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded ${u.telegramBotToken ? "bg-blue-500/10" : "bg-muted"}`}
-                        title={u.telegramBotToken ? t("telegramConfigured") : t("telegramNotConfigured")}
+                        className={`flex h-6 w-6 items-center justify-center rounded ${u.telegramConfigured ? "bg-blue-500/10" : "bg-muted"}`}
+                        title={u.telegramConfigured ? t("telegramConfigured") : t("telegramNotConfigured")}
                       >
                         <Send
-                          className={`h-3 w-3 ${u.telegramBotToken ? "text-blue-500" : "text-muted-foreground/40"}`}
+                          className={`h-3 w-3 ${u.telegramConfigured ? "text-blue-500" : "text-muted-foreground/40"}`}
                         />
                       </span>
                     </div>

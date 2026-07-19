@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { users, xiaomiAccounts, schedules, runLogs, inviteCodes } from '@/lib/db/schema'
-import { eq, sql, isNull } from 'drizzle-orm'
-import { verifyToken, hashPassword } from '@/lib/auth'
-import { cookies } from 'next/headers'
+import { eq, sql, inArray } from 'drizzle-orm'
+import { getCurrentUser, hashPassword } from '@/lib/auth'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 async function requireAdmin() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-  if (!token) return null
-
-  const payload = await verifyToken(token)
-  if (!payload || !payload.isAdmin) return null
-
-  return payload
+  const current = await getCurrentUser()
+  return current?.isAdmin ? current : null
 }
 
 export async function GET() {
@@ -29,9 +22,8 @@ export async function GET() {
       id: users.id,
       username: users.username,
       isAdmin: users.isAdmin,
-      barkUrl: users.barkUrl,
-      telegramBotToken: users.telegramBotToken,
-      telegramChatId: users.telegramChatId,
+      barkConfigured: sql<boolean>`${users.barkUrl} is not null and ${users.barkUrl} <> ''`.mapWith(Boolean),
+      telegramConfigured: sql<boolean>`${users.telegramBotToken} is not null and ${users.telegramBotToken} <> '' and ${users.telegramChatId} is not null and ${users.telegramChatId} <> ''`.mapWith(Boolean),
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
     })
@@ -81,6 +73,9 @@ export async function PUT(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  }
   const { userId, newPassword } = body
 
   if (!userId || !newPassword) {
@@ -127,23 +122,24 @@ export async function DELETE(request: NextRequest) {
   }
 
   // 级联删除
-  await db.transaction(async (tx) => {
-    const userSchedules = await tx
+  db.transaction((tx) => {
+    const userSchedules = tx
       .select({ id: schedules.id })
       .from(schedules)
       .where(eq(schedules.userId, userId))
+      .all()
 
-    for (const s of userSchedules) {
-      await tx.delete(runLogs).where(eq(runLogs.scheduleId, s.id))
+    if (userSchedules.length > 0) {
+      tx.delete(runLogs).where(inArray(runLogs.scheduleId, userSchedules.map((s) => s.id))).run()
     }
-    await tx.delete(schedules).where(eq(schedules.userId, userId))
-    await tx.delete(xiaomiAccounts).where(eq(xiaomiAccounts.userId, userId))
+    tx.delete(schedules).where(eq(schedules.userId, userId)).run()
+    tx.delete(xiaomiAccounts).where(eq(xiaomiAccounts.userId, userId)).run()
 
     // 释放邀请码关联
-    await tx.update(inviteCodes).set({ usedBy: null }).where(eq(inviteCodes.usedBy, userId))
-    await tx.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId))
+    tx.update(inviteCodes).set({ usedBy: null }).where(eq(inviteCodes.usedBy, userId)).run()
+    tx.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId)).run()
 
-    await tx.delete(users).where(eq(users.id, userId))
+    tx.delete(users).where(eq(users.id, userId)).run()
   })
 
   return NextResponse.json({ success: true })

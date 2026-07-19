@@ -1,23 +1,18 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 
 function getKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY
   if (!key) throw new Error('ENCRYPTION_KEY is not set')
-  // 支持 hex 编码或原始字节密钥
-  if (key.length === 64) {
-    return Buffer.from(key, 'hex')
+  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+    throw new Error('ENCRYPTION_KEY must be exactly 64 hexadecimal characters')
   }
-  if (key.length === 32) {
-    return Buffer.from(key)
-  }
-  // 兼容：使用 scrypt 派生
-  return scryptSync(key, 'mimotion-salt', 32)
+  return Buffer.from(key, 'hex')
 }
 
 export function encrypt(plaintext: string): { encrypted: string; iv: string } {
-  const iv = randomBytes(16)
+  const iv = randomBytes(12)
   const key = getKey()
   const cipher = createCipheriv(ALGORITHM, key, iv)
   let encrypted = cipher.update(plaintext, 'utf8', 'hex')
