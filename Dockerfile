@@ -26,7 +26,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN groupadd --system --gid 1001 nodejs && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gosu && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 --gid nodejs appuser
 
 # Standalone output (contains server.js + all needed deps)
@@ -35,12 +38,12 @@ COPY --from=builder --chown=appuser:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=appuser:nodejs /app/.next/static ./.next/static
 # Init script for DB + admin user
 COPY --from=builder --chown=appuser:nodejs /app/scripts/init-db.mjs ./scripts/init-db.mjs
-
-USER appuser
+COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Create data dir, init DB, then start server
-CMD ["sh", "-c", "mkdir -p \"$(dirname \"${DATABASE_URL:-./data/mimotion.db}\")\" && node scripts/init-db.mjs && node server.js"]
+# Prepare the bind-mounted database directory as root, then drop privileges.
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["sh", "-c", "node scripts/init-db.mjs && exec node server.js"]
