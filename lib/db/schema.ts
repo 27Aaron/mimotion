@@ -70,4 +70,5 @@ export const runLogs = sqliteTable('run_logs', {
   errorMessage: text('error_message'),
 }, (table) => [
   index('run_logs_schedule_id_idx').on(table.scheduleId),
+  index('run_logs_schedule_executed_at_idx').on(table.scheduleId, table.executedAt),
 ])
