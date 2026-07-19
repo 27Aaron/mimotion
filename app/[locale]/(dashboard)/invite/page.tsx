@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { toast } from "sonner";
 import {
-  Plus,
   Trash2,
   Copy,
   Ticket,

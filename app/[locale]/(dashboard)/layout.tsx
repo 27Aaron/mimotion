@@ -1,6 +1,6 @@
 import { redirect } from "@/i18n/routing";
 import { getCurrentUser } from "@/lib/auth";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import {
   LogOut,
   CircleUser,
@@ -82,13 +82,14 @@ export default async function DashboardLayout({
                 {user?.isAdmin ? t("roleAdmin") : t("roleUser")}
               </p>
             </div>
-            <a
+            <Link
               href="/api/auth/logout"
+              prefetch={false}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/30 transition-all hover:bg-destructive/10 hover:text-destructive"
               title={t("logout")}
             >
               <LogOut className="h-3.5 w-3.5" />
-            </a>
+            </Link>
           </div>
         </div>
       </aside>

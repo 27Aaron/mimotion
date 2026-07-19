@@ -38,7 +38,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -174,7 +173,6 @@ export default function SchedulesPage() {
   const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     fetchSchedules();
@@ -182,13 +180,8 @@ export default function SchedulesPage() {
   }, []);
 
   async function fetchSchedules() {
-    setDataLoading(true);
-    try {
-      const res = await fetch("/api/schedules");
-      if (res.ok) setSchedules(await res.json());
-    } finally {
-      setDataLoading(false);
-    }
+    const res = await fetch("/api/schedules");
+    if (res.ok) setSchedules(await res.json());
   }
 
   async function fetchAccounts() {
