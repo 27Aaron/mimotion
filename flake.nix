@@ -28,7 +28,7 @@
 
           mimotion = pkgs.buildNpmPackage rec {
             pname = "mimotion";
-            version = "1.0.0";
+            version = "1.1.0";
 
             src = builtins.path {
               path = ./.;
@@ -52,12 +52,12 @@
                 );
             };
 
-            npmDepsHash = "sha256-nAgxWrW14CKWG6vuyUTf2aOPgDI2+iEiIzwpx4Ww6+w=";
+            npmDepsHash = "sha256-0X+PgvcxzK0rJpIcmLJ7kwvj0DUzCDZulkan1nvcZwM=";
 
             makeCacheWritable = true;
             npmFlags = [ "--legacy-peer-deps" ];
 
-            nodejs = pkgs.nodejs_22;
+            nodejs = pkgs.nodejs_24;
 
             nativeBuildInputs = with pkgs; [
               python3
@@ -103,7 +103,7 @@
               substituteInPlace $out/bin/mimotion --subst-var out
               chmod +x $out/bin/mimotion
 
-              wrapProgram $out/bin/mimotion --prefix PATH : ${pkgs.nodejs_22}/bin
+              wrapProgram $out/bin/mimotion --prefix PATH : ${pkgs.nodejs_24}/bin
 
               runHook postInstall
             '';
@@ -127,7 +127,7 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              nodejs_22
+              nodejs_24
               python3
               gcc
               gnumake
