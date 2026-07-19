@@ -3,6 +3,8 @@
 # --- Dependencies ---
 FROM node:22-slim AS deps
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --global npm@11.16.0 --no-audit --no-fund
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
