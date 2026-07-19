@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -22,9 +22,10 @@ export default function AuthPageWrapper() {
 function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("code") || "";
   const t = useTranslations("auth");
   const te = useTranslations("errors");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register">(inviteCode ? "register" : "login");
 
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -33,17 +34,9 @@ function AuthPage() {
 
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regInviteCode, setRegInviteCode] = useState("");
+  const [regInviteCode, setRegInviteCode] = useState(inviteCode);
   const [regError, setRegError] = useState("");
   const [regLoading, setRegLoading] = useState(false);
-
-  useEffect(() => {
-    const code = searchParams.get("code");
-    if (code) {
-      setRegInviteCode(code);
-      setMode("register");
-    }
-  }, [searchParams]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
