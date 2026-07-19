@@ -113,9 +113,10 @@ async function checkAndRunSchedules() {
 
     const [minute, hour, dom, month, dow] = cronParts
 
-    function matchesCronField(field: string, current: number): boolean {
+    function matchesCronField(field: string, current: number, aliases: number[] = []): boolean {
+      const candidates = [current, ...aliases]
       if (field === '*') return true
-      if (field === current.toString()) return true
+      if (candidates.some((candidate) => field === candidate.toString())) return true
       // 步长匹配（如 */5）
       if (field.startsWith('*/')) {
         const step = parseInt(field.slice(2))
@@ -124,11 +125,11 @@ async function checkAndRunSchedules() {
       // 范围匹配
       if (field.includes('-')) {
         const [start, end] = field.split('-').map(Number)
-        return current >= start && current <= end
+        return candidates.some((candidate) => candidate >= start && candidate <= end)
       }
       // 列表匹配
       if (field.includes(',')) {
-        return field.split(',').map(Number).includes(current)
+        return candidates.some((candidate) => field.split(',').map(Number).includes(candidate))
       }
       return false
     }
@@ -138,7 +139,7 @@ async function checkAndRunSchedules() {
       matchesCronField(hour, currentHour) &&
       matchesCronField(dom, currentDay) &&
       matchesCronField(month, currentMonth) &&
-      matchesCronField(dow, currentDow)
+      matchesCronField(dow, currentDow, currentDow === 0 ? [7] : [])
 
     if (!shouldRun) continue
 

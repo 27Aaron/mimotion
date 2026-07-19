@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { startScheduler } from '@/lib/scheduler'
 import { verifyToken } from '@/lib/auth'
 import { cookies } from 'next/headers'
 
 let schedulerStarted = false
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   // 验证管理员身份
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
