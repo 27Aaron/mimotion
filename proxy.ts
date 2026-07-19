@@ -1,15 +1,13 @@
 import createMiddleware from 'next-intl/middleware'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
+import { buildRedirectUrl } from '@/lib/redirect-url'
 import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 
-function redirectToLogin(pathname: string): NextResponse {
-  return new NextResponse(null, {
-    status: 307,
-    headers: { Location: pathname },
-  })
+function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
+  return NextResponse.redirect(buildRedirectUrl(request.nextUrl, pathname))
 }
 
 const publicPaths = ['/login', '/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/auth/me']
@@ -75,12 +73,12 @@ export async function proxy(request: NextRequest) {
   // Auth check for protected pages
   const token = request.cookies.get('auth_token')?.value
   if (!token) {
-    return redirectToLogin(`/${locale}/login`)
+    return redirectToLogin(request, `/${locale}/login`)
   }
 
   const payload = await verifyToken(token)
   if (!payload) {
-    return redirectToLogin(`/${locale}/login`)
+    return redirectToLogin(request, `/${locale}/login`)
   }
 
   return response
