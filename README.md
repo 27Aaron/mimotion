@@ -101,6 +101,7 @@ Visit `http://localhost:3000` and log in with the admin credentials from `.env`.
 ```bash
 npm run dev          # Development server
 npm run build        # Production build
+npm run check        # Lint, type-check, test, and production build
 npm run start        # Production server
 npm run db:studio    # Drizzle Studio visual database manager
 npm run db:push      # Sync schema to database
