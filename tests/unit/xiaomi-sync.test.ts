@@ -7,8 +7,8 @@ test('syncXiaomiAccount refreshes an expired app token and retries the same step
   const originalCurrent = process.env.ENCRYPTION_KEY
   try {
     process.env.ENCRYPTION_KEY = CURRENT_KEY
-    const { encrypt, decrypt } = await import('../crypto')
-    const { syncXiaomiAccount } = await import('../xiaomi/sync-account')
+    const { encrypt, decrypt } = await import('../../lib/security/encryption')
+    const { syncXiaomiAccount } = await import('../../lib/xiaomi/sync-account')
     const app = encrypt('old-app-token')
     const login = encrypt('login-token')
     const writtenSteps: number[] = []

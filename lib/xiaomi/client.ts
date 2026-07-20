@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { decrypt } from '../crypto'
+import { decrypt } from '../security/encryption'
 
 export type ZeppErrorCode =
   | 'TOKEN_EXPIRED'

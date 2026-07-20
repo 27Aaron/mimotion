@@ -1,10 +1,10 @@
 import crypto from 'node:crypto'
 import { eq } from 'drizzle-orm'
 
-import { sendBarkPush } from '../bark'
+import { sendBarkPush } from '../notifications/bark'
 import { db, sqlite } from '../db'
 import { schedules, users, xiaomiAccounts } from '../db/schema'
-import { sendTelegramPush } from '../telegram'
+import { sendTelegramPush } from '../notifications/telegram'
 import { generateRandomStep } from '../xiaomi/client'
 import { syncXiaomiAccount, type AccountSyncResult } from '../xiaomi/sync-account'
 import { getNextCronOccurrence } from './cron'

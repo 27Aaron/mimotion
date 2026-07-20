@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 
-import { sqlite } from './db'
+import { sqlite } from '../db'
 
 export interface RateLimitResult {
   allowed: boolean

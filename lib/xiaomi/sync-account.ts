@@ -1,4 +1,4 @@
-import { decrypt, encrypt } from '../crypto'
+import { decrypt, encrypt } from '../security/encryption'
 import { loginXiaomiAccount, refreshAppToken } from './auth'
 import { setSteps, type SetStepResult } from './client'
 

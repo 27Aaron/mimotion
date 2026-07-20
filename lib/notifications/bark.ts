@@ -1,6 +1,6 @@
-import { fetchWithTimeout } from './http'
-import { isSafeBarkTarget } from './safe-url'
-import { getUserNotificationSecrets } from './user-secrets'
+import { fetchWithTimeout } from '../http/fetch'
+import { isSafeBarkTarget } from '../security/safe-url'
+import { getUserNotificationSecrets } from './secrets'
 
 interface BarkPushOptions {
   userId: string

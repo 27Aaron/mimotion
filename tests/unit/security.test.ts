@@ -2,10 +2,10 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
 
-import { deleteOwnedUnusedInviteCode, deleteOwnedSchedule, deleteOwnedXiaomiAccount, isOwnedXiaomiAccount } from '../ownership'
-import { buildRedirectUrl } from '../redirect-url'
-import { isSafeBarkUrl } from '../safe-url'
-import { registerUserWithInvite } from '../registration'
+import { buildRedirectUrl } from '../../lib/auth/redirect-url'
+import { registerUserWithInvite } from '../../lib/auth/registration'
+import { deleteOwnedUnusedInviteCode, deleteOwnedSchedule, deleteOwnedXiaomiAccount, isOwnedXiaomiAccount } from '../../lib/db/ownership'
+import { isSafeBarkUrl } from '../../lib/security/safe-url'
 
 function getCount(sqlite: Database.Database, query: string, ...params: unknown[]): number {
   const row = sqlite.prepare(query).get(...params) as { count: number }

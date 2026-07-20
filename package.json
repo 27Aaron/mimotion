@@ -16,11 +16,10 @@
     "start:worker": "node .worker/worker.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/__tests__/*.test.ts",
+    "test": "tsx --test tests/unit/*.test.ts",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/init-db.mjs",
-    "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:init-admin": "npx tsx scripts/init-admin.ts"
   },

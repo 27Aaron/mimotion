@@ -1,5 +1,5 @@
-import { fetchWithTimeout } from './http'
-import { getUserNotificationSecrets } from './user-secrets'
+import { fetchWithTimeout } from '../http/fetch'
+import { getUserNotificationSecrets } from './secrets'
 
 interface TelegramPushOptions {
   userId: string
