@@ -6,7 +6,7 @@ import { hashPassword, verifyPassword, createToken, getCurrentUser } from '@/lib
 import { cookies } from 'next/headers'
 import { v4 as uuid } from 'uuid'
 import { registerUserWithInvite } from '@/lib/auth/registration'
-import { buildRedirectUrl } from '@/lib/auth/redirect-url'
+import { buildSameOriginRedirectLocation } from '@/lib/auth/redirect-url'
 import { shouldUseSecureAuthCookie } from '@/lib/auth/auth-cookie'
 import { rateLimit, getRateLimitHeaders } from '@/lib/security/rate-limit'
 
@@ -210,10 +210,12 @@ async function handleLogout(request: NextRequest) {
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value
   const locale = (localeCookie === 'en') ? 'en' : 'zh'
 
-  return NextResponse.redirect(
-    buildRedirectUrl(request.nextUrl, `/${locale}/login`),
-    request.method === 'GET' ? 302 : 303
-  )
+  return new NextResponse(null, {
+    status: request.method === 'GET' ? 302 : 303,
+    headers: {
+      Location: buildSameOriginRedirectLocation(`/${locale}/login`),
+    },
+  })
 }
 
 async function handleMe() {
