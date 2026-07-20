@@ -1,7 +1,5 @@
-import { db } from './db'
-import { users } from './db/schema'
-import { eq } from 'drizzle-orm'
 import { fetchWithTimeout } from './http'
+import { getUserNotificationSecrets } from './user-secrets'
 
 interface TelegramPushOptions {
   userId: string
@@ -11,16 +9,7 @@ interface TelegramPushOptions {
 }
 
 async function getTelegramConfig(userId: string): Promise<{ botToken: string; chatId: string } | null> {
-  const result = await db
-    .select({
-      botToken: users.telegramBotToken,
-      chatId: users.telegramChatId,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-
-  const { botToken, chatId } = result[0] || {}
+  const { telegramBotToken: botToken, telegramChatId: chatId } = await getUserNotificationSecrets(userId)
   if (!botToken || !chatId) return null
 
   return { botToken, chatId }

@@ -1,8 +1,6 @@
-import { db } from './db'
-import { users } from './db/schema'
-import { eq } from 'drizzle-orm'
 import { fetchWithTimeout } from './http'
 import { isSafeBarkTarget } from './safe-url'
+import { getUserNotificationSecrets } from './user-secrets'
 
 interface BarkPushOptions {
   userId: string
@@ -12,13 +10,7 @@ interface BarkPushOptions {
 }
 
 async function getBarkUrl(userId: string): Promise<string | null> {
-  const result = await db
-    .select({ barkUrl: users.barkUrl })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-
-  return result[0]?.barkUrl || null
+  return (await getUserNotificationSecrets(userId)).barkUrl
 }
 
 export async function sendBarkPush(options: BarkPushOptions): Promise<boolean> {

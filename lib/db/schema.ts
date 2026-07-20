@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -6,8 +6,14 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   isAdmin: integer('is_admin', { mode: 'boolean' }).default(false),
   locale: text('locale').default('zh'),
+  // Legacy plaintext columns are retained for a backwards-compatible one-way
+  // migration. New writes use the encrypted data/iv pairs below.
   barkUrl: text('bark_url'),
+  barkUrlData: text('bark_url_data'),
+  barkUrlIv: text('bark_url_iv'),
   telegramBotToken: text('telegram_bot_token'),
+  telegramBotTokenData: text('telegram_bot_token_data'),
+  telegramBotTokenIv: text('telegram_bot_token_iv'),
   telegramChatId: text('telegram_chat_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
@@ -71,4 +77,41 @@ export const runLogs = sqliteTable('run_logs', {
 }, (table) => [
   index('run_logs_schedule_id_idx').on(table.scheduleId),
   index('run_logs_schedule_executed_at_idx').on(table.scheduleId, table.executedAt),
+])
+
+/**
+ * Durable execution state used by the scheduler worker.
+ *
+ * run_logs remains the user-facing immutable history. This table is the
+ * scheduler's coordination primitive: it makes a scheduled minute idempotent,
+ * prevents two schedules for the same Xiaomi account from running in parallel,
+ * and allows a crashed worker to resume an unfinished execution.
+ */
+export const runExecutions = sqliteTable('run_executions', {
+  id: text('id').primaryKey(),
+  scheduleId: text('schedule_id').notNull().references(() => schedules.id, { onDelete: 'cascade' }),
+  xiaomiAccountId: text('xiaomi_account_id').notNull().references(() => xiaomiAccounts.id, { onDelete: 'cascade' }),
+  scheduledFor: integer('scheduled_for', { mode: 'timestamp' }).notNull(),
+  status: text('status', { enum: ['pending', 'running', 'succeeded', 'failed'] }).notNull().default('pending'),
+  attempt: integer('attempt').notNull().default(0),
+  targetStep: integer('target_step'),
+  claimedAt: integer('claimed_at', { mode: 'timestamp' }).notNull(),
+  startedAt: integer('started_at', { mode: 'timestamp' }),
+  finishedAt: integer('finished_at', { mode: 'timestamp' }),
+  errorCode: text('error_code'),
+  errorMessage: text('error_message'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  uniqueIndex('run_executions_schedule_slot_uidx').on(table.scheduleId, table.scheduledFor),
+  uniqueIndex('run_executions_account_slot_uidx').on(table.xiaomiAccountId, table.scheduledFor),
+  index('run_executions_status_updated_idx').on(table.status, table.updatedAt),
+])
+
+export const rateLimits = sqliteTable('rate_limits', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull(),
+  resetAt: integer('reset_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('rate_limits_reset_at_idx').on(table.resetAt),
 ])
