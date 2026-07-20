@@ -3,10 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     tags:
-      - "*"
-  release:
-    types:
-      - published
+      - "v*"
   workflow_dispatch:
     inputs:
       image_tag:
@@ -35,8 +32,8 @@ jobs:
       set-meta-labels: true
       meta-images: ghcr.io/${{ github.repository }}
       meta-tags: |
-        type=raw,value=${{ github.event.release.tag_name || inputs.image_tag || github.ref_name }}
-        type=raw,value=latest,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+        type=raw,value=${{ inputs.image_tag || github.ref_name }}
+        type=raw,value=latest,enable=${{ github.event_name == 'push' }}
     secrets:
       registry-auths: |
         - registry: ghcr.io
