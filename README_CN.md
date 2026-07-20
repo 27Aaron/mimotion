@@ -80,11 +80,9 @@ JWT_SECRET=your-64-char-hex-secret
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=请设置强密码
 
-# 可选：轮换 ENCRYPTION_KEY 时保留旧密钥，多个用逗号分隔
-# ENCRYPTION_KEY_PREVIOUS=旧的64位hex密钥
 ```
 
-> **重要**: `ENCRYPTION_KEY` 和 `JWT_SECRET` 必须是 64 字符的十六进制字符串。轮换加密密钥时先将旧密钥放入 `ENCRYPTION_KEY_PREVIOUS`，应用会兼容读取旧密文，新写入使用当前密钥。
+> **重要**: `ENCRYPTION_KEY` 和 `JWT_SECRET` 必须是 64 字符的十六进制字符串。请持久保存 `ENCRYPTION_KEY` 且不要随意更换，否则已有加密凭据将无法读取。
 
 ### 启动
 

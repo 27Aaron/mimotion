@@ -80,11 +80,9 @@ JWT_SECRET=your-64-char-hex-secret
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=replace-with-a-strong-password
 
-# Optional: previous keys used during ENCRYPTION_KEY rotation (comma-separated)
-# ENCRYPTION_KEY_PREVIOUS=previous-64-char-hex-key
 ```
 
-> **Important**: `ENCRYPTION_KEY` and `JWT_SECRET` must be 64-character hex strings. During key rotation, put the old key in `ENCRYPTION_KEY_PREVIOUS`; new ciphertext uses the current key while old ciphertext remains readable.
+> **Important**: `ENCRYPTION_KEY` and `JWT_SECRET` must be 64-character hex strings. Persist `ENCRYPTION_KEY` and do not change it casually, or existing encrypted credentials will become unreadable.
 
 ### Start
 
