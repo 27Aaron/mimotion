@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { xiaomiAccounts, schedules, runLogs } from "@/lib/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import {
   Smartphone,
   ClockCheck,
@@ -38,13 +38,24 @@ export default async function DashboardPage() {
         .limit(20)
     : [];
 
-  const todayLogs = recentLogs.filter(
-    (l) =>
-      l.executedAt &&
-      new Date(l.executedAt).toDateString() === new Date().toDateString(),
+  const now = new Date();
+  const shanghaiNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const todayStart = new Date(
+    Date.UTC(shanghaiNow.getUTCFullYear(), shanghaiNow.getUTCMonth(), shanghaiNow.getUTCDate())
+      - 8 * 60 * 60 * 1000,
   );
-  const todaySuccess = todayLogs.filter((l) => l.status === "success").length;
-  const todayFailed = todayLogs.length - todaySuccess;
+  const todayStats = scheduleIds.length > 0
+    ? await db.select({
+        total: count(),
+        success: sql<number>`sum(case when ${runLogs.status} = 'success' then 1 else 0 end)`,
+      }).from(runLogs).where(and(
+        inArray(runLogs.scheduleId, scheduleIds),
+        gte(runLogs.executedAt, todayStart),
+      ))
+    : [{ total: 0, success: 0 }];
+  const todayTotal = todayStats[0]?.total || 0;
+  const todaySuccess = Number(todayStats[0]?.success || 0);
+  const todayFailed = todayTotal - todaySuccess;
   const activeCount = allSchedules.filter((s) => s.isActive).length;
 
   const hour = new Date().getHours();
@@ -76,7 +87,7 @@ export default async function DashboardPage() {
     },
     {
       title: t("statTodayExec"),
-      value: todayLogs.length,
+      value: todayTotal,
       icon: Footprints,
       detail: t("statTodayExecDetail", { success: todaySuccess, failed: todayFailed }),
       color: "text-emerald-500",
@@ -102,8 +113,8 @@ export default async function DashboardPage() {
           <div>
             <p className="text-xs text-muted-foreground">{t("todaySuccessRate")}</p>
             <p className="text-sm font-semibold">
-              {todayLogs.length > 0
-                ? Math.round((todaySuccess / todayLogs.length) * 100)
+              {todayTotal > 0
+                ? Math.round((todaySuccess / todayTotal) * 100)
                 : 0}
               %
             </p>
