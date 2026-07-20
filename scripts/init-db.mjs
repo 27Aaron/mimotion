@@ -1,15 +1,16 @@
 import Database from 'better-sqlite3'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
-import path from 'path'
-import fs from 'fs'
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
+const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const projectDir = path.resolve(scriptDir, '..')
 const dbPath = process.env.DATABASE_URL || './data/mimotion.db'
+const migrationsDir = process.env.MIGRATIONS_DIR || path.join(projectDir, 'drizzle', 'migrations')
 
-const dir = path.dirname(dbPath)
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true })
-}
+fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 
 const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
@@ -17,91 +18,78 @@ db.pragma('busy_timeout = 5000')
 db.pragma('journal_mode = WAL')
 db.pragma('synchronous = NORMAL')
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id text PRIMARY KEY,
-    username text NOT NULL UNIQUE,
-    password_hash text NOT NULL,
-    is_admin integer DEFAULT 0,
-    locale text DEFAULT 'zh',
-    bark_url text,
-    telegram_bot_token text,
-    telegram_chat_id text,
-    created_at integer NOT NULL,
-    updated_at integer NOT NULL
-  );
+function applyMigrations() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS _mimotion_migrations (
+      name TEXT PRIMARY KEY,
+      hash TEXT NOT NULL,
+      applied_at INTEGER NOT NULL
+    )
+  `)
 
-  CREATE TABLE IF NOT EXISTS invite_codes (
-    code text PRIMARY KEY,
-    created_by text NOT NULL REFERENCES users(id),
-    used_by text REFERENCES users(id),
-    created_at integer NOT NULL
-  );
-  CREATE INDEX IF NOT EXISTS invite_codes_used_by_idx ON invite_codes(used_by);
+  const migrationFiles = fs
+    .readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.sql'))
+    .map((entry) => entry.name)
+    .sort()
 
-  CREATE TABLE IF NOT EXISTS xiaomi_accounts (
-    id text PRIMARY KEY,
-    user_id text NOT NULL REFERENCES users(id),
-    xiaomi_user_id text,
-    account text,
-    token_data text NOT NULL,
-    token_iv text,
-    login_token_data text,
-    login_token_iv text,
-    password_data text,
-    password_iv text,
-    device_id text,
-    nickname text,
-    status text DEFAULT 'active',
-    last_sync_at integer,
-    last_error text,
-    created_at integer NOT NULL,
-    updated_at integer NOT NULL
-  );
-  CREATE INDEX IF NOT EXISTS xiaomi_accounts_user_id_idx ON xiaomi_accounts(user_id);
+  const getApplied = db.prepare('SELECT hash FROM _mimotion_migrations WHERE name = ?')
+  const recordApplied = db.prepare(
+    'INSERT INTO _mimotion_migrations (name, hash, applied_at) VALUES (?, ?, ?)',
+  )
 
-  CREATE TABLE IF NOT EXISTS schedules (
-    id text PRIMARY KEY,
-    user_id text NOT NULL REFERENCES users(id),
-    xiaomi_account_id text NOT NULL REFERENCES xiaomi_accounts(id),
-    cron_expression text NOT NULL,
-    min_step integer NOT NULL,
-    max_step integer NOT NULL,
-    is_active integer DEFAULT 1,
-    last_run_at integer,
-    next_run_at integer,
-    created_at integer NOT NULL,
-    updated_at integer NOT NULL
-  );
-  CREATE INDEX IF NOT EXISTS schedules_user_id_idx ON schedules(user_id);
-  CREATE INDEX IF NOT EXISTS schedules_is_active_idx ON schedules(is_active);
+  for (const name of migrationFiles) {
+    const sql = fs.readFileSync(path.join(migrationsDir, name), 'utf8')
+    const hash = crypto.createHash('sha256').update(sql).digest('hex')
+    const applied = getApplied.get(name)
 
-  CREATE TABLE IF NOT EXISTS run_logs (
-    id text PRIMARY KEY,
-    schedule_id text NOT NULL REFERENCES schedules(id),
-    executed_at integer NOT NULL,
-    step_written integer,
-    status text,
-    error_message text
-  );
-  CREATE INDEX IF NOT EXISTS run_logs_schedule_id_idx ON run_logs(schedule_id);
-  CREATE INDEX IF NOT EXISTS run_logs_schedule_executed_at_idx ON run_logs(schedule_id, executed_at);
-`)
+    if (applied) {
+      if (applied.hash !== hash) {
+        throw new Error(`Migration ${name} changed after it was applied`)
+      }
+      continue
+    }
 
-const adminUsername = process.env.ADMIN_USERNAME || 'admin'
-const adminPassword = process.env.ADMIN_PASSWORD || 'password'
+    const statements = sql
+      .split('--> statement-breakpoint')
+      .map((statement) => statement.trim())
+      .filter(Boolean)
 
-const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername)
-if (!existing) {
+    db.transaction(() => {
+      for (const statement of statements) db.exec(statement)
+      recordApplied.run(name, hash, Date.now())
+    }).immediate()
+
+    console.log(`[Database] Applied migration ${name}`)
+  }
+}
+
+function initializeAdmin() {
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin'
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password'
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername)
+
+  if (existing) {
+    console.log('[Database] Admin user already exists')
+    return
+  }
+
+  if (process.env.NODE_ENV === 'production' && adminPassword === 'password') {
+    throw new Error('ADMIN_PASSWORD must be changed from the default before first production start')
+  }
+
   const passwordHash = bcrypt.hashSync(adminPassword, 12)
   const id = crypto.randomUUID()
   const now = Date.now()
   db.prepare(
-    'INSERT INTO users (id, username, password_hash, is_admin, locale, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)'
+    'INSERT INTO users (id, username, password_hash, is_admin, locale, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)',
   ).run(id, adminUsername, passwordHash, 'zh', now, now)
-  console.log(`Admin user created: ${adminUsername}`)
-} else {
-  console.log('Admin user already exists')
+  console.log(`[Database] Admin user created: ${adminUsername}`)
 }
 
-db.close()
+try {
+  applyMigrations()
+  initializeAdmin()
+} finally {
+  db.close()
+}

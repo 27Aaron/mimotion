@@ -1,41 +1,60 @@
-type RateLimitEntry = { count: number; resetAt: number }
+import Database from 'better-sqlite3'
 
-const store = new Map<string, RateLimitEntry>()
+import { sqlite } from './db'
 
-// 每 10 分钟清理过期条目
-let lastCleanup = Date.now()
-const CLEANUP_INTERVAL = 10 * 60 * 1000
-
-function cleanup() {
-  const now = Date.now()
-  if (now - lastCleanup < CLEANUP_INTERVAL) return
-  lastCleanup = now
-  for (const [key, entry] of store) {
-    if (entry.resetAt <= now) store.delete(key)
-  }
+export interface RateLimitResult {
+  allowed: boolean
+  remaining: number
+  resetAt: number
 }
 
-export function rateLimit(
+let lastCleanup = 0
+const CLEANUP_INTERVAL = 10 * 60 * 1000
+
+export function rateLimitWithDatabase(
+  database: Database.Database,
   key: string,
   maxRequests: number,
   windowMs: number,
-): { allowed: boolean; remaining: number; resetAt: number } {
-  cleanup()
-  const now = Date.now()
-  const entry = store.get(key)
+  now = Date.now(),
+): RateLimitResult {
+  const transaction = database.transaction(() => {
+    if (now - lastCleanup >= CLEANUP_INTERVAL) {
+      database.prepare('DELETE FROM rate_limits WHERE reset_at <= ?').run(now)
+      lastCleanup = now
+    }
 
-  if (!entry || entry.resetAt <= now) {
-    const resetAt = now + windowMs
-    store.set(key, { count: 1, resetAt })
-    return { allowed: true, remaining: maxRequests - 1, resetAt }
-  }
+    const entry = database.prepare(
+      'SELECT count, reset_at AS resetAt FROM rate_limits WHERE key = ?',
+    ).get(key) as { count: number; resetAt: number } | undefined
 
-  if (entry.count >= maxRequests) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt }
-  }
+    if (!entry || entry.resetAt <= now) {
+      const resetAt = now + windowMs
+      database.prepare(`
+        INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)
+        ON CONFLICT(key) DO UPDATE SET count = 1, reset_at = excluded.reset_at
+      `).run(key, resetAt)
+      return { allowed: true, remaining: Math.max(0, maxRequests - 1), resetAt }
+    }
 
-  entry.count++
-  return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt }
+    if (entry.count >= maxRequests) {
+      return { allowed: false, remaining: 0, resetAt: entry.resetAt }
+    }
+
+    const nextCount = entry.count + 1
+    database.prepare('UPDATE rate_limits SET count = ? WHERE key = ?').run(nextCount, key)
+    return {
+      allowed: true,
+      remaining: Math.max(0, maxRequests - nextCount),
+      resetAt: entry.resetAt,
+    }
+  })
+
+  return transaction.immediate()
+}
+
+export function rateLimit(key: string, maxRequests: number, windowMs: number): RateLimitResult {
+  return rateLimitWithDatabase(sqlite, key, maxRequests, windowMs)
 }
 
 export function getRateLimitHeaders(remaining: number, resetAt: number) {

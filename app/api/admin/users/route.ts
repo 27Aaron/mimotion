@@ -22,8 +22,16 @@ export async function GET() {
       id: users.id,
       username: users.username,
       isAdmin: users.isAdmin,
-      barkConfigured: sql<boolean>`${users.barkUrl} is not null and ${users.barkUrl} <> ''`.mapWith(Boolean),
-      telegramConfigured: sql<boolean>`${users.telegramBotToken} is not null and ${users.telegramBotToken} <> '' and ${users.telegramChatId} is not null and ${users.telegramChatId} <> ''`.mapWith(Boolean),
+      barkConfigured: sql<boolean>`(
+        (${users.barkUrlData} is not null and ${users.barkUrlData} <> '') or
+        (${users.barkUrl} is not null and ${users.barkUrl} <> '')
+      )`.mapWith(Boolean),
+      telegramConfigured: sql<boolean>`(
+        (
+          (${users.telegramBotTokenData} is not null and ${users.telegramBotTokenData} <> '') or
+          (${users.telegramBotToken} is not null and ${users.telegramBotToken} <> '')
+        ) and ${users.telegramChatId} is not null and ${users.telegramChatId} <> ''
+      )`.mapWith(Boolean),
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
     })

@@ -6,6 +6,7 @@ import { getCurrentUser, hashPassword, verifyPassword } from '@/lib/auth'
 import { cookies } from 'next/headers'
 import { isSafeBarkTarget } from '@/lib/safe-url'
 import { isNullableString } from '@/lib/validation'
+import { buildNotificationSecretUpdate, getUserNotificationSecrets } from '@/lib/user-secrets'
 
 export async function GET() {
   const current = await getCurrentUser()
@@ -13,21 +14,17 @@ export async function GET() {
     return NextResponse.json({ error: '未登录', code: 'AUTH_REQUIRED' }, { status: 401 })
   }
 
-  const result = await db
-    .select({
+  const [result, notificationSecrets] = await Promise.all([
+    db.select({
       id: users.id,
       username: users.username,
       isAdmin: users.isAdmin,
       locale: users.locale,
-      barkUrl: users.barkUrl,
-      telegramBotToken: users.telegramBotToken,
-      telegramChatId: users.telegramChatId,
-    })
-    .from(users)
-    .where(eq(users.id, current.userId))
-    .limit(1)
+    }).from(users).where(eq(users.id, current.userId)).limit(1),
+    getUserNotificationSecrets(current.userId),
+  ])
 
-  return NextResponse.json(result[0])
+  return NextResponse.json({ ...result[0], ...notificationSecrets })
 }
 
 export async function PUT(request: NextRequest) {
@@ -97,14 +94,14 @@ export async function PUT(request: NextRequest) {
     if (!isNullableString(barkUrl, 2048) || (barkUrl && !(await isSafeBarkTarget(barkUrl)))) {
       return NextResponse.json({ error: 'Bark URL 不安全或格式无效', code: 'BARK_URL_INVALID' }, { status: 400 })
     }
-    updates.barkUrl = barkUrl || null
+    Object.assign(updates, buildNotificationSecretUpdate({ barkUrl: barkUrl || null }))
   }
 
   if (telegramBotToken !== undefined) {
     if (!isNullableString(telegramBotToken, 128)) {
       return NextResponse.json({ error: 'Telegram Bot Token 格式无效', code: 'TELEGRAM_TOKEN_INVALID' }, { status: 400 })
     }
-    updates.telegramBotToken = telegramBotToken || null
+    Object.assign(updates, buildNotificationSecretUpdate({ telegramBotToken: telegramBotToken || null }))
   }
 
   if (telegramChatId !== undefined) {
