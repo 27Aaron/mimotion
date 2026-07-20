@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import { startScheduler } from '@/lib/scheduler'
 import { verifyToken } from '@/lib/auth'
 import { cookies } from 'next/headers'
-
-let schedulerStarted = false
 
 export async function POST() {
   // 验证管理员身份
@@ -17,10 +14,11 @@ export async function POST() {
     return NextResponse.json({ error: '无权限', code: 'FORBIDDEN' }, { status: 403 })
   }
 
-  if (!schedulerStarted) {
-    startScheduler()
-    schedulerStarted = true
-  }
-
-  return NextResponse.json({ success: true })
+  return NextResponse.json(
+    {
+      error: '调度器已由独立 Worker 管理，不能通过 Web API 启动',
+      code: 'SCHEDULER_MANAGED_BY_WORKER',
+    },
+    { status: 409 },
+  )
 }

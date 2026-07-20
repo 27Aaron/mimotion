@@ -9,6 +9,7 @@ export default defineConfig([
     '.next/**',
     'out/**',
     'build/**',
+    '.worker/**',
     'next-env.d.ts',
   ]),
 ])
