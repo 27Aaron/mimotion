@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
 
-import { buildRedirectUrl } from '../../lib/auth/redirect-url'
+import { buildSameOriginRedirectLocation } from '../../lib/auth/redirect-url'
 import { registerUserWithInvite } from '../../lib/auth/registration'
 import { deleteOwnedUnusedInviteCode, deleteOwnedSchedule, deleteOwnedXiaomiAccount, isOwnedXiaomiAccount } from '../../lib/db/ownership'
 import { isSafeBarkUrl } from '../../lib/security/safe-url'
@@ -125,11 +125,10 @@ test('isSafeBarkUrl rejects localhost and private literal IPs', () => {
   assert.equal(isSafeBarkUrl('not-a-url'), false)
 })
 
-test('buildRedirectUrl uses the parsed request origin', () => {
-  const requestUrl = new URL('https://steps.example.com/dashboard')
-
-  assert.equal(
-    buildRedirectUrl(requestUrl, '/zh/login').href,
-    'https://steps.example.com/zh/login'
-  )
+test('redirect locations stay on the browser current origin', () => {
+  assert.equal(buildSameOriginRedirectLocation('/zh/login'), '/zh/login')
+  assert.throws(() => buildSameOriginRedirectLocation('https://evil.example/login'))
+  assert.throws(() => buildSameOriginRedirectLocation('//evil.example/login'))
+  assert.throws(() => buildSameOriginRedirectLocation('/\\evil.example/login'))
+  assert.throws(() => buildSameOriginRedirectLocation('/zh/login\r\nX-Test: injected'))
 })
