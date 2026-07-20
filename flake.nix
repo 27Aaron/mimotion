@@ -52,7 +52,8 @@
                 );
             };
 
-            npmDepsHash = "sha256-0X+PgvcxzK0rJpIcmLJ7kwvj0DUzCDZulkan1nvcZwM=";
+            npmDepsFetcherVersion = 2;
+            npmDepsHash = "sha256-imLhbOnqh/r+KL5WYCqBezKTMbKtMyMtS1FozyyGnkQ=";
 
             makeCacheWritable = true;
             npmFlags = [ "--legacy-peer-deps" ];
@@ -85,6 +86,11 @@
               # Database init script
               mkdir -p $out/share/mimotion/scripts
               cp scripts/init-db.mjs $out/share/mimotion/scripts/
+              cp scripts/start.mjs $out/share/mimotion/scripts/
+
+              # Versioned database migrations and scheduler worker
+              cp -r drizzle $out/share/mimotion/
+              cp -r .worker $out/share/mimotion/
 
               # Wrapper
               mkdir -p $out/bin
@@ -96,8 +102,7 @@
               export HOSTNAME=''${HOSTNAME:-0.0.0.0}
               cd @out@/share/mimotion
               mkdir -p "$(dirname "''${DATABASE_URL:-./data/mimotion.db}")"
-              node scripts/init-db.mjs
-              exec node server.js
+              exec node scripts/start.mjs
               WRAPPER
 
               substituteInPlace $out/bin/mimotion --subst-var out
