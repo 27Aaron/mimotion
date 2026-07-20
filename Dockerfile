@@ -38,6 +38,9 @@ COPY --from=builder --chown=appuser:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=appuser:nodejs /app/.next/static ./.next/static
 # Init script for DB + admin user
 COPY --from=builder --chown=appuser:nodejs /app/scripts/init-db.mjs ./scripts/init-db.mjs
+COPY --from=builder --chown=appuser:nodejs /app/scripts/start.mjs ./scripts/start.mjs
+COPY --from=builder --chown=appuser:nodejs /app/drizzle/migrations ./drizzle/migrations
+COPY --from=builder --chown=appuser:nodejs /app/.worker ./.worker
 COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
@@ -46,4 +49,4 @@ ENV HOSTNAME="0.0.0.0"
 
 # Prepare the bind-mounted database directory as root, then drop privileges.
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["sh", "-c", "node scripts/init-db.mjs && exec node server.js"]
+CMD ["node", "scripts/start.mjs"]
