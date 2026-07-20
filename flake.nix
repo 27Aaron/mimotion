@@ -99,7 +99,7 @@
               set -e
               export NODE_ENV=''${NODE_ENV:-production}
               export PORT=''${PORT:-3000}
-              export HOSTNAME=''${HOSTNAME:-0.0.0.0}
+              export MIMOTION_HOST=''${MIMOTION_HOST:-0.0.0.0}
               cd @out@/share/mimotion
               mkdir -p "$(dirname "''${DATABASE_URL:-./data/mimotion.db}")"
               exec node scripts/start.mjs

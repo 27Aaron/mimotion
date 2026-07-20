@@ -45,7 +45,7 @@ COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.s
 
 EXPOSE 3000
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV MIMOTION_HOST="0.0.0.0"
 
 # Prepare the bind-mounted database directory as root, then drop privileges.
 ENTRYPOINT ["docker-entrypoint.sh"]
