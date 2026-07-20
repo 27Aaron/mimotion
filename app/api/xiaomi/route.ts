@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { encrypt } from '@/lib/crypto'
 import { loginXiaomiAccount } from '@/lib/xiaomi/auth'
 import { deleteOwnedXiaomiAccount } from '@/lib/ownership'
+import { createXiaomiAccountSchema, updateXiaomiAccountSchema, validationMessage } from '@/lib/api/contracts'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -87,21 +88,14 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
-  if (!postBody || typeof postBody !== 'object' || Array.isArray(postBody)) {
-    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  const parsed = createXiaomiAccountSchema.safeParse(postBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: validationMessage(parsed.error), code: 'VALIDATION_FAILED' },
+      { status: 400 },
+    )
   }
-  const { account, password, nickname } = postBody
-
-  if (!account || !password) {
-    return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
-  }
-  if (
-    typeof account !== 'string' || account.length > 128 ||
-    typeof password !== 'string' || password.length > 128 ||
-    (nickname !== undefined && (typeof nickname !== 'string' || nickname.length > 64))
-  ) {
-    return NextResponse.json({ error: '账号信息格式无效', code: 'INVALID_ACCOUNT_INPUT' }, { status: 400 })
-  }
+  const { account, password, nickname } = parsed.data
 
   let loginResult
   try {
@@ -173,33 +167,35 @@ export async function PUT(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  const parsed = updateXiaomiAccountSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: validationMessage(parsed.error), code: 'VALIDATION_FAILED' },
+      { status: 400 },
+    )
   }
-  const { nickname, status, account, password } = body
+  const { nickname, status, account, password } = parsed.data
+
+  const existingAccount = await db.select({ id: xiaomiAccounts.id }).from(xiaomiAccounts).where(
+    and(eq(xiaomiAccounts.id, id), eq(xiaomiAccounts.userId, current.userId)),
+  ).limit(1)
+  if (!existingAccount[0]) {
+    return NextResponse.json({ error: '小米账号不存在', code: 'ACCOUNT_NOT_FOUND' }, { status: 404 })
+  }
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
   }
 
   if (nickname !== undefined) {
-    if (typeof nickname !== 'string' || nickname.length > 64) {
-      return NextResponse.json({ error: '昵称格式无效', code: 'INVALID_NICKNAME' }, { status: 400 })
-    }
     updates.nickname = nickname
   }
   if (status !== undefined) {
-    if (status !== 'active' && status !== 'error') {
-      return NextResponse.json({ error: '账号状态无效', code: 'INVALID_STATUS' }, { status: 400 })
-    }
     updates.status = status
   }
 
   // 重新登录刷新 token
   if (account && password) {
-    if (typeof account !== 'string' || account.length > 128 || typeof password !== 'string' || password.length > 128) {
-      return NextResponse.json({ error: '账号信息格式无效', code: 'INVALID_ACCOUNT_INPUT' }, { status: 400 })
-    }
     let loginResult
     try {
       loginResult = await loginXiaomiAccount(account, password)

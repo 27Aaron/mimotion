@@ -35,26 +35,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-interface Account {
-  id: string;
-  nickname: string;
-  account: string | null;
-  status: string;
-  lastSyncAt: string | null;
-  lastError: string | null;
-  createdAt: string;
-  updatedAt: string;
-  scheduleCount: number;
-  activeScheduleCount: number;
-  lastStep: number | null;
-}
+import {
+  createXiaomiAccount,
+  deleteXiaomiAccount,
+  listXiaomiAccounts,
+  updateXiaomiAccount,
+  type XiaomiAccount,
+} from "@/features/xiaomi/api";
 
 export default function XiaomiPage() {
   const t = useTranslations("xiaomi");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<XiaomiAccount[]>([]);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -69,8 +62,7 @@ export default function XiaomiPage() {
   }, []);
 
   async function fetchAccounts() {
-    const res = await fetch("/api/xiaomi");
-    if (res.ok) setAccounts(await res.json());
+    try { setAccounts(await listXiaomiAccounts()); } catch { /* surfaced by mutations */ }
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -78,38 +70,31 @@ export default function XiaomiPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/xiaomi", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    const data = await res.json();
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await createXiaomiAccount(form);
       setOpen(false);
       setForm({ account: "", password: "", nickname: "" });
-      fetchAccounts();
+      await fetchAccounts();
       toast.success(t("toastAdded"));
-    } else {
-      toast.error(data.error || t("addFailed"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("addFailed"));
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm(t("confirmDelete"))) return;
-    const res = await fetch(`/api/xiaomi?id=${id}`, { method: "DELETE" });
-    if (res.ok) {
-      fetchAccounts();
+    try {
+      await deleteXiaomiAccount(id);
+      await fetchAccounts();
       toast.success(t("toastDeleted"));
-    } else {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.error || t("deleteFailed"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("deleteFailed"));
     }
   }
 
-  function openEdit(acc: Account) {
+  function openEdit(acc: XiaomiAccount) {
     setEditingId(acc.id);
     setEditForm({ nickname: acc.nickname, account: acc.account || "", password: "" });
     setEditError("");
@@ -128,22 +113,16 @@ export default function XiaomiPage() {
       body.password = editForm.password;
     }
 
-    const res = await fetch(`/api/xiaomi?id=${editingId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await updateXiaomiAccount(editingId, body);
       setEditOpen(false);
       setEditingId(null);
-      fetchAccounts();
+      await fetchAccounts();
       toast.success(t("toastUpdated"));
-    } else {
-      setEditError(data.error || t("updateFailed"));
+    } catch (requestError) {
+      setEditError(requestError instanceof Error ? requestError.message : t("updateFailed"));
+    } finally {
+      setLoading(false);
     }
   }
 
