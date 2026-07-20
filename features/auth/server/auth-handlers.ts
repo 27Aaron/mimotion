@@ -7,6 +7,7 @@ import { cookies } from 'next/headers'
 import { v4 as uuid } from 'uuid'
 import { registerUserWithInvite } from '@/lib/auth/registration'
 import { buildRedirectUrl } from '@/lib/auth/redirect-url'
+import { shouldUseSecureAuthCookie } from '@/lib/auth/auth-cookie'
 import { rateLimit, getRateLimitHeaders } from '@/lib/security/rate-limit'
 
 export async function POST(
@@ -110,7 +111,7 @@ async function handleLogin(request: NextRequest) {
   const cookieStore = await cookies()
   cookieStore.set('auth_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureAuthCookie(),
     sameSite: 'lax',
     maxAge: 60 * 60 * 24,
     path: '/',
@@ -192,7 +193,7 @@ async function handleRegister(request: NextRequest) {
   const cookieStore = await cookies()
   cookieStore.set('auth_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureAuthCookie(),
     sameSite: 'lax',
     maxAge: 60 * 60 * 24,
     path: '/',

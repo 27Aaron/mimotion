@@ -80,6 +80,9 @@ JWT_SECRET=your-64-char-hex-secret
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=replace-with-a-strong-password
 
+# Keep true for HTTPS. Set false only when accessing directly over HTTP on a trusted LAN.
+AUTH_COOKIE_SECURE=true
+
 ```
 
 > **Important**: `ENCRYPTION_KEY` and `JWT_SECRET` must be 64-character hex strings. Persist `ENCRYPTION_KEY` and do not change it casually, or existing encrypted credentials will become unreadable.
@@ -226,6 +229,7 @@ The `environmentFile` should contain:
 ENCRYPTION_KEY=your-64-char-hex-key
 JWT_SECRET=your-64-char-hex-secret
 ADMIN_PASSWORD=a-strong-password-for-first-start
+AUTH_COOKIE_SECURE=true
 ```
 
 Generate keys: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -300,6 +304,8 @@ cd mimotion
 # Set required environment variables
 export ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 export JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+# Direct HTTP access on a trusted LAN only:
+# export AUTH_COOKIE_SECURE=false
 
 # Build and start
 docker compose up -d
@@ -317,6 +323,7 @@ docker run -d \
   -e JWT_SECRET=your-secret \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=your-password \
+  -e AUTH_COOKIE_SECURE=true \
   mimotion
 ```
 
@@ -326,7 +333,7 @@ docker run -d \
 
 - Xiaomi tokens encrypted with AES-256-GCM; encryption key never stored in the database
 - User passwords hashed with bcrypt (cost 12)
-- JWT stored in HttpOnly + Secure cookies to prevent XSS
+- JWT stored in HttpOnly cookies; production uses Secure cookies by default, with an explicit opt-out for trusted HTTP-only LAN deployments
 - API rate limiting on login (10 req/15min) and registration (5 req/hour)
 - All API routes require authentication; admin routes additionally verify `isAdmin`
 - Account data isolated per user; cross-user access is not possible
