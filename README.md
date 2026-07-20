@@ -129,32 +129,36 @@ npm run db:init-admin # Create/reset admin account
 ```
 app/
   [locale]/
-    (auth)/login/          # Login/Register
-    (dashboard)/           # Main area (auth required)
-      dashboard/           # Dashboard & logs
-      xiaomi/              # Xiaomi account management
-      schedules/           # Schedule management
-      settings/            # User settings
-      invite/              # Invite codes (admin)
-      admin/               # User management (admin)
-  api/                     # API routes
+    (auth)/                # Authentication route adapters
+    (dashboard)/           # Authenticated route adapters
+  api/                     # Thin Route Handler adapters
 components/
+  dashboard/               # Shared dashboard components
+  layout/                  # Navigation, theme, and locale controls
+  providers/               # Global React providers
   ui/                      # shadcn/ui components
-features/                  # Frontend feature modules and typed API clients
+features/
+  */components/            # Feature-private components
+  */screens/               # Page-level feature components
+  */server/                # Server handlers and use cases
+  */client.ts              # Typed browser API clients
+  */contracts.ts           # Domain request validation
 lib/
-  db/schema.ts             # Business and scheduler infrastructure tables
-  auth.ts                  # JWT + password utilities
-  crypto.ts                # AES-256-GCM encrypt/decrypt
-  rate-limit.ts            # Durable SQLite rate limiter
+  auth/                    # JWT, passwords, registration, redirects
+  db/                      # SQLite, schema, and ownership operations
+  http/                    # Shared HTTP client
+  notifications/           # Bark, Telegram, and notification secrets
+  security/                # Encryption, rate limiting, URL safety
   scheduling/              # Cron, execution queue, and orchestration
-  xiaomi/auth.ts           # Xiaomi/Zepp login
-  xiaomi/client.ts         # Step submission API
-  bark.ts / telegram.ts    # Push services
+  xiaomi/                  # Xiaomi/Zepp auth and step protocol
+tests/unit/                # Unit tests
 worker/main.ts             # Dedicated scheduler worker entry point
 drizzle/migrations/        # Versioned SQLite migrations
 messages/
   zh.json / en.json        # i18n translation files
 ```
+
+See the [code architecture guide](docs/architecture.md) for dependency and file-placement rules.
 
 ## Database
 

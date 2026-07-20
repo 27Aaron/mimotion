@@ -129,32 +129,36 @@ npm run db:init-admin # 创建/重置管理员
 ```
 app/
   [locale]/
-    (auth)/login/          # 登录/注册页
-    (dashboard)/           # 主功能区（需登录）
-      dashboard/           # 控制台
-      xiaomi/              # 小米账号管理
-      schedules/           # 定时任务管理
-      settings/            # 用户设置
-      invite/              # 邀请码管理 (admin)
-      admin/               # 用户管理 (admin)
-  api/                     # API 路由
+    (auth)/                # 认证路由入口
+    (dashboard)/           # Dashboard 路由入口（需登录）
+  api/                     # 薄 Route Handler 入口
 components/
+  dashboard/               # Dashboard 跨领域组件
+  layout/                  # 导航、主题和语言组件
+  providers/               # 全局 React Provider
   ui/                      # shadcn/ui 组件
-features/                  # 前端功能模块与类型化 API 客户端
+features/
+  */components/            # 领域私有组件
+  */screens/               # 页面级业务组件
+  */server/                # 服务端 Handler 与业务用例
+  */client.ts              # 浏览器端类型化 API 客户端
+  */contracts.ts           # 领域请求校验
 lib/
-  db/schema.ts             # 业务表与调度基础表
-  auth.ts                  # JWT + 密码工具
-  crypto.ts                # AES-256-GCM 加解密
-  rate-limit.ts            # SQLite 持久化速率限制器
+  auth/                    # JWT、密码、注册与跳转
+  db/                      # SQLite、Schema 与所有权操作
+  http/                    # 通用 HTTP 客户端
+  notifications/           # Bark、Telegram 与通知凭据
+  security/                # 加密、限流和 URL 安全
   scheduling/              # Cron、执行队列与任务编排
-  xiaomi/auth.ts           # 小米/Zepp 登录
-  xiaomi/client.ts         # 提交步数 API
-  bark.ts / telegram.ts    # 推送服务
+  xiaomi/                  # Xiaomi/Zepp 登录与步数协议
+tests/unit/                # 单元测试
 worker/main.ts             # 独立调度 Worker 入口
 drizzle/migrations/        # 版本化 SQLite 迁移
 messages/
   zh.json / en.json        # 国际化翻译文件
 ```
+
+详细的依赖方向和文件放置规则见 [代码架构说明](docs/architecture.md)。
 
 ## 数据库
 
