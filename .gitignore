@@ -9,6 +9,7 @@ out/
 
 # production
 build/
+.worker/
 
 # misc
 .DS_Store
