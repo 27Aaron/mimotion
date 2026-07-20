@@ -242,7 +242,6 @@ ADMIN_PASSWORD=首次启动使用的强密码
 | `jwtSecret` | `null` | JWT 签名密钥（64位hex）。建议用 `environmentFile` |
 | `adminUsername` | `"admin"` | 初始管理员用户名 |
 | `adminPassword` | `"password"` | 初始管理员密码；生产环境首次启动必须覆盖默认值 |
-| `appUrl` | `null` | 公网地址（用于 Bark 推送图标） |
 | `user` / `group` | `"mimotion"` | 服务用户/组 |
 | `environment` | `{ }` | 额外环境变量 |
 | `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
@@ -278,7 +277,6 @@ ADMIN_PASSWORD=首次启动使用的强密码
 | `jwtSecret` | `null` | JWT 密钥。建议用 `environmentFile` |
 | `adminUsername` | `"admin"` | 初始管理员用户名 |
 | `adminPassword` | `"password"` | 初始管理员密码；生产环境首次启动必须覆盖默认值 |
-| `appUrl` | `null` | 公网地址（用于 Bark 推送图标） |
 | `environment` | `{ }` | 额外环境变量 |
 | `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
 

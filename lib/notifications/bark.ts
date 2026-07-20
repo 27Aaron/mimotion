@@ -2,6 +2,8 @@ import { fetchWithTimeout } from '../http/fetch'
 import { isSafeBarkTarget } from '../security/safe-url'
 import { getUserNotificationSecrets } from './secrets'
 
+export const BARK_ICON_URL = 'https://cdn.jsdelivr.net/gh/27Aaron/mimotion/app/icon.svg'
+
 interface BarkPushOptions {
   userId: string
   title: string
@@ -29,8 +31,8 @@ export async function sendBarkPush(options: BarkPushOptions): Promise<boolean> {
         body: options.body,
         sound: 'fanfare',
         group: 'MiMotion',
+        icon: BARK_ICON_URL,
         ...(options.subtitle && { subtitle: options.subtitle }),
-        ...(process.env.APP_URL && { icon: `${process.env.APP_URL}/icon.svg` }),
       }),
     })
 

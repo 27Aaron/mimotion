@@ -242,7 +242,6 @@ Generate keys: `node -e "console.log(require('crypto').randomBytes(32).toString(
 | `jwtSecret` | `null` | JWT secret (64-char hex). Prefer `environmentFile` |
 | `adminUsername` | `"admin"` | Initial admin username |
 | `adminPassword` | `"password"` | Initial admin password; production first start must override it |
-| `appUrl` | `null` | Public URL (for Bark push icon) |
 | `user` / `group` | `"mimotion"` | Service user/group |
 | `environment` | `{ }` | Extra environment variables |
 | `environmentFile` | `null` | File with secrets (KEY=VALUE format) |
@@ -278,7 +277,6 @@ The service runs as a systemd service with security hardening (`ProtectSystem`, 
 | `jwtSecret` | `null` | JWT secret. Prefer `environmentFile` |
 | `adminUsername` | `"admin"` | Initial admin username |
 | `adminPassword` | `"password"` | Initial admin password; production first start must override it |
-| `appUrl` | `null` | Public URL (for Bark push icon) |
 | `environment` | `{ }` | Extra environment variables |
 | `environmentFile` | `null` | File with secrets (KEY=VALUE format) |
 
