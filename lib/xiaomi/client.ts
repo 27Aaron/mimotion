@@ -1,14 +1,26 @@
 import crypto from 'crypto'
 import { decrypt } from '../crypto'
 
-interface SetStepResult {
+export type ZeppErrorCode =
+  | 'TOKEN_EXPIRED'
+  | 'RATE_LIMITED'
+  | 'NETWORK_ERROR'
+  | 'REMOTE_ERROR'
+  | 'PROTOCOL_ERROR'
+
+export interface SetStepResult {
   success: boolean
   error?: string
+  errorCode?: ZeppErrorCode
+  retryable?: boolean
+  httpStatus?: number
+  vendorCode?: string
 }
 
-function getTime(): string {
-  const now = new Date()
-  return Math.floor(now.getTime()).toString()
+interface SetStepsDependencies {
+  fetch: typeof fetch
+  now: () => Date
+  requestId: () => string
 }
 
 // 预编码 data_json 模板（含心率、活动、睡眠摘要），替换日期和步数即可
@@ -18,13 +30,72 @@ export async function setSteps(
   token: string,
   deviceId: string,
   xiaomiUserId: string,
-  steps: number
+  steps: number,
+  dependencies: Partial<SetStepsDependencies> = {},
 ): Promise<SetStepResult> {
-  const t = getTime()
+  const now = dependencies.now?.() || new Date()
+  const fetchImpl = dependencies.fetch || fetch
+  const requestId = dependencies.requestId?.() || crypto.randomUUID()
+  const request = buildSetStepsRequest(deviceId, xiaomiUserId, steps, now, requestId)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30000)
+
+  try {
+    const response = await fetchImpl(request.url, {
+      method: 'POST',
+      headers: {
+        apptoken: token,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: request.body,
+      signal: controller.signal,
+    })
+
+    if (response.status !== 200) {
+      const responseText = await response.text().catch(() => '')
+      return classifyHttpFailure(response.status, responseText)
+    }
+
+    let responseData: unknown
+    try {
+      responseData = await response.json()
+    } catch {
+      return {
+        success: false,
+        error: 'Zepp 返回了无法解析的响应',
+        errorCode: 'PROTOCOL_ERROR',
+        retryable: false,
+      }
+    }
+
+    const message = getResponseMessage(responseData)
+    if (message === 'success') return { success: true }
+    return classifyVendorFailure(message, responseData)
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '网络错误',
+      errorCode: 'NETWORK_ERROR',
+      retryable: true,
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export function buildSetStepsRequest(
+  deviceId: string,
+  xiaomiUserId: string,
+  steps: number,
+  now: Date,
+  requestId: string,
+): { url: string; body: string } {
+  const timestamp = now.getTime().toString()
 
   // 使用上海时区日期（API 服务器在中国，UTC 日期在上海时间 0-8 点会是"昨天"）
   const bjOffset = 8 * 60 * 60 * 1000
-  const today = new Date(Date.now() + bjOffset).toISOString().split('T')[0]
+  const today = new Date(now.getTime() + bjOffset).toISOString().split('T')[0]
 
   // 精确替换：只改 summary 中的 ttl，避免误改 data_hr/data 活动编码中的巧合数字
   const dataJson = DATA_JSON_TEMPLATE
@@ -32,42 +103,64 @@ export async function setSteps(
     .replace('%5C%22ttl%5C%22%3A18272', `%5C%22ttl%5C%22%3A${steps}`)
 
   // 使用最近的同步时间（硬编码 2020 时间戳可能导致服务器静默拒绝）
-  const lastSyncTime = Math.floor(Date.now() / 1000) - 120
+  const lastSyncTime = Math.floor(now.getTime() / 1000) - 120
 
-  const url = `https://api-mifit-cn.huami.com/v1/data/band_data.json?&t=${t}&r=${crypto.randomUUID()}`
-  const postData = `userid=${xiaomiUserId}&last_sync_data_time=${lastSyncTime}&device_type=0&last_deviceid=${deviceId || 'DA932FFFFE8816E7'}&data_json=${dataJson}`
+  return {
+    url: `https://api-mifit-cn.huami.com/v1/data/band_data.json?&t=${timestamp}&r=${requestId}`,
+    body: `userid=${xiaomiUserId}&last_sync_data_time=${lastSyncTime}&device_type=0&last_deviceid=${deviceId || 'DA932FFFFE8816E7'}&data_json=${dataJson}`,
+  }
+}
 
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        apptoken: token,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: postData,
-      signal: controller.signal,
-    })
-    clearTimeout(timeout)
-
-    if (response.status !== 200) {
-      const text = await response.text().catch(() => '')
-      return { success: false, error: `请求异常: ${response.status} ${text.slice(0, 200)}` }
-    }
-
-    const respData = await response.json()
-    const message = respData['message']
-    if (message === 'success') {
-      return { success: true }
-    } else {
-      return { success: false, error: `设置步数失败: ${message || JSON.stringify(respData).slice(0, 200)}` }
-    }
-  } catch (error) {
+function classifyHttpFailure(status: number, responseText: string): SetStepResult {
+  const excerpt = responseText.slice(0, 200)
+  if (status === 401 || status === 403) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : '网络错误',
+      error: `Zepp 登录凭证已失效 (${status})`,
+      errorCode: 'TOKEN_EXPIRED',
+      retryable: false,
+      httpStatus: status,
     }
+  }
+
+  if (status === 429) {
+    return {
+      success: false,
+      error: 'Zepp 请求过于频繁',
+      errorCode: 'RATE_LIMITED',
+      retryable: true,
+      httpStatus: status,
+    }
+  }
+
+  return {
+    success: false,
+    error: `Zepp 请求异常: ${status}${excerpt ? ` ${excerpt}` : ''}`,
+    errorCode: status >= 500 ? 'REMOTE_ERROR' : 'PROTOCOL_ERROR',
+    retryable: status >= 500,
+    httpStatus: status,
+  }
+}
+
+function getResponseMessage(responseData: unknown): string | null {
+  if (!responseData || typeof responseData !== 'object') return null
+  const message = (responseData as Record<string, unknown>).message
+  return typeof message === 'string' ? message : null
+}
+
+function classifyVendorFailure(message: string | null, responseData: unknown): SetStepResult {
+  const normalized = message?.toLowerCase() || ''
+  const tokenExpired =
+    normalized.includes('token') ||
+    normalized.includes('auth') ||
+    normalized.includes('0104')
+
+  return {
+    success: false,
+    error: `设置步数失败: ${message || JSON.stringify(responseData).slice(0, 200)}`,
+    errorCode: tokenExpired ? 'TOKEN_EXPIRED' : 'REMOTE_ERROR',
+    retryable: !tokenExpired,
+    vendorCode: message || undefined,
   }
 }
 
