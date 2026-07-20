@@ -48,84 +48,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-interface Schedule {
-  id: string;
-  xiaomiAccountId: string;
-  accountNickname: string;
-  cronExpression: string;
-  minStep: number;
-  maxStep: number;
-  isActive: boolean;
-  lastRunAt: string | null;
-}
-
-function cronToHuman(cron: string, t: (key: string, params?: Record<string, string | number>) => string): string {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) return cron;
-  const [minute, hour, , , dow] = parts;
-  const hh = hour !== "*" ? hour.padStart(2, "0") : null;
-  const mm = minute !== "*" ? minute.padStart(2, "0") : "00";
-  const timeStr = hh ? `${hh}:${mm}` : t("cronEveryHour");
-
-  const DAY_KEYS = ["daySun", "dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat"];
-
-  function formatDow(d: string): string {
-    if (d === "*") return t("cronEveryDay");
-    if (d === "1-5") return t("cronWeekday");
-    if (d === "1-6") return t("cronMonToSat");
-    if (d === "0-6" || d === "0,1,2,3,4,5,6") return t("cronEveryDay");
-    // Single day
-    if (!d.includes(",") && !d.includes("-")) {
-      return `${t("cronDayPrefix")}${t(DAY_KEYS[parseInt(d) % 7])}`;
-    }
-    // Multiple days
-    const days: number[] = [];
-    for (const seg of d.split(",")) {
-      if (seg.includes("-")) {
-        const [s, e] = seg.split("-").map(Number);
-        for (let i = s; i <= e; i++) days.push(i);
-      } else {
-        days.push(parseInt(seg));
-      }
-    }
-    // Consecutive range
-    if (days.length >= 3) {
-      const sorted = [...days].sort((a, b) => a - b);
-      let isConsecutive = true;
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i] !== sorted[i - 1] + 1) { isConsecutive = false; break; }
-      }
-      if (isConsecutive) {
-        return `${t("cronDayPrefix")}${t(DAY_KEYS[sorted[0] % 7])} ${t("cronDayRange", { start: t(DAY_KEYS[sorted[0] % 7]), end: t(DAY_KEYS[sorted[sorted.length - 1] % 7]) })}`;
-      }
-    }
-    // Non-consecutive
-    const sorted = [...days].sort((a, b) => ((a % 7) - (b % 7)));
-    return `${t("cronDayPrefix")}${sorted.map((v) => t(DAY_KEYS[v % 7])).join(", ")}`;
-  }
-
-  const dowStr = formatDow(dow);
-  if (!hh) return `${dowStr}, ${t("cronEveryHourExec")}`;
-  return `${dowStr} ${timeStr}`;
-}
-
-const DEFAULT_FORM = {
-  xiaomiAccountId: "",
-  hour: 9,
-  minute: 0,
-  days: ["1", "2", "3", "4", "5"] as string[],
-  minStep: 1000,
-  maxStep: 1500,
-};
-
-function cronSortKey(cron: string): number {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) return 0;
-  const minute = parts[0] !== "*" ? parseInt(parts[0]) : 0;
-  const hour = parts[1] !== "*" ? parseInt(parts[1]) : 0;
-  return hour * 60 + minute;
-}
+import {
+  cronSortKey,
+  cronToHuman,
+  DEFAULT_SCHEDULE_FORM,
+  parseCron,
+  type Schedule,
+} from "@/features/schedules/model";
+import {
+  createSchedule,
+  deleteSchedule,
+  listSchedules,
+  listXiaomiAccounts,
+  updateSchedule,
+  type XiaomiAccountOption,
+} from "@/features/schedules/api";
 
 export default function SchedulesPage() {
   const t = useTranslations("schedules");
@@ -142,35 +79,12 @@ export default function SchedulesPage() {
     { value: "0", label: t("daysSun") },
   ];
 
-  function parseCron(cron: string) {
-    const parts = cron.trim().split(/\s+/);
-    if (parts.length < 5) return { hour: 9, minute: 0, days: ["1","2","3","4","5"] };
-    const [minute, hour, , , dow] = parts;
-    let days: string[];
-    if (dow === "*") {
-      days = DAY_OPTIONS.map((d) => d.value);
-    } else if (dow.includes("-")) {
-      const [start, end] = dow.split("-").map(Number);
-      days = [];
-      for (let i = start; i <= end; i++) days.push(String(i));
-    } else {
-      days = dow.split(",");
-    }
-    return {
-      hour: hour !== "*" ? parseInt(hour) : 9,
-      minute: minute !== "*" ? parseInt(minute) : 0,
-      days,
-    };
-  }
-
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<{ id: string; nickname: string; account: string }[]>(
-    [],
-  );
-  const [form, setForm] = useState({ ...DEFAULT_FORM });
+  const [accounts, setAccounts] = useState<XiaomiAccountOption[]>([]);
+  const [form, setForm] = useState({ ...DEFAULT_SCHEDULE_FORM });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -180,13 +94,11 @@ export default function SchedulesPage() {
   }, []);
 
   async function fetchSchedules() {
-    const res = await fetch("/api/schedules");
-    if (res.ok) setSchedules(await res.json());
+    try { setSchedules(await listSchedules()); } catch { /* surfaced by mutations */ }
   }
 
   async function fetchAccounts() {
-    const res = await fetch("/api/xiaomi");
-    if (res.ok) setAccounts(await res.json());
+    try { setAccounts(await listXiaomiAccounts()); } catch { /* surfaced by mutations */ }
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -199,43 +111,16 @@ export default function SchedulesPage() {
     }
 
     setLoading(true);
-
-    // Build cron expression
-    const sorted = [...form.days].sort((a, b) => Number(a) - Number(b));
-    let dow: string;
-    if (sorted.length === 7) {
-      dow = "*";
-    } else if (
-      sorted.length === 5 &&
-      sorted.join(",") === "1,2,3,4,5"
-    ) {
-      dow = "1-5";
-    } else {
-      dow = sorted.join(",");
-    }
-    const cronExpression = `${form.minute} ${form.hour} * * ${dow}`;
-
-    const res = await fetch("/api/schedules", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        xiaomiAccountId: form.xiaomiAccountId,
-        cronExpression,
-        minStep: form.minStep,
-        maxStep: form.maxStep,
-      }),
-    });
-
-    const data = await res.json();
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await createSchedule(form);
       setOpen(false);
-      setForm({ ...DEFAULT_FORM });
-      fetchSchedules();
+      setForm({ ...DEFAULT_SCHEDULE_FORM });
+      await fetchSchedules();
       toast.success(t("toastCreated"));
-    } else {
-      toast.error(data.error || t("createFailed"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("createFailed"));
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -265,61 +150,37 @@ export default function SchedulesPage() {
     }
 
     setLoading(true);
-
-    const sorted = [...form.days].sort((a, b) => Number(a) - Number(b));
-    let dow: string;
-    if (sorted.length === 7) {
-      dow = "*";
-    } else if (sorted.length === 5 && sorted.join(",") === "1,2,3,4,5") {
-      dow = "1-5";
-    } else {
-      dow = sorted.join(",");
-    }
-    const cronExpression = `${form.minute} ${form.hour} * * ${dow}`;
-
-    const res = await fetch(`/api/schedules?id=${editingId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cronExpression,
-        minStep: form.minStep,
-        maxStep: form.maxStep,
-        xiaomiAccountId: form.xiaomiAccountId,
-      }),
-    });
-
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await updateSchedule(editingId, form);
       setEditOpen(false);
       setEditingId(null);
-      setForm({ ...DEFAULT_FORM });
-      fetchSchedules();
+      setForm({ ...DEFAULT_SCHEDULE_FORM });
+      await fetchSchedules();
       toast.success(t("toastUpdated"));
-    } else {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.error || t("updateFailed"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("updateFailed"));
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm(t("confirmDelete"))) return;
-    await fetch(`/api/schedules?id=${id}`, { method: "DELETE" });
-    fetchSchedules();
-    toast.success(t("toastDeleted"));
+    try {
+      await deleteSchedule(id);
+      await fetchSchedules();
+      toast.success(t("toastDeleted"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("operationFailed"));
+    }
   }
 
   async function handleToggle(id: string, isActive: boolean) {
-    const res = await fetch(`/api/schedules?id=${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !isActive }),
-    });
-    if (res.ok) {
-      fetchSchedules();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.error || t("operationFailed"));
+    try {
+      await updateSchedule(id, { isActive: !isActive });
+      await fetchSchedules();
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("operationFailed"));
     }
   }
 
@@ -500,7 +361,7 @@ export default function SchedulesPage() {
             {t("description")}
           </p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm({ ...DEFAULT_FORM }); setError(""); } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm({ ...DEFAULT_SCHEDULE_FORM }); setError(""); } }}>
           <DialogTrigger render={<Button />}>
             <IconCalendarPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" /> {t("createTask")}
           </DialogTrigger>
@@ -531,7 +392,7 @@ export default function SchedulesPage() {
       </div>
 
       {/* Edit dialog — rendered at top level, not nested inside create dialog */}
-      <Dialog open={editOpen} onOpenChange={(v) => { setEditOpen(v); if (!v) { setForm({ ...DEFAULT_FORM }); setError(""); } }}>
+      <Dialog open={editOpen} onOpenChange={(v) => { setEditOpen(v); if (!v) { setForm({ ...DEFAULT_SCHEDULE_FORM }); setError(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("editTaskTitle")}</DialogTitle>

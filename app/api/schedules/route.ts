@@ -4,8 +4,10 @@ import { schedules, xiaomiAccounts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth'
 import { v4 as uuid } from 'uuid'
-import { deleteOwnedSchedule, isOwnedXiaomiAccount } from '@/lib/ownership'
+import { deleteOwnedSchedule } from '@/lib/ownership'
 import { normalizeCronExpression } from '@/lib/validation'
+import { getNextCronOccurrence } from '@/lib/scheduling/cron'
+import { createScheduleSchema, updateScheduleSchema, validationMessage } from '@/lib/api/contracts'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -64,34 +66,19 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  const parsed = createScheduleSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: validationMessage(parsed.error), code: 'VALIDATION_FAILED' },
+      { status: 400 },
+    )
   }
-
-  const { xiaomiAccountId, cronExpression, minStep, maxStep } = body
-
-  if (!xiaomiAccountId || !cronExpression || minStep === undefined || maxStep === undefined) {
-    return NextResponse.json({ error: '缺少参数', code: 'MISSING_PARAMS' }, { status: 400 })
-  }
+  const { xiaomiAccountId, cronExpression, minStep, maxStep } = parsed.data
 
   // 验证 cron 格式
   const normalizedCron = normalizeCronExpression(cronExpression)
   if (!normalizedCron) {
     return NextResponse.json({ error: 'Cron 表达式格式或取值无效', code: 'CRON_INVALID' }, { status: 400 })
-  }
-
-  // 验证步数
-  const MAX_STEP = 200000
-  const min = Number(minStep)
-  const max = Number(maxStep)
-  if (!Number.isInteger(min) || !Number.isInteger(max) || min <= 0 || max <= 0) {
-    return NextResponse.json({ error: '步数必须为正整数', code: 'STEP_MUST_BE_POSITIVE' }, { status: 400 })
-  }
-  if (min > MAX_STEP || max > MAX_STEP) {
-    return NextResponse.json({ error: `步数不能超过 ${MAX_STEP}`, code: 'STEP_EXCEEDS_MAX' }, { status: 400 })
-  }
-  if (min > max) {
-    return NextResponse.json({ error: '最小步数不能大于最大步数', code: 'STEP_MIN_EXCEEDS_MAX' }, { status: 400 })
   }
 
   const account = await db
@@ -117,9 +104,10 @@ export async function POST(request: NextRequest) {
     userId: current.userId,
     xiaomiAccountId,
     cronExpression: normalizedCron,
-    minStep: min,
-    maxStep: max,
+    minStep,
+    maxStep,
     isActive: true,
+    nextRunAt: getNextCronOccurrence(normalizedCron, now),
     createdAt: now,
     updatedAt: now,
   })
@@ -146,10 +134,21 @@ export async function PUT(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
   }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 })
+  const parsed = updateScheduleSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: validationMessage(parsed.error), code: 'VALIDATION_FAILED' },
+      { status: 400 },
+    )
   }
-  const { cronExpression, minStep, maxStep, isActive, xiaomiAccountId } = body
+  const { cronExpression, minStep, maxStep, isActive, xiaomiAccountId } = parsed.data
+
+  const existing = await db.select().from(schedules).where(
+    and(eq(schedules.id, id), eq(schedules.userId, current.userId)),
+  ).limit(1)
+  if (!existing[0]) {
+    return NextResponse.json({ error: '定时任务不存在', code: 'SCHEDULE_NOT_FOUND' }, { status: 404 })
+  }
 
   const updates: Record<string, unknown> = {
     updatedAt: new Date(),
@@ -162,40 +161,26 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Cron 表达式格式或取值无效', code: 'CRON_INVALID' }, { status: 400 })
     }
     updates.cronExpression = normalizedCron
+    updates.nextRunAt = getNextCronOccurrence(normalizedCron, new Date())
   }
 
-  // 校验步数（必须同时提供 min 和 max）
   if (minStep !== undefined || maxStep !== undefined) {
-    if (minStep === undefined || maxStep === undefined) {
-      return NextResponse.json({ error: '需同时提供最小和最大步数', code: 'STEP_BOTH_REQUIRED' }, { status: 400 })
-    }
-    const MAX_STEP = 200000
-    const min = Number(minStep)
-    const max = Number(maxStep)
-    if (!Number.isInteger(min) || min <= 0) {
-      return NextResponse.json({ error: '最小步数必须为正整数', code: 'STEP_MIN_INVALID' }, { status: 400 })
-    }
-    if (!Number.isInteger(max) || max <= 0) {
-      return NextResponse.json({ error: '最大步数必须为正整数', code: 'STEP_MAX_INVALID' }, { status: 400 })
-    }
-    if (min > MAX_STEP || max > MAX_STEP) {
-      return NextResponse.json({ error: `步数不能超过 ${MAX_STEP}`, code: 'STEP_EXCEEDS_MAX' }, { status: 400 })
-    }
-    if (min > max) {
-      return NextResponse.json({ error: '最小步数不能大于最大步数', code: 'STEP_MIN_EXCEEDS_MAX' }, { status: 400 })
-    }
-    updates.minStep = min
-    updates.maxStep = max
+    updates.minStep = minStep
+    updates.maxStep = maxStep
   }
 
   if (isActive !== undefined) {
-    if (typeof isActive !== 'boolean') {
-      return NextResponse.json({ error: 'isActive 必须为布尔值', code: 'INVALID_IS_ACTIVE' }, { status: 400 })
-    }
     updates.isActive = isActive
+    if (!isActive) updates.nextRunAt = null
+    if (isActive && cronExpression === undefined) {
+      updates.nextRunAt = getNextCronOccurrence(existing[0].cronExpression, new Date())
+    }
   }
   if (xiaomiAccountId !== undefined) {
-    if (typeof xiaomiAccountId !== 'string' || !UUID_RE.test(xiaomiAccountId) || !isOwnedXiaomiAccount(sqlite, current.userId, xiaomiAccountId)) {
+    const ownedAccount = await db.select({ id: xiaomiAccounts.id }).from(xiaomiAccounts).where(
+      and(eq(xiaomiAccounts.id, xiaomiAccountId), eq(xiaomiAccounts.userId, current.userId)),
+    ).limit(1)
+    if (!ownedAccount[0]) {
       return NextResponse.json({ error: '小米账号不存在', code: 'ACCOUNT_NOT_FOUND' }, { status: 404 })
     }
     updates.xiaomiAccountId = xiaomiAccountId
