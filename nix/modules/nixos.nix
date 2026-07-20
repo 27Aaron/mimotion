@@ -55,12 +55,6 @@ in
       description = "Initial admin password. Change after first login.";
     };
 
-    appUrl = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-      description = "Public URL for the app (used for Bark push icon).";
-    };
-
     user = lib.mkOption {
       type = lib.types.str;
       default = "mimotion";
@@ -78,7 +72,7 @@ in
       default = { };
       example = lib.literalExpression ''
         {
-          APP_URL = "https://steps.example.com";
+          WORKER_CONCURRENCY = "4";
         }
       '';
       description = "Extra environment variables for the service.";
@@ -120,7 +114,6 @@ in
         }
         // (lib.optionalAttrs (cfg.encryptionKey != null) { ENCRYPTION_KEY = cfg.encryptionKey; })
         // (lib.optionalAttrs (cfg.jwtSecret != null) { JWT_SECRET = cfg.jwtSecret; })
-        // (lib.optionalAttrs (cfg.appUrl != null) { APP_URL = cfg.appUrl; })
         // cfg.environment;
 
       serviceConfig = {

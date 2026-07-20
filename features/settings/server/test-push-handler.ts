@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { fetchWithTimeout } from '@/lib/http/fetch'
+import { BARK_ICON_URL } from '@/lib/notifications/bark'
 import { isSafeBarkTarget } from '@/lib/security/safe-url'
 
 export async function POST(request: NextRequest) {
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
           title: 'MiMotion 测试推送',
           body: '如果你看到这条消息，说明 Bark 推送配置成功！',
           sound: 'alarm',
+          icon: BARK_ICON_URL,
         }),
       })
       if (!res.ok) {

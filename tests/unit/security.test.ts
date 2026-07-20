@@ -125,24 +125,11 @@ test('isSafeBarkUrl rejects localhost and private literal IPs', () => {
   assert.equal(isSafeBarkUrl('not-a-url'), false)
 })
 
-test('buildRedirectUrl returns an absolute URL from the configured app origin', () => {
-  const requestUrl = new URL('http://0.0.0.0:3000/dashboard')
-
-  assert.equal(
-    buildRedirectUrl(requestUrl, '/zh/login', 'https://steps.example.com/base').href,
-    'https://steps.example.com/zh/login'
-  )
-})
-
-test('buildRedirectUrl falls back to the parsed request origin', () => {
+test('buildRedirectUrl uses the parsed request origin', () => {
   const requestUrl = new URL('https://steps.example.com/dashboard')
 
   assert.equal(
-    buildRedirectUrl(requestUrl, '/zh/login', 'not-a-url').href,
+    buildRedirectUrl(requestUrl, '/zh/login').href,
     'https://steps.example.com/zh/login'
-  )
-  assert.equal(
-    buildRedirectUrl(requestUrl, '/en/login', 'javascript:alert(1)').href,
-    'https://steps.example.com/en/login'
   )
 })
