@@ -9,7 +9,7 @@ test('encrypted values carry a key id and previous keys can decrypt legacy data'
   const originalPrevious = process.env.ENCRYPTION_KEY_PREVIOUS
   try {
     process.env.ENCRYPTION_KEY = PREVIOUS_KEY
-    const { encrypt, decrypt, isEncryptedValue } = await import('../crypto')
+    const { encrypt, decrypt, isEncryptedValue } = await import('../../lib/security/encryption')
     const encryptedWithPrevious = encrypt('secret-value')
     const legacyCiphertext = encryptedWithPrevious.encrypted.split(':')[2]
 

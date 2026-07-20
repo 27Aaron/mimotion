@@ -1,4 +1,16 @@
+import cron from 'node-cron'
+
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000
+const CRON_FIELD_PATTERN = /^(\*|\*\/\d+|\d+|\d+-\d+|\d+(,\d+)+)$/
+
+export function normalizeCronExpression(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  const parts = normalized.split(' ')
+  if (parts.length !== 5) return null
+  if (!parts.every((part) => CRON_FIELD_PATTERN.test(part))) return null
+  return cron.validate(normalized) ? normalized : null
+}
 
 interface CronFields {
   minute: number

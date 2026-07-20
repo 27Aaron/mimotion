@@ -7,10 +7,10 @@ import {
   Footprints,
 } from "lucide-react";
 import { getTranslations, getLocale } from "next-intl/server";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { NavLinks } from "@/components/nav-links";
-import { Toaster } from "@/components/toaster";
+import { LocaleSwitcher } from "@/components/layout/locale-switcher";
+import { NavLinks } from "@/components/layout/nav-links";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Toaster } from "@/components/providers/toaster";
 
 export default async function DashboardLayout({
   children,

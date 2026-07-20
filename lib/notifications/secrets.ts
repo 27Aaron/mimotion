@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm'
 
-import { decrypt, encrypt } from './crypto'
-import { db } from './db'
-import { users } from './db/schema'
+import { db } from '../db'
+import { users } from '../db/schema'
+import { decrypt, encrypt } from '../security/encryption'
 
 export interface UserNotificationSecrets {
   barkUrl: string | null

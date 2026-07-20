@@ -2,13 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
 
-import { getNextCronOccurrence, matchesCronExpression } from '../scheduling/cron'
+import { getNextCronOccurrence, matchesCronExpression } from '../../lib/scheduling/cron'
 import {
   claimNextExecution,
   enqueueExecution,
   finishExecution,
   recoverStaleExecutions,
-} from '../scheduling/execution-store'
+} from '../../lib/scheduling/execution-store'
 
 function createExecutionDb() {
   const sqlite = new Database(':memory:')

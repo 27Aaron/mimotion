@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildSetStepsRequest, setSteps } from '../xiaomi/client'
+import { buildSetStepsRequest, setSteps } from '../../lib/xiaomi/client'
 
 test('buildSetStepsRequest uses Shanghai date and a recent sync timestamp', () => {
   const now = new Date('2026-04-19T16:30:00.000Z') // 2026-04-20 00:30 in Shanghai
