@@ -20,6 +20,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import { formatShanghaiDateTime } from "@/lib/time/format";
 
 type FilterType = "unused" | "all" | "used";
 
@@ -234,12 +235,7 @@ export default function InviteScreen() {
                         </Badge>
                       </div>
                       <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleString(locale, {
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatShanghaiDateTime(c.createdAt, locale)}
                       </p>
                     </div>
                   </div>

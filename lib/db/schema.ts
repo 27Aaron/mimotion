@@ -15,15 +15,15 @@ export const users = sqliteTable('users', {
   telegramBotTokenData: text('telegram_bot_token_data'),
   telegramBotTokenIv: text('telegram_bot_token_iv'),
   telegramChatId: text('telegram_chat_id'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })
 
 export const inviteCodes = sqliteTable('invite_codes', {
   code: text('code').primaryKey(),
   createdBy: text('created_by').notNull().references(() => users.id),
   usedBy: text('used_by').references(() => users.id),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   index('invite_codes_used_by_idx').on(table.usedBy),
 ])
@@ -42,10 +42,10 @@ export const xiaomiAccounts = sqliteTable('xiaomi_accounts', {
   deviceId: text('device_id'),
   nickname: text('nickname'),
   status: text('status').default('active'),
-  lastSyncAt: integer('last_sync_at', { mode: 'timestamp' }),
+  lastSyncAt: integer('last_sync_at', { mode: 'timestamp_ms' }),
   lastError: text('last_error'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   index('xiaomi_accounts_user_id_idx').on(table.userId),
 ])
@@ -58,10 +58,10 @@ export const schedules = sqliteTable('schedules', {
   minStep: integer('min_step').notNull(),
   maxStep: integer('max_step').notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
-  lastRunAt: integer('last_run_at', { mode: 'timestamp' }),
-  nextRunAt: integer('next_run_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  lastRunAt: integer('last_run_at', { mode: 'timestamp_ms' }),
+  nextRunAt: integer('next_run_at', { mode: 'timestamp_ms' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   index('schedules_user_id_idx').on(table.userId),
   index('schedules_is_active_idx').on(table.isActive),
@@ -70,7 +70,7 @@ export const schedules = sqliteTable('schedules', {
 export const runLogs = sqliteTable('run_logs', {
   id: text('id').primaryKey(),
   scheduleId: text('schedule_id').notNull().references(() => schedules.id),
-  executedAt: integer('executed_at', { mode: 'timestamp' }).notNull(),
+  executedAt: integer('executed_at', { mode: 'timestamp_ms' }).notNull(),
   stepWritten: integer('step_written'),
   status: text('status'),
   errorMessage: text('error_message'),
@@ -91,17 +91,17 @@ export const runExecutions = sqliteTable('run_executions', {
   id: text('id').primaryKey(),
   scheduleId: text('schedule_id').notNull().references(() => schedules.id, { onDelete: 'cascade' }),
   xiaomiAccountId: text('xiaomi_account_id').notNull().references(() => xiaomiAccounts.id, { onDelete: 'cascade' }),
-  scheduledFor: integer('scheduled_for', { mode: 'timestamp' }).notNull(),
+  scheduledFor: integer('scheduled_for', { mode: 'timestamp_ms' }).notNull(),
   status: text('status', { enum: ['pending', 'running', 'succeeded', 'failed'] }).notNull().default('pending'),
   attempt: integer('attempt').notNull().default(0),
   targetStep: integer('target_step'),
-  claimedAt: integer('claimed_at', { mode: 'timestamp' }).notNull(),
-  startedAt: integer('started_at', { mode: 'timestamp' }),
-  finishedAt: integer('finished_at', { mode: 'timestamp' }),
+  claimedAt: integer('claimed_at', { mode: 'timestamp_ms' }).notNull(),
+  startedAt: integer('started_at', { mode: 'timestamp_ms' }),
+  finishedAt: integer('finished_at', { mode: 'timestamp_ms' }),
   errorCode: text('error_code'),
   errorMessage: text('error_message'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   uniqueIndex('run_executions_schedule_slot_uidx').on(table.scheduleId, table.scheduledFor),
   uniqueIndex('run_executions_account_slot_uidx').on(table.xiaomiAccountId, table.scheduledFor),
@@ -111,7 +111,7 @@ export const runExecutions = sqliteTable('run_executions', {
 export const rateLimits = sqliteTable('rate_limits', {
   key: text('key').primaryKey(),
   count: integer('count').notNull(),
-  resetAt: integer('reset_at', { mode: 'timestamp' }).notNull(),
+  resetAt: integer('reset_at', { mode: 'timestamp_ms' }).notNull(),
 }, (table) => [
   index('rate_limits_reset_at_idx').on(table.resetAt),
 ])

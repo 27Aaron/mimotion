@@ -37,6 +37,7 @@ import {
   parseCron,
   type Schedule,
 } from "@/features/schedules/model";
+import { formatShanghaiDateTime } from "@/lib/time/format";
 import {
   createSchedule,
   deleteSchedule,
@@ -318,14 +319,7 @@ export default function SchedulesScreen() {
                       {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-center font-mono text-sm text-muted-foreground">
-                      {s.lastRunAt
-                        ? new Date(s.lastRunAt).toLocaleString(locale, {
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
+                      {formatShanghaiDateTime(s.lastRunAt, locale)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
