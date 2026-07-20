@@ -28,7 +28,7 @@
 
           mimotion = pkgs.buildNpmPackage rec {
             pname = "mimotion";
-            version = "1.1.0";
+            version = "2.0.0";
 
             src = builtins.path {
               path = ./.;
