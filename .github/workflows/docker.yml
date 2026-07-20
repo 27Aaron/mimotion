@@ -8,6 +8,11 @@ on:
     types:
       - published
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to publish
+        required: true
+        default: manual
 
 concurrency:
   group: docker-${{ github.ref }}
@@ -30,13 +35,8 @@ jobs:
       set-meta-labels: true
       meta-images: ghcr.io/${{ github.repository }}
       meta-tags: |
-        type=ref,event=branch
-        type=ref,event=tag
-        type=raw,value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
-        type=semver,pattern={{version}},value=${{ github.event.release.tag_name || github.ref_name }}
-        type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name || github.ref_name }}
-        type=sha,prefix=
-        type=raw,value=latest,enable={{is_default_branch}}
+        type=raw,value=${{ github.event.release.tag_name || inputs.image_tag || github.ref_name }}
+        type=raw,value=latest,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
     secrets:
       registry-auths: |
         - registry: ghcr.io
