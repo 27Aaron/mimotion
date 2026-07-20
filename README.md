@@ -78,10 +78,13 @@ JWT_SECRET=your-64-char-hex-secret
 
 # Initial admin account (only effective on first setup)
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=password
+ADMIN_PASSWORD=replace-with-a-strong-password
+
+# Optional: previous keys used during ENCRYPTION_KEY rotation (comma-separated)
+# ENCRYPTION_KEY_PREVIOUS=previous-64-char-hex-key
 ```
 
-> **Important**: `ENCRYPTION_KEY` and `JWT_SECRET` must be 64-character hex strings. Changing `ENCRYPTION_KEY` will make existing encrypted Xiaomi tokens unreadable.
+> **Important**: `ENCRYPTION_KEY` and `JWT_SECRET` must be 64-character hex strings. During key rotation, put the old key in `ENCRYPTION_KEY_PREVIOUS`; new ciphertext uses the current key while old ciphertext remains readable.
 
 ### Start
 
@@ -99,12 +102,15 @@ Visit `http://localhost:3000` and log in with the admin credentials from `.env`.
 ### Common Commands
 
 ```bash
-npm run dev          # Development server
+npm run dev          # Development server + scheduler worker
 npm run build        # Production build
 npm run check        # Lint, type-check, test, and production build
-npm run start        # Production server
+npm run start        # Production web server + worker
+npm run start:web    # Web only (split-process deployment)
+npm run start:worker # Scheduler worker only
 npm run db:studio    # Drizzle Studio visual database manager
-npm run db:push      # Sync schema to database
+npm run db:migrate   # Apply versioned migrations and initialize admin
+npm run db:generate  # Generate a migration after schema changes
 npm run db:init-admin # Create/reset admin account
 ```
 
@@ -134,22 +140,25 @@ app/
   api/                     # API routes
 components/
   ui/                      # shadcn/ui components
+features/                  # Frontend feature modules and typed API clients
 lib/
-  db/schema.ts             # Database schema (5 tables)
+  db/schema.ts             # Business and scheduler infrastructure tables
   auth.ts                  # JWT + password utilities
   crypto.ts                # AES-256-GCM encrypt/decrypt
-  rate-limit.ts            # In-memory rate limiter
-  scheduler.ts             # Cron scheduler
+  rate-limit.ts            # Durable SQLite rate limiter
+  scheduling/              # Cron, execution queue, and orchestration
   xiaomi/auth.ts           # Xiaomi/Zepp login
   xiaomi/client.ts         # Step submission API
   bark.ts / telegram.ts    # Push services
+worker/main.ts             # Dedicated scheduler worker entry point
+drizzle/migrations/        # Versioned SQLite migrations
 messages/
   zh.json / en.json        # i18n translation files
 ```
 
 ## Database
 
-SQLite + Drizzle ORM, 5 tables:
+SQLite + Drizzle ORM with 5 business tables plus the internal `run_executions` and `rate_limits` infrastructure tables:
 
 ```
 users ──1:N── xiaomi_accounts ──1:N── schedules ──1:N── run_logs
@@ -163,7 +172,9 @@ users ──1:N── xiaomi_accounts ──1:N── schedules ──1:N── 
 - **schedules** — Scheduled tasks (cron + step range)
 - **run_logs** — Execution logs
 
-After modifying the schema, run `npm run db:push` to sync.
+After modifying the schema, run `npm run db:generate`. Startup automatically applies pending migrations in place without rebuilding the SQLite database.
+
+Scheduling runs in a dedicated worker process. `MIMOTION_ROLE=all` starts both web and worker by default. For split-process deployment, start one process with `MIMOTION_ROLE=web` and another with `MIMOTION_ROLE=worker`, both pointing at the same local SQLite database file.
 
 ## Deployment
 
@@ -212,6 +223,7 @@ The `environmentFile` should contain:
 ```env
 ENCRYPTION_KEY=your-64-char-hex-key
 JWT_SECRET=your-64-char-hex-secret
+ADMIN_PASSWORD=a-strong-password-for-first-start
 ```
 
 Generate keys: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -227,7 +239,7 @@ Generate keys: `node -e "console.log(require('crypto').randomBytes(32).toString(
 | `encryptionKey` | `null` | AES-256-GCM key (64-char hex). Prefer `environmentFile` |
 | `jwtSecret` | `null` | JWT secret (64-char hex). Prefer `environmentFile` |
 | `adminUsername` | `"admin"` | Initial admin username |
-| `adminPassword` | `"password"` | Initial admin password |
+| `adminPassword` | `"password"` | Initial admin password; production first start must override it |
 | `appUrl` | `null` | Public URL (for Bark push icon) |
 | `user` / `group` | `"mimotion"` | Service user/group |
 | `environment` | `{ }` | Extra environment variables |
@@ -263,7 +275,7 @@ The service runs as a systemd service with security hardening (`ProtectSystem`, 
 | `encryptionKey` | `null` | AES-256-GCM key. Prefer `environmentFile` |
 | `jwtSecret` | `null` | JWT secret. Prefer `environmentFile` |
 | `adminUsername` | `"admin"` | Initial admin username |
-| `adminPassword` | `"password"` | Initial admin password |
+| `adminPassword` | `"password"` | Initial admin password; production first start must override it |
 | `appUrl` | `null` | Public URL (for Bark push icon) |
 | `environment` | `{ }` | Extra environment variables |
 | `environmentFile` | `null` | File with secrets (KEY=VALUE format) |

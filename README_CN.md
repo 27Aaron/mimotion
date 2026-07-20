@@ -78,10 +78,13 @@ JWT_SECRET=your-64-char-hex-secret
 
 # 初始管理员账号（仅首次初始化有效）
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=password
+ADMIN_PASSWORD=请设置强密码
+
+# 可选：轮换 ENCRYPTION_KEY 时保留旧密钥，多个用逗号分隔
+# ENCRYPTION_KEY_PREVIOUS=旧的64位hex密钥
 ```
 
-> **重要**: `ENCRYPTION_KEY` 和 `JWT_SECRET` 必须是 64 字符的十六进制字符串。修改 `ENCRYPTION_KEY` 会导致已加密的小米 Token 无法解密。
+> **重要**: `ENCRYPTION_KEY` 和 `JWT_SECRET` 必须是 64 字符的十六进制字符串。轮换加密密钥时先将旧密钥放入 `ENCRYPTION_KEY_PREVIOUS`，应用会兼容读取旧密文，新写入使用当前密钥。
 
 ### 启动
 
@@ -99,12 +102,15 @@ npm run dev      # 启动开发服务器
 ### 常用命令
 
 ```bash
-npm run dev          # 开发服务器
+npm run dev          # 开发服务器 + 调度 Worker
 npm run build        # 生产构建
 npm run check        # 代码、类型、测试与生产构建检查
-npm run start        # 生产运行
+npm run start        # 生产运行 Web + Worker
+npm run start:web    # 仅运行 Web（分进程部署）
+npm run start:worker # 仅运行调度 Worker（分进程部署）
 npm run db:studio    # Drizzle Studio 可视化管理数据库
-npm run db:push      # 同步 Schema 到数据库
+npm run db:migrate   # 执行版本化迁移并初始化管理员
+npm run db:generate  # Schema 变更后生成迁移
 npm run db:init-admin # 创建/重置管理员
 ```
 
@@ -134,22 +140,25 @@ app/
   api/                     # API 路由
 components/
   ui/                      # shadcn/ui 组件
+features/                  # 前端功能模块与类型化 API 客户端
 lib/
-  db/schema.ts             # 数据库 Schema（5 张表）
+  db/schema.ts             # 业务表与调度基础表
   auth.ts                  # JWT + 密码工具
   crypto.ts                # AES-256-GCM 加解密
-  rate-limit.ts            # 内存速率限制器
-  scheduler.ts             # Cron 调度执行器
+  rate-limit.ts            # SQLite 持久化速率限制器
+  scheduling/              # Cron、执行队列与任务编排
   xiaomi/auth.ts           # 小米/Zepp 登录
   xiaomi/client.ts         # 提交步数 API
   bark.ts / telegram.ts    # 推送服务
+worker/main.ts             # 独立调度 Worker 入口
+drizzle/migrations/        # 版本化 SQLite 迁移
 messages/
   zh.json / en.json        # 国际化翻译文件
 ```
 
 ## 数据库
 
-SQLite + Drizzle ORM，5 张表：
+SQLite + Drizzle ORM，5 张业务表，另有 `run_executions` 和 `rate_limits` 两张内部基础表：
 
 ```
 users ──1:N── xiaomi_accounts ──1:N── schedules ──1:N── run_logs
@@ -163,7 +172,9 @@ users ──1:N── xiaomi_accounts ──1:N── schedules ──1:N── 
 - **schedules** — 定时任务（Cron + 步数范围）
 - **run_logs** — 执行日志
 
-Schema 修改后运行 `npm run db:push` 同步。
+Schema 修改后运行 `npm run db:generate` 生成迁移；应用启动时自动执行尚未应用的迁移。已有 SQLite 数据库会原地升级，不会重建。
+
+调度器运行在独立 Worker 进程中。默认 `MIMOTION_ROLE=all` 会同时管理 Web 和 Worker；需要拆分部署时，分别以 `MIMOTION_ROLE=web` 和 `MIMOTION_ROLE=worker` 启动，并让两个进程访问同一个本地 SQLite 数据库文件。
 
 ## 部署
 
@@ -212,6 +223,7 @@ inputs.mimotion.url = "github:27Aaron/mimotion";
 ```env
 ENCRYPTION_KEY=你的64位hex密钥
 JWT_SECRET=你的64位hex密钥
+ADMIN_PASSWORD=首次启动使用的强密码
 ```
 
 生成密钥：`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -227,7 +239,7 @@ JWT_SECRET=你的64位hex密钥
 | `encryptionKey` | `null` | AES-256-GCM 密钥（64位hex）。建议用 `environmentFile` |
 | `jwtSecret` | `null` | JWT 签名密钥（64位hex）。建议用 `environmentFile` |
 | `adminUsername` | `"admin"` | 初始管理员用户名 |
-| `adminPassword` | `"password"` | 初始管理员密码 |
+| `adminPassword` | `"password"` | 初始管理员密码；生产环境首次启动必须覆盖默认值 |
 | `appUrl` | `null` | 公网地址（用于 Bark 推送图标） |
 | `user` / `group` | `"mimotion"` | 服务用户/组 |
 | `environment` | `{ }` | 额外环境变量 |
@@ -263,7 +275,7 @@ JWT_SECRET=你的64位hex密钥
 | `encryptionKey` | `null` | AES-256-GCM 密钥。建议用 `environmentFile` |
 | `jwtSecret` | `null` | JWT 密钥。建议用 `environmentFile` |
 | `adminUsername` | `"admin"` | 初始管理员用户名 |
-| `adminPassword` | `"password"` | 初始管理员密码 |
+| `adminPassword` | `"password"` | 初始管理员密码；生产环境首次启动必须覆盖默认值 |
 | `appUrl` | `null` | 公网地址（用于 Bark 推送图标） |
 | `environment` | `{ }` | 额外环境变量 |
 | `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
