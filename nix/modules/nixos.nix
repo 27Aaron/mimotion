@@ -113,7 +113,7 @@ in
         {
           NODE_ENV = "production";
           PORT = toString cfg.port;
-          HOSTNAME = "0.0.0.0";
+          MIMOTION_HOST = "0.0.0.0";
           DATABASE_URL = "${cfg.dataDir}/mimotion.db";
           ADMIN_USERNAME = cfg.adminUsername;
           ADMIN_PASSWORD = cfg.adminPassword;

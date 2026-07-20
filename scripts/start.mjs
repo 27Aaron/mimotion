@@ -6,6 +6,12 @@ import process from 'node:process'
 const isDevelopment = process.argv.includes('--dev')
 const role = process.env.MIMOTION_ROLE || 'all'
 const validRoles = new Set(['all', 'web', 'worker'])
+const runtimeEnv = {
+  ...process.env,
+  // HOSTNAME is commonly inherited as the machine name on macOS and Linux,
+  // while Next.js treats it as the network address to bind to.
+  HOSTNAME: process.env.MIMOTION_HOST?.trim() || '0.0.0.0',
+}
 
 if (!validRoles.has(role)) {
   console.error(`Invalid MIMOTION_ROLE: ${role}. Expected all, web, or worker.`)
@@ -14,7 +20,7 @@ if (!validRoles.has(role)) {
 
 const migration = spawnSync(process.execPath, ['scripts/init-db.mjs'], {
   stdio: 'inherit',
-  env: process.env,
+  env: runtimeEnv,
 })
 if (migration.status !== 0) process.exit(migration.status || 1)
 
@@ -29,7 +35,7 @@ function executable(name) {
 function launch(name, command, args) {
   const child = spawn(command, args, {
     stdio: 'inherit',
-    env: process.env,
+    env: runtimeEnv,
   })
   children.push(child)
   child.on('exit', (code, signal) => {
