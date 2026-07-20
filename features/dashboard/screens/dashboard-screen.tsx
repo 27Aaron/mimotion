@@ -14,6 +14,7 @@ import { StatsGrid } from "@/components/dashboard/stats-grid";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getTranslations, getLocale } from "next-intl/server";
+import { formatShanghaiDateTime } from "@/lib/time/format";
 
 export default async function DashboardScreen() {
   const user = await getCurrentUser();
@@ -228,14 +229,7 @@ export default async function DashboardScreen() {
                       )}
                     </div>
                     <time className="flex-shrink-0 font-mono text-xs text-muted-foreground">
-                      {log.executedAt
-                        ? new Date(log.executedAt).toLocaleString(locale, {
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
+                      {formatShanghaiDateTime(log.executedAt, locale)}
                     </time>
                   </div>
                 </div>

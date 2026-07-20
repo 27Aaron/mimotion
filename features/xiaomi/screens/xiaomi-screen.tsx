@@ -33,6 +33,7 @@ import {
   updateXiaomiAccount,
   type XiaomiAccount,
 } from "@/features/xiaomi/client";
+import { formatShanghaiDateTime } from "@/lib/time/format";
 
 export default function XiaomiScreen() {
   const t = useTranslations("xiaomi");
@@ -146,13 +147,7 @@ export default function XiaomiScreen() {
   ];
 
   function formatDate(d: string | null) {
-    if (!d) return "-";
-    return new Date(d).toLocaleString(locale, {
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatShanghaiDateTime(d, locale);
   }
 
   return (

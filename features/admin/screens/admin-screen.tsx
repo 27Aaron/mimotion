@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatShanghaiDateTime } from "@/lib/time/format";
 import {
   Table,
   TableBody,
@@ -234,12 +235,7 @@ export default function AdminScreen() {
                     <span className="text-muted-foreground"> / {u.totalSchedules}</span>
                   </TableCell>
                   <TableCell className="text-center font-mono text-sm text-muted-foreground">
-                    {new Date(u.updatedAt).toLocaleString(locale, {
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatShanghaiDateTime(u.updatedAt, locale)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center gap-1">
