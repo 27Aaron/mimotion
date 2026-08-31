@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
 use crate::{
-    auth, crypto,
-    models::UserRow,
+    auth,
     notifications::{self, PushMessage},
+    security::crypto,
     state::AppState,
+    storage::models::UserRow,
 };
 
 use super::common::{

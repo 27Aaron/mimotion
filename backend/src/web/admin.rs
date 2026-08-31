@@ -77,9 +77,9 @@ pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Res
                                 .get::<Option<String>, _>("telegram_chat_id")
                                 .is_some_and(|chat_id| !chat_id.is_empty())
                     }),
-                created_at: crate::cron::timestamp_to_iso(Some(row.get("created_at")))
+                created_at: crate::scheduling::cron::timestamp_to_iso(Some(row.get("created_at")))
                     .unwrap_or_else(|| row.get::<i64, _>("created_at").to_string()),
-                updated_at: crate::cron::timestamp_to_iso(Some(row.get("updated_at")))
+                updated_at: crate::scheduling::cron::timestamp_to_iso(Some(row.get("updated_at")))
                     .unwrap_or_else(|| row.get::<i64, _>("updated_at").to_string()),
                 account_count: row.get("account_count"),
                 active_schedules: row.get("active_schedules"),

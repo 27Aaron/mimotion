@@ -6,9 +6,10 @@ use sqlx::SqlitePool;
 use tokio::net::lookup_host;
 use url::Url;
 
-use crate::{config::Config, crypto, models::UserRow};
+use crate::{config::Config, security::crypto, storage::models::UserRow};
 
-pub const BARK_ICON_URL: &str = "https://cdn.jsdelivr.net/gh/27Aaron/mimotion/app/icon.svg";
+pub const BARK_ICON_URL: &str =
+    "https://cdn.jsdelivr.net/gh/27Aaron/mimotion/frontend/public/icon.svg";
 
 #[derive(Debug, Clone)]
 pub struct NotificationSecrets {

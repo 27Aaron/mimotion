@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use crate::{
     auth::{self, AuthUser},
-    rate_limit,
+    security::rate_limit,
     state::AppState,
 };
 
@@ -114,7 +114,7 @@ pub async fn login(
         Err(error) => return app_error(error),
     }
 
-    let user = match sqlx::query_as::<_, crate::models::UserRow>(
+    let user = match sqlx::query_as::<_, crate::storage::models::UserRow>(
         "SELECT id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id, created_at, updated_at FROM users WHERE username = ? LIMIT 1",
     )
     .bind(&input.username)
@@ -262,7 +262,7 @@ pub async fn register(
         return app_error(error);
     }
 
-    let user = crate::models::UserRow {
+    let user = crate::storage::models::UserRow {
         id: user_id.clone(),
         username: input.username.clone(),
         password_hash,

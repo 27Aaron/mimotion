@@ -6,7 +6,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, deco
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::{config::Config, models::UserRow};
+use crate::{config::Config, storage::models::UserRow};
 
 pub const AUTH_COOKIE_NAME: &str = "auth_token";
 const JWT_ISSUER: &str = "mimotion";
