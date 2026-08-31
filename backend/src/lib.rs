@@ -8,4 +8,5 @@ pub mod notifications;
 pub mod rate_limit;
 pub mod scheduler;
 pub mod state;
+pub mod web;
 pub mod xiaomi;
