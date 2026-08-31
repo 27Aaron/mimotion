@@ -1,52 +1,36 @@
 # syntax=docker/dockerfile:1
 
-# --- Dependencies ---
-FROM node:22-slim AS deps
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --global npm@11.16.0 --no-audit --no-fund
-WORKDIR /app
+FROM node:22-slim AS frontend
+WORKDIR /src
+
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --no-audit --no-fund
-
-# --- Build ---
-FROM node:22-slim AS builder
-WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
+RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY . .
-RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build
+RUN npm run build:frontend
 
-# --- Runtime ---
-FROM node:22-slim AS runner
-WORKDIR /app
+FROM rust:1.96-bookworm AS backend
+WORKDIR /src
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+COPY backend/Cargo.toml backend/Cargo.lock ./backend/
+COPY backend/migrations ./backend/migrations
+COPY backend/src ./backend/src
+COPY --from=frontend /src/frontend/dist ./frontend/dist
+RUN cargo build --manifest-path backend/Cargo.toml --release
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gosu && \
-    rm -rf /var/lib/apt/lists/* && \
-    groupadd --system --gid 1001 nodejs && \
-    useradd --system --uid 1001 --gid nodejs appuser
+FROM debian:bookworm-slim AS runtime
+WORKDIR /var/lib/mimotion
 
-# Standalone output (contains server.js + all needed deps)
-COPY --from=builder --chown=appuser:nodejs /app/.next/standalone ./
-# Static assets not included in standalone
-COPY --from=builder --chown=appuser:nodejs /app/.next/static ./.next/static
-# Init script for DB + admin user
-COPY --from=builder --chown=appuser:nodejs /app/scripts/init-db.mjs ./scripts/init-db.mjs
-COPY --from=builder --chown=appuser:nodejs /app/scripts/start.mjs ./scripts/start.mjs
-COPY --from=builder --chown=appuser:nodejs /app/drizzle/migrations ./drizzle/migrations
-COPY --from=builder --chown=appuser:nodejs /app/.worker ./.worker
-COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home --home-dir /var/lib/mimotion mimotion
+
+COPY --from=backend /src/backend/target/release/mimotion /usr/local/bin/mimotion
+
+ENV MIMOTION_HOST=0.0.0.0
+ENV PORT=3000
+ENV DATABASE_URL=/var/lib/mimotion/mimotion.db
 
 EXPOSE 3000
-ENV PORT=3000
-ENV MIMOTION_HOST="0.0.0.0"
-
-# Prepare the bind-mounted database directory as root, then drop privileges.
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["node", "scripts/start.mjs"]
+USER mimotion
+ENTRYPOINT ["/usr/local/bin/mimotion"]
