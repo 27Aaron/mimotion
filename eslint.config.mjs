@@ -21,6 +21,7 @@ export default defineConfig([
     'out/**',
     'build/**',
     '.worker/**',
+    'frontend/dist/**',
     'next-env.d.ts',
   ]),
 ])
