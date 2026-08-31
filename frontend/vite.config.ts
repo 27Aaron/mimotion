@@ -5,37 +5,16 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
-const repositoryDir = path.resolve(frontendDir, "..");
+const sourceDir = path.resolve(frontendDir, "src");
 
 export default defineConfig({
   root: frontendDir,
   plugins: [react()],
   resolve: {
-    alias: [
-      {
-        find: "@/i18n/routing",
-        replacement: path.resolve(frontendDir, "src/runtime/routing.ts"),
-      },
-      {
-        find: "next-intl",
-        replacement: path.resolve(frontendDir, "src/runtime/i18n-runtime.tsx"),
-      },
-      {
-        find: "next/navigation",
-        replacement: path.resolve(frontendDir, "src/runtime/navigation.ts"),
-      },
-      {
-        find: "next/link",
-        replacement: path.resolve(frontendDir, "src/runtime/link.tsx"),
-      },
-      {
-        find: /^@\//,
-        replacement: repositoryDir + "/",
-      },
-    ],
+    alias: [{ find: /^@\//, replacement: sourceDir + "/" }],
   },
   css: {
-    postcss: path.resolve(repositoryDir, "postcss.config.mjs"),
+    postcss: path.resolve(frontendDir, "postcss.config.mjs"),
   },
   server: {
     port: 5173,
