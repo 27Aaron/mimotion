@@ -17,8 +17,7 @@ MiMotion 的 Rust 版本保留现有 React 视觉和交互，生产运行时由�
 ## 本地构建
 
     npm install
-    npm run build:frontend
-    cargo build --manifest-path backend/Cargo.toml --release
+    npm run build:single
 
 构建完成后只需要运行：
 
@@ -28,10 +27,9 @@ MiMotion 的 Rust 版本保留现有 React 视觉和交互，生产运行时由�
 
 ## 迁移策略
 
-- Rust 迁移器复用 drizzle/migrations，兼容现有 _mimotion_migrations 记录。
+- Rust 迁移器使用 backend/migrations，兼容现有 _mimotion_migrations 记录。
 - 认证 Cookie、AES-256-GCM 数据格式和主要 API 字段保持兼容。
-- backend/src/xiaomi/data_template.txt 保留旧 Xiaomi/Zepp 请求模板，协议迁移必须通过固定请求样本验证。
-- 当前 Next.js 版本暂时保留作为行为和视觉对照；Rust 版本完成验证后再切换默认构建入口。
+- backend/src/xiaomi/data_template.txt 保留 Xiaomi/Zepp 请求模板，协议迁移必须通过固定请求样本验证。
 
 ## 运行配置
 

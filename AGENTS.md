@@ -6,63 +6,46 @@ Xiaomi/Zepp 自动刷步服务。用户绑定小米账号后，通过 cron 定�
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router) + React 19 + TypeScript
+- **Frontend**: Vite + React 19 + TypeScript
+- **Backend**: Rust + Axum + Tokio
 - **Styling**: Tailwind CSS v4 + shadcn/ui (base-ui) + next-themes (dark/light)
 - **Icons**: lucide-react
-- **Database**: SQLite via better-sqlite3 + Drizzle ORM
-- **Auth**: JWT (jose) + bcryptjs + HttpOnly cookies
+- **Database**: SQLite via SQLx
+- **Auth**: JWT + bcrypt + HttpOnly cookies
 - **Encryption**: AES-256-GCM (Xiaomi token 存储)
-- **Scheduler**: node-cron (Asia/Shanghai timezone)
+- **Scheduler**: Tokio + custom five-field cron (Asia/Shanghai timezone)
 - **Notifications**: Bark push service + Telegram Bot (可扩展)
 
 ## Commands
 
 ```bash
-npm run dev           # 开发 Web + Worker（自动迁移）
-npm run setup         # 执行迁移并初始化管理员
-npm run build         # 生产构建 Web + Worker
-npm run check         # lint + 类型 + 测试 + 生产构建
-npm run db:generate   # 根据 Schema 生成迁移
-npm run db:migrate    # 执行版本化迁移
-npm run db:studio     # Drizzle Studio 可视化
-npm run db:init-admin # 创建初始管理员
+npm install           # 安装 frontend workspace 依赖
+npm run dev:frontend  # Vite 前端开发服务器
+npm run check         # 前端检查 + Rust 格式、测试和 Clippy
+npm run build:single  # 构建前端并生成单一 Rust 二进制
+npm run start:single  # 启动单一二进制
 ```
 
 ## Project Structure
 
 ```
-app/
-  [locale]/.../page.tsx    # 薄页面路由入口
-  api/.../route.ts         # 薄 Route Handler 入口
-  globals.css              # Tailwind + shadcn 主题变量 (oklch)
-  layout.tsx               # 根布局 + ThemeProvider
-components/
-  dashboard/               # Dashboard 跨领域组件
-  layout/                  # 导航、主题、语言组件
-  providers/               # ThemeProvider、Toaster
-  ui/                      # shadcn/ui 组件 (card, table, dialog, button 等)
-features/
-  <domain>/components/     # 领域私有组件（可选）
-  <domain>/screens/        # 页面级业务组件
-  <domain>/server/         # API Handler 与服务端业务逻辑
-  <domain>/client.ts       # 浏览器端类型化 API 客户端（可选）
-  <domain>/contracts.ts    # Zod 请求契约（可选）
-lib/
-  api/                     # 通用请求校验辅助
-  auth/                    # JWT、密码、注册、重定向
-  db/                      # 数据库、Schema、所有权操作
-  http/                    # 通用 HTTP 客户端
-  notifications/           # Bark、Telegram、通知凭据
-  scheduling/              # Cron、持久化队列、执行器
-  security/                # AES 加密、限流、URL 安全
-  xiaomi/                  # Xiaomi/Zepp 协议
-  utils.ts                 # cn() 工具函数 (shadcn)
-tests/unit/                # 单元测试
-worker/main.ts             # 独立调度 Worker 入口
-drizzle/migrations/        # 版本化 SQLite 迁移
-scripts/
-  init-db.mjs              # 迁移 + 初始化管理员
-  start.mjs                # Web / Worker 进程编排
+frontend/
+  src/app/                 # SPA 入口和应用级状态
+  src/components/          # 共享 UI、布局和 Provider
+  src/features/             # 业务页面和浏览器端 API
+  src/i18n/messages/        # zh/en 语言包
+  src/platform/             # 浏览器导航和平台适配
+  src/lib/                  # 纯前端工具
+  src/styles/               # 全局样式
+backend/
+  migrations/              # 版本化 SQLite 迁移
+  src/auth/                # JWT、密码和会话
+  src/security/            # 加密和限流
+  src/storage/             # SQLite、迁移和模型
+  src/scheduling/          # Cron 和持久化调度器
+  src/notifications/       # Bark、Telegram
+  src/xiaomi/              # Xiaomi/Zepp 协议
+  src/web/                 # Axum API Handler
 ```
 
 详细依赖规则见 `docs/architecture.md`。
@@ -111,7 +94,7 @@ scripts/
 
 ## Database Schema
 
-Schema 定义在 `lib/db/schema.ts`，使用 Drizzle ORM。修改后运行 `npm run db:generate` 生成版本化迁移。
+Schema 由 `backend/migrations/` 和 Rust `storage` 模块维护。新增数据库变更时，新增版本化 SQL 迁移，并补充 Rust 测试。
 
 ### 关系图
 
@@ -208,12 +191,12 @@ schedules 1──N run_logs      一个任务每次执行产生一条日志
 
 ## Key Conventions
 
-- 所有 API 路由使用 `getCurrentUser()` 验证登录状态
-- Admin 专用路由额外检查 `isAdmin` 字段
+- 所有 API 路由在 `backend/src/web` 验证会话和所有权
+- Admin 专用路由额外检查 `is_admin` 字段
 - Xiaomi token 使用 AES-256-GCM 加密存储，密钥来自 `ENCRYPTION_KEY`
-- 调度器使用 `Asia/Shanghai` 时区，分钟级匹配 cron 表达式
-- 前端页面为 React Server Components，交互部分使用 `'use client'`
+- 调度器使用 `Asia/Shanghai` 时区，分钟级匹配五字段 cron 表达式
+- 前端页面全部是 Vite/React 浏览器组件
 - 邀请码注册机制，管理员生成邀请码后用户才能注册
 - 邀请码为 8 位十六进制短码，复制时生成 `/login?code=XXX` 注册链接
 - 用户管理页（admin）：表格居中对齐，按注册时间升序排列，支持重置密码、查看推送配置状态
-- 新增 shadcn 组件：`npx shadcn add <component>`
+- 新增 shadcn 组件：在 `frontend` workspace 中运行 `npx shadcn add <component>`
