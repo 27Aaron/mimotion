@@ -194,7 +194,7 @@ export default function SchedulesScreen() {
   return (
     <div className="flex flex-col">
       {/* Page header */}
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="page-title">{t("title")}</h1>
           <p className="mt-1 text-muted-foreground">
@@ -329,6 +329,7 @@ export default function SchedulesScreen() {
                           className="h-8 w-8"
                           onClick={() => handleToggle(s.id, s.isActive)}
                           title={s.isActive ? t("pause") : t("start")}
+                          aria-label={s.isActive ? t("pause") : t("start")}
                         >
                           {s.isActive ? (
                             <Pause className="h-4 w-4 text-amber-500" />
@@ -342,6 +343,7 @@ export default function SchedulesScreen() {
                           className="h-8 w-8"
                           onClick={() => openEdit(s)}
                           title={tc("edit")}
+                          aria-label={tc("edit")}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -351,6 +353,7 @@ export default function SchedulesScreen() {
                           className="h-8 w-8"
                           onClick={() => handleDelete(s.id)}
                           title={tc("delete")}
+                          aria-label={tc("delete")}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>

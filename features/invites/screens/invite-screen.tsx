@@ -129,7 +129,7 @@ export default function InviteScreen() {
   return (
     <div className="flex flex-col">
       {/* Page header */}
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="page-title">{t("title")}</h1>
           <p className="mt-1 text-muted-foreground">
@@ -247,6 +247,8 @@ export default function InviteScreen() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => handleCopy(c.code)}
+                        title={tc("copyLink")}
+                        aria-label={tc("copyLink")}
                       >
                         {copiedCode === c.code ? (
                           <Check className="h-4 w-4 text-emerald-500" />
@@ -260,6 +262,8 @@ export default function InviteScreen() {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handleDelete(c.code)}
+                      title={tc("delete")}
+                      aria-label={tc("delete")}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

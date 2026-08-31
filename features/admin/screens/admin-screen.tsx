@@ -247,6 +247,7 @@ export default function AdminScreen() {
                             className="h-8 w-8"
                             onClick={() => openResetDialog(u)}
                             title={t("resetPassword")}
+                            aria-label={t("resetPassword")}
                           >
                             <KeyRound className="h-4 w-4 text-muted-foreground" />
                           </Button>
@@ -256,6 +257,7 @@ export default function AdminScreen() {
                             className="h-8 w-8"
                             onClick={() => handleDelete(u.id, u.username)}
                             title={t("deleteUser")}
+                            aria-label={t("deleteUser")}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
