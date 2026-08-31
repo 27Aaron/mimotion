@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::{
     auth::{self, AuthUser},
-    rate_limit::RateLimit,
+    security::rate_limit::RateLimit,
     state::AppState,
 };
 use std::sync::Arc;

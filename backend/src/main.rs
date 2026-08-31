@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use mimotion::scheduler::Scheduler;
-use mimotion::{config::Config, db, state::AppState, web};
+use mimotion::scheduling::Scheduler;
+use mimotion::{config::Config, state::AppState, storage::db, web};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::EnvFilter;

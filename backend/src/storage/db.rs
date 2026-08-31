@@ -13,19 +13,19 @@ use crate::config::Config;
 const MIGRATIONS: &[(&str, &str)] = &[
     (
         "0000_baseline.sql",
-        include_str!("../../drizzle/migrations/0000_baseline.sql"),
+        include_str!("../../migrations/0000_baseline.sql"),
     ),
     (
         "0001_encrypt_notification_secrets.sql",
-        include_str!("../../drizzle/migrations/0001_encrypt_notification_secrets.sql"),
+        include_str!("../../migrations/0001_encrypt_notification_secrets.sql"),
     ),
     (
         "0002_durable_rate_limits.sql",
-        include_str!("../../drizzle/migrations/0002_durable_rate_limits.sql"),
+        include_str!("../../migrations/0002_durable_rate_limits.sql"),
     ),
     (
         "0003_normalize_timestamps_to_milliseconds.sql",
-        include_str!("../../drizzle/migrations/0003_normalize_timestamps_to_milliseconds.sql"),
+        include_str!("../../migrations/0003_normalize_timestamps_to_milliseconds.sql"),
     ),
 ];
 

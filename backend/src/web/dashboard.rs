@@ -84,7 +84,7 @@ pub async fn get(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Resp
         .into_iter()
         .map(|row| DashboardLog {
             id: row.get("id"),
-            executed_at: crate::cron::timestamp_to_iso(Some(row.get("executed_at")))
+            executed_at: crate::scheduling::cron::timestamp_to_iso(Some(row.get("executed_at")))
                 .unwrap_or_else(|| row.get::<i64, _>("executed_at").to_string()),
             step_written: row.get("step_written"),
             status: row.get("status"),
