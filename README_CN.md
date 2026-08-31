@@ -2,348 +2,99 @@
 
 # MiMotion
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-000000.svg?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
-[![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57.svg?logo=sqlite)](https://www.sqlite.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?logo=tailwindcss)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-WTFPL-FF4136.svg)](http://www.wtfpl.net/)
-
 **小米运动自动刷步服务 — 多账号 · 定时任务 · 推送通知**
 
-English | [中文](README_CN.md)
+[English](README.md) | 中文
 
 </div>
 
-小米运动自动刷步服务。绑定小米账号后，通过 Cron 定时随机写入步数，支持多账号、多任务、推送通知（Bark / Telegram）。
+MiMotion 是一个自托管的小米运动 / Zepp 自动刷步服务，支持多账号、Cron 定时任务、自动重登录以及 Bark / Telegram 通知。
 
-## 功能特性
+## 当前架构
 
-- **多账号管理** — 一个用户可绑定多个小米/Zepp 账号，独立管理
-- **定时刷步** — Cron 表达式自定义执行时间，随机步数范围 `[min, max]`
-- **自动重登录** — Token 过期后自动使用 loginToken 刷新，loginToken 失效则用密码重登录，全链路加密存储
-- **推送通知** — 支持 Bark 和 Telegram Bot，成功/失败实时推送
-- **邀请码注册** — 管理员生成邀请码控制注册准入
-- **中英双语** — next-intl 国际化支持
-- **深色模式** — 亮/暗主题切换
-- **管理后台** — 用户管理、邀请码管理、密码重置
+- `frontend/`：Vite + React 前端，保留原有视觉设计和交互页面。
+- `backend/`：Rust + Axum + SQLx + Tokio，负责 API、SQLite、调度器、通知和 Xiaomi 协议。
 
-## 技术栈
-
-| 类别 | 技术 |
-|------|------|
-| 框架 | Next.js 16 (App Router) + React 19 + TypeScript 6 |
-| 样式 | Tailwind CSS v4 + shadcn/ui (base-ui) |
-| 数据库 | SQLite (better-sqlite3) + Drizzle ORM |
-| 认证 | JWT (jose) + bcryptjs + HttpOnly Cookie |
-| 加密 | AES-256-GCM（Xiaomi token 加密存储） |
-| 调度 | node-cron (Asia/Shanghai 时区) |
-| 推送 | Bark + Telegram Bot |
-| 国际化 | next-intl |
+Rust 后端会把 `frontend/dist` 嵌入最终二进制，生产环境只需要运行一个文件，不需要 Node.js。
 
 ## 快速开始
 
 ### 环境要求
 
-- Node.js >= 22
-- npm >= 9
+- Node.js >= 22（仅用于构建前端）
+- Rust >= 1.96
 
-### 安装
+### 配置
+
+复制并编辑环境变量：
 
 ```bash
-# 克隆项目
-git clone https://github.com/27aaron/mimotion.git
-cd mimotion
-
-# 安装依赖
-npm install
-
-# 复制环境变量
 cp .env.example .env
 ```
 
-### 配置环境变量
-
-编辑 `.env` 文件：
+至少需要设置：
 
 ```env
-# 数据库路径
 DATABASE_URL=./data/mimotion.db
-
-# 加密密钥（32 字节 hex，64 字符）— 生成方式: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-ENCRYPTION_KEY=your-64-char-hex-key
-
-# JWT 密钥（32 字节 hex，64 字符）— 生成方式同上
-JWT_SECRET=your-64-char-hex-secret
-
-# 初始管理员账号（仅首次初始化有效）
+ENCRYPTION_KEY=64位十六进制密钥
+JWT_SECRET=64位十六进制密钥
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=请设置强密码
-
+MIMOTION_HOST=0.0.0.0
+PORT=3000
 ```
 
-> **重要**: `ENCRYPTION_KEY` 和 `JWT_SECRET` 必须是 64 字符的十六进制字符串。请持久保存 `ENCRYPTION_KEY` 且不要随意更换，否则已有加密凭据将无法读取。
-
-### 启动
+### 开发和构建
 
 ```bash
-# 开发模式（自动初始化数据库和管理员）
-npm run dev
+npm install
+npm run dev:frontend
 
-# 或分步执行
-npm run setup    # 初始化数据库 + 创建管理员
-npm run dev      # 启动开发服务器
+# 构建前端并生成 Rust 单二进制
+npm run build:single
+
+# 启动
+npm run start:single
 ```
 
-访问 `http://localhost:3000`，使用 `.env` 中配置的管理员账号登录。
+开发前端默认运行在 `http://localhost:5173`，API 请求代理到 `http://localhost:3000`。
 
-### 常用命令
+## 功能
+
+- 多个 Xiaomi / Zepp 账号
+- 随机步数范围和 Cron 定时任务
+- Token → loginToken → 密码的自动重登录链路
+- Bark / Telegram 推送
+- 邀请码注册和管理员后台
+- 中英文语言包、暗色模式
+- SQLite 原地迁移和持久化执行日志
+
+## 目录结构
+
+详细目录约定见 [代码架构说明](docs/architecture.md)，单二进制部署说明见 [Rust 单二进制运行架构](docs/rust-single-binary.md)。
+
+```text
+frontend/
+  src/app/                  # SPA 入口
+  src/components/           # 共享 UI 和布局
+  src/features/             # 业务页面和浏览器端 API
+  src/i18n/messages/        # zh/en 语言包
+  src/platform/             # 浏览器导航和平台适配
+  src/styles/               # 全局样式
+
+backend/
+  migrations/               # SQLite 迁移
+  src/web/                  # Axum API
+  src/storage/              # 数据库和模型
+  src/scheduling/           # Cron 和调度器
+  src/xiaomi/               # Xiaomi/Zepp 协议
+  src/notifications/        # Bark / Telegram
+```
+
+## Docker
 
 ```bash
-npm run dev          # 开发服务器 + 调度 Worker
-npm run build        # 生产构建
-npm run check        # 代码、类型、测试与生产构建检查
-npm run start        # 生产运行 Web + Worker
-npm run start:web    # 仅运行 Web（分进程部署）
-npm run start:worker # 仅运行调度 Worker（分进程部署）
-npm run db:studio    # Drizzle Studio 可视化管理数据库
-npm run db:migrate   # 执行版本化迁移并初始化管理员
-npm run db:generate  # Schema 变更后生成迁移
-npm run db:init-admin # 创建/重置管理员
+docker compose up -d --build
 ```
 
-### Rust 单进程版本
-
-保留现有 React 前端的视觉和交互，Vite 构建结果会被嵌入 Rust 二进制。Rust 进程同时提供 Web、API 和调度器，运行时不需要 Node.js。
-
-    npm run build:single
-    npm run start:single
-
-数据库和密钥仍然保存在二进制外部，默认数据库路径为 ./data/mimotion.db。当前 Next.js 版本继续保留作为迁移期间的行为对照。
-
-## 使用流程
-
-1. **管理员登录** — 使用初始管理员账号登录
-2. **生成邀请码** — 在「邀请码」页面生成邀请码，分享给用户
-3. **用户注册** — 用户通过邀请码注册账号
-4. **绑定小米账号** — 在「小米账号」页面添加小米/Zepp 账号（输入账号和密码，系统自动登录并加密存储 Token）
-5. **创建定时任务** — 在「定时任务」页面创建刷步任务，选择账号、设置 Cron 时间和步数范围
-6. **查看执行记录** — 在「控制台」查看执行日志和统计信息
-7. **配置推送**（可选） — 在「设置」页面配置 Bark URL 或 Telegram Bot Token
-
-## 项目结构
-
-```
-app/
-  [locale]/
-    (auth)/                # 认证路由入口
-    (dashboard)/           # Dashboard 路由入口（需登录）
-  api/                     # 薄 Route Handler 入口
-components/
-  dashboard/               # Dashboard 跨领域组件
-  layout/                  # 导航、主题和语言组件
-  providers/               # 全局 React Provider
-  ui/                      # shadcn/ui 组件
-features/
-  */components/            # 领域私有组件
-  */screens/               # 页面级业务组件
-  */server/                # 服务端 Handler 与业务用例
-  */client.ts              # 浏览器端类型化 API 客户端
-  */contracts.ts           # 领域请求校验
-lib/
-  auth/                    # JWT、密码、注册与跳转
-  db/                      # SQLite、Schema 与所有权操作
-  http/                    # 通用 HTTP 客户端
-  notifications/           # Bark、Telegram 与通知凭据
-  security/                # 加密、限流和 URL 安全
-  scheduling/              # Cron、执行队列与任务编排
-  xiaomi/                  # Xiaomi/Zepp 登录与步数协议
-tests/unit/                # 单元测试
-worker/main.ts             # 独立调度 Worker 入口
-drizzle/migrations/        # 版本化 SQLite 迁移
-messages/
-  zh.json / en.json        # 国际化翻译文件
-```
-
-详细的依赖方向和文件放置规则见 [代码架构说明](docs/architecture.md)。
-
-## 数据库
-
-SQLite + Drizzle ORM，5 张业务表，另有 `run_executions` 和 `rate_limits` 两张内部基础表：
-
-```
-users ──1:N── xiaomi_accounts ──1:N── schedules ──1:N── run_logs
-  │
-  └──1:N── invite_codes
-```
-
-- **users** — 用户、推送配置
-- **invite_codes** — 邀请码（注册准入控制）
-- **xiaomi_accounts** — 小米账号（Token 加密存储）
-- **schedules** — 定时任务（Cron + 步数范围）
-- **run_logs** — 执行日志
-
-Schema 修改后运行 `npm run db:generate` 生成迁移；应用启动时自动执行尚未应用的迁移。已有 SQLite 数据库会原地升级，不会重建。
-
-调度器运行在独立 Worker 进程中。默认 `MIMOTION_ROLE=all` 会同时管理 Web 和 Worker；需要拆分部署时，分别以 `MIMOTION_ROLE=web` 和 `MIMOTION_ROLE=worker` 启动，并让两个进程访问同一个本地 SQLite 数据库文件。
-
-## 部署
-
-### Node.js 部署
-
-```bash
-npm run build
-npm run start
-```
-
-建议使用 PM2 管理进程：
-
-```bash
-npm install -g pm2
-pm2 start npm --name mimotion -- start
-```
-
-### Nix / NixOS 部署
-
-在 flake inputs 中添加：
-
-```nix
-inputs.mimotion.url = "github:27Aaron/mimotion";
-```
-
-#### NixOS Module
-
-```nix
-{
-  imports = [ inputs.mimotion.nixosModules.default ];
-
-  services.mimotion = {
-    enable = true;
-    port = 3000;
-    # 密钥（生产环境建议使用 environmentFile）
-    environmentFile = "/run/secrets/mimotion.env";
-    # 或直接设置（警告：会存入 /nix/store，全局可读）
-    # encryptionKey = "你的64位hex密钥";
-    # jwtSecret = "你的64位hex密钥";
-  };
-}
-```
-
-`environmentFile` 内容：
-
-```env
-ENCRYPTION_KEY=你的64位hex密钥
-JWT_SECRET=你的64位hex密钥
-ADMIN_PASSWORD=首次启动使用的强密码
-```
-
-生成密钥：`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-
-**NixOS 选项：**
-
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `enable` | `false` | 启用服务 |
-| `package` | flake 构建 | MiMotion 包 |
-| `port` | `3000` | 监听端口 |
-| `dataDir` | `/var/lib/mimotion` | 数据库和运行时数据目录 |
-| `encryptionKey` | `null` | AES-256-GCM 密钥（64位hex）。建议用 `environmentFile` |
-| `jwtSecret` | `null` | JWT 签名密钥（64位hex）。建议用 `environmentFile` |
-| `adminUsername` | `"admin"` | 初始管理员用户名 |
-| `adminPassword` | `"password"` | 初始管理员密码；生产环境首次启动必须覆盖默认值 |
-| `user` / `group` | `"mimotion"` | 服务用户/组 |
-| `environment` | `{ }` | 额外环境变量 |
-| `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
-
-服务以 systemd 运行，含安全加固（`ProtectSystem`、`PrivateTmp`、`NoNewPrivileges`）。
-
-#### Home Manager
-
-**Linux**（systemd 用户服务）：
-
-```nix
-{
-  imports = [ inputs.mimotion.homeManagerModules.default ];
-
-  services.mimotion = {
-    enable = true;
-    environmentFile = "/path/to/secrets.env";
-  };
-}
-```
-
-**macOS**（launchd agent）—— 配置相同，Home Manager 自动识别平台并使用 launchd。
-
-**Home Manager 选项：**
-
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `enable` | `false` | 启用服务 |
-| `package` | flake 构建 | MiMotion 包 |
-| `port` | `3000` | 监听端口 |
-| `dataDir` | `~/.local/share/mimotion` | 数据目录 |
-| `encryptionKey` | `null` | AES-256-GCM 密钥。建议用 `environmentFile` |
-| `jwtSecret` | `null` | JWT 密钥。建议用 `environmentFile` |
-| `adminUsername` | `"admin"` | 初始管理员用户名 |
-| `adminPassword` | `"password"` | 初始管理员密码；生产环境首次启动必须覆盖默认值 |
-| `environment` | `{ }` | 额外环境变量 |
-| `environmentFile` | `null` | 密钥文件（KEY=VALUE 格式） |
-
-#### 开发环境
-
-```bash
-nix develop
-```
-
-> 支持 `x86_64-linux`、`aarch64-linux`、`x86_64-darwin`、`aarch64-darwin` 四平台。
-
-### Docker 部署
-
-使用 docker compose（推荐）：
-
-```bash
-# 克隆项目
-git clone https://github.com/27aaron/mimotion.git
-cd mimotion
-
-# 设置必需的环境变量
-export ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-export JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-
-# 构建并启动
-docker compose up -d
-```
-
-或手动构建：
-
-```bash
-docker build -t mimotion .
-docker run -d \
-  -p 3000:3000 \
-  -v ./data:/app/data \
-  -e DATABASE_URL=/app/data/mimotion.db \
-  -e ENCRYPTION_KEY=your-key \
-  -e JWT_SECRET=your-secret \
-  -e ADMIN_USERNAME=admin \
-  -e ADMIN_PASSWORD=your-password \
-  mimotion
-```
-
-> 支持 `linux/amd64` 和 `linux/arm64` 双架构，Docker 自动匹配当前机器架构。
-
-## 安全说明
-
-- Xiaomi Token 使用 AES-256-GCM 加密存储，密钥不写入数据库
-- 用户密码使用 bcrypt 哈希存储（cost 12）
-- JWT 存储在 HttpOnly + Secure Cookie 中，防止 XSS 窃取
-- 登录限流（10 次/15 分钟）、注册限流（5 次/小时）
-- API 路由统一鉴权，管理接口额外校验 `isAdmin`
-- 所有小米账号数据按用户隔离，跨用户不可访问
-- 输入校验：UUID 格式验证、步数上限、Cron 格式检查
-- 安全响应头：X-Frame-Options、X-Content-Type-Options、Referrer-Policy
-- 密码策略：至少 8 位，必须包含字母和数字
-- 密码修改后自动清除会话，强制重新登录
-
-## 许可证
-
-[WTFPL](http://www.wtfpl.net/) — Do What The Fuck You Want To Public License
+数据库默认挂载到 `./data/mimotion.db`。`ENCRYPTION_KEY` 必须长期保存，不能随意更换，否则已有加密凭据无法解密。
