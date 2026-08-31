@@ -45,6 +45,7 @@ export function StatsGrid({ items, className, cardClassName }: StatsGridProps) {
             } : undefined}
             role={interactive ? "button" : undefined}
             tabIndex={interactive ? 0 : undefined}
+            aria-pressed={interactive ? item.active : undefined}
           >
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
