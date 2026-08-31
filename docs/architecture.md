@@ -1,5 +1,7 @@
 # MiMotion 代码架构
 
+Rust 单二进制迁移目标见 [Rust 单二进制运行架构](rust-single-binary.md)；本文继续描述当前 Next.js 版本的依赖边界。
+
 项目采用“路由入口 + 业务领域 + 基础设施”三层结构：
 
 ```text
