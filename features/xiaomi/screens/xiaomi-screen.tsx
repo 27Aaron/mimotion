@@ -153,7 +153,7 @@ export default function XiaomiScreen() {
   return (
     <div className="flex flex-col">
       {/* Page header */}
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="page-title">{t("title")}</h1>
           <p className="mt-1 text-muted-foreground">
@@ -305,6 +305,7 @@ export default function XiaomiScreen() {
                         className="h-8 w-8"
                         onClick={() => openEdit(acc)}
                         title={tc("edit")}
+                        aria-label={tc("edit")}
                       >
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
@@ -314,6 +315,7 @@ export default function XiaomiScreen() {
                         className="h-8 w-8"
                         onClick={() => handleDelete(acc.id)}
                         title={tc("delete")}
+                        aria-label={tc("delete")}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

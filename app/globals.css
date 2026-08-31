@@ -110,8 +110,29 @@
   * {
     @apply border-border;
   }
+  html {
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply bg-background text-foreground;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-synthesis: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -378,6 +399,12 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tiny label in cards */

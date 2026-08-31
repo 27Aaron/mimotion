@@ -21,6 +21,7 @@ export function LocaleSwitcher() {
       size="icon"
       onClick={switchLocale}
       title={locale === "zh" ? "Switch to English" : "切换到中文"}
+      aria-label={locale === "zh" ? "Switch to English" : "切换到中文"}
     >
       <Languages className="h-4 w-4" />
     </Button>
