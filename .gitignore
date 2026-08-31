@@ -7,6 +7,10 @@ node_modules/
 .next/
 out/
 
+# Rust backend / embedded frontend
+/backend/target/
+/frontend/dist/
+
 # production
 build/
 .worker/

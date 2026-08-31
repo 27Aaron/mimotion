@@ -133,9 +133,13 @@
           default = pkgs.mkShell {
             packages = with pkgs; [
               nodejs_24
+              cargo
+              clippy
               python3
               gcc
               gnumake
+              rustc
+              rustfmt
             ];
           };
         }

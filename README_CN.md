@@ -112,6 +112,15 @@ npm run db:generate  # Schema 变更后生成迁移
 npm run db:init-admin # 创建/重置管理员
 ```
 
+### Rust 单进程版本
+
+保留现有 React 前端的视觉和交互，Vite 构建结果会被嵌入 Rust 二进制。Rust 进程同时提供 Web、API 和调度器，运行时不需要 Node.js。
+
+    npm run build:single
+    npm run start:single
+
+数据库和密钥仍然保存在二进制外部，默认数据库路径为 ./data/mimotion.db。当前 Next.js 版本继续保留作为迁移期间的行为对照。
+
 ## 使用流程
 
 1. **管理员登录** — 使用初始管理员账号登录
