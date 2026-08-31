@@ -105,7 +105,6 @@ in
 
       environment =
         {
-          NODE_ENV = "production";
           PORT = toString cfg.port;
           MIMOTION_HOST = "0.0.0.0";
           DATABASE_URL = "${cfg.dataDir}/mimotion.db";
