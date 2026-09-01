@@ -18,7 +18,6 @@ pub struct AuthUser {
     pub id: String,
     pub username: String,
     pub is_admin: bool,
-    pub locale: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -87,8 +86,8 @@ pub async fn current_user(
 ) -> Option<AuthUser> {
     let token = cookie_value(headers, AUTH_COOKIE_NAME)?;
     let claims = verify_token(config, token)?;
-    let user = sqlx::query_as::<_, UserRow>(
-        "SELECT id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id, created_at, updated_at FROM users WHERE id = ? LIMIT 1",
+    let (id, username, is_admin) = sqlx::query_as::<_, (String, String, Option<i64>)>(
+        "SELECT id, username, is_admin FROM users WHERE id = ? LIMIT 1",
     )
     .bind(claims.user_id)
     .fetch_optional(pool)
@@ -96,10 +95,9 @@ pub async fn current_user(
     .ok()??;
 
     Some(AuthUser {
-        id: user.id,
-        username: user.username,
-        is_admin: user.is_admin.unwrap_or_default() != 0,
-        locale: user.locale.unwrap_or_else(|| "zh".to_owned()),
+        id,
+        username,
+        is_admin: is_admin.unwrap_or_default() != 0,
     })
 }
 

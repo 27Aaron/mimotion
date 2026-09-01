@@ -14,7 +14,6 @@ export function localizePath(path: string, locale = currentLocale()): string {
   if (
     !path.startsWith("/") ||
     path.startsWith("/api/") ||
-    path.startsWith("/_next/") ||
     /^\/(zh|en)(?=\/|$)/.test(path)
   ) {
     return path;

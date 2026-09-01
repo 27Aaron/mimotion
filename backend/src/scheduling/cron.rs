@@ -106,6 +106,10 @@ pub fn timestamp_to_iso(timestamp_ms: Option<i64>) -> Option<String> {
         .map(|date| date.to_rfc3339())
 }
 
+pub fn timestamp_to_iso_or_raw(timestamp_ms: i64) -> String {
+    timestamp_to_iso(Some(timestamp_ms)).unwrap_or_else(|| timestamp_ms.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use chrono::{DateTime, TimeZone, Utc};

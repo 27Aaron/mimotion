@@ -1,18 +1,14 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::{HeaderMap, StatusCode},
-    response::Response,
-};
+use axum::{extract::State, response::Response};
 use chrono::{Datelike, TimeZone, Utc};
 use chrono_tz::Asia::Shanghai;
 use serde::Serialize;
 use sqlx::Row;
 
-use crate::state::AppState;
+use crate::{auth::AuthUser, state::AppState};
 
-use super::common::{app_error, json_error, no_store, require_user};
+use super::common::{app_error, no_store};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,12 +32,7 @@ struct DashboardLog {
     error_message: Option<String>,
 }
 
-pub async fn get(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
+pub async fn get(State(state): State<Arc<AppState>>, user: AuthUser) -> Response {
     let counts = match sqlx::query(
         "SELECT (SELECT COUNT(*) FROM xiaomi_accounts WHERE user_id = ?) AS account_count, (SELECT COUNT(*) FROM xiaomi_accounts WHERE user_id = ? AND status = 'active') AS active_account_count, (SELECT COUNT(*) FROM schedules WHERE user_id = ?) AS schedule_count, (SELECT COUNT(*) FROM schedules WHERE user_id = ? AND is_active = 1) AS active_schedule_count",
     )
@@ -84,8 +75,7 @@ pub async fn get(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Resp
         .into_iter()
         .map(|row| DashboardLog {
             id: row.get("id"),
-            executed_at: crate::scheduling::cron::timestamp_to_iso(Some(row.get("executed_at")))
-                .unwrap_or_else(|| row.get::<i64, _>("executed_at").to_string()),
+            executed_at: crate::scheduling::cron::timestamp_to_iso_or_raw(row.get("executed_at")),
             step_written: row.get("step_written"),
             status: row.get("status"),
             error_message: row.get("error_message"),
@@ -111,9 +101,4 @@ fn today_start_ms() -> i64 {
         .expect("Asia/Shanghai midnight is unambiguous")
         .with_timezone(&Utc)
         .timestamp_millis()
-}
-
-#[allow(dead_code)]
-fn _missing_route() -> Response {
-    json_error(StatusCode::NOT_FOUND, "页面不存在", "NOT_FOUND")
 }

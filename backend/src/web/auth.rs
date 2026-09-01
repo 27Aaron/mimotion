@@ -8,11 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
 
-use crate::{
-    auth::{self, AuthUser},
-    security::rate_limit,
-    state::AppState,
-};
+use crate::{auth, security::rate_limit, state::AppState, util::now_ms};
 
 use super::common::{
     app_error, empty_response, json_error, no_store, rate_limit_headers, request_ip, secure_cookie,
@@ -63,46 +59,26 @@ pub async fn login(
         );
     }
 
-    let now = chrono::Utc::now().timestamp_millis();
     let key = format!("login:{}", request_ip(&headers));
-    match rate_limit::check(&state.db, &key, 10, 15 * 60 * 1000, now).await {
-        Ok(limit) if !limit.allowed => {
-            return rate_limit_headers(
-                json_error(
-                    StatusCode::TOO_MANY_REQUESTS,
-                    "请求过于频繁，请稍后再试",
-                    "RATE_LIMITED",
-                ),
-                limit,
-            );
-        }
-        Err(error) => return app_error(error),
-        _ => {}
+    if let Err(response) =
+        enforce_rate_limit(&state, key, 10, 15 * 60 * 1000, "请求过于频繁，请稍后再试").await
+    {
+        return response;
     }
 
-    let user = match sqlx::query(
-        "SELECT id, username, password_hash, is_admin FROM users WHERE username = ? LIMIT 1",
-    )
-    .bind(&input.username)
-    .fetch_optional(&state.db)
-    .await
-    {
-        Ok(Some(row)) => row,
-        Ok(None) => {
-            return json_error(
-                StatusCode::UNAUTHORIZED,
-                "用户名或密码错误",
-                "INVALID_CREDENTIALS",
-            );
-        }
-        Err(error) => return app_error(error),
-    };
-
-    let password_hash: String = match user.try_get("password_hash") {
-        Ok(value) => value,
-        Err(error) => return app_error(error),
-    };
-    match auth::verify_password(input.password, password_hash).await {
+    let user =
+        match crate::storage::queries::find_user_by_username(&state.db, &input.username).await {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                return json_error(
+                    StatusCode::UNAUTHORIZED,
+                    "用户名或密码错误",
+                    "INVALID_CREDENTIALS",
+                );
+            }
+            Err(error) => return app_error(error),
+        };
+    match auth::verify_password(input.password, user.password_hash.clone()).await {
         Ok(true) => {}
         Ok(false) => {
             return json_error(
@@ -114,16 +90,6 @@ pub async fn login(
         Err(error) => return app_error(error),
     }
 
-    let user = match sqlx::query_as::<_, crate::storage::models::UserRow>(
-        "SELECT id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id, created_at, updated_at FROM users WHERE username = ? LIMIT 1",
-    )
-    .bind(&input.username)
-    .fetch_one(&state.db)
-    .await
-    {
-        Ok(user) => user,
-        Err(error) => return app_error(error),
-    };
     let token = match auth::create_token(&state.config, &user) {
         Ok(token) => token,
         Err(error) => return app_error(error),
@@ -169,23 +135,20 @@ pub async fn register(
         return json_error(StatusCode::BAD_REQUEST, "邀请码无效", "INVALID_CODE");
     }
 
-    let now = chrono::Utc::now().timestamp_millis();
     let key = format!("register:{}", request_ip(&headers));
-    match rate_limit::check(&state.db, &key, 5, 60 * 60 * 1000, now).await {
-        Ok(limit) if !limit.allowed => {
-            return rate_limit_headers(
-                json_error(
-                    StatusCode::TOO_MANY_REQUESTS,
-                    "注册请求过于频繁，请稍后再试",
-                    "RATE_LIMITED",
-                ),
-                limit,
-            );
-        }
-        Err(error) => return app_error(error),
-        _ => {}
+    if let Err(response) = enforce_rate_limit(
+        &state,
+        key,
+        5,
+        60 * 60 * 1000,
+        "注册请求过于频繁，请稍后再试",
+    )
+    .await
+    {
+        return response;
     }
 
+    let now = now_ms();
     let password_hash = match auth::hash_password(input.password).await {
         Ok(value) => value,
         Err(error) => return app_error(error),
@@ -275,8 +238,6 @@ pub async fn register(
         telegram_bot_token_data: None,
         telegram_bot_token_iv: None,
         telegram_chat_id: None,
-        created_at: now,
-        updated_at: now,
     };
     let token = match auth::create_token(&state.config, &user) {
         Ok(token) => token,
@@ -329,7 +290,19 @@ fn is_invite_code(value: &str) -> bool {
     value.len() == 8 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-#[allow(dead_code)]
-fn _auth_user_is_used(user: &AuthUser) -> bool {
-    !user.id.is_empty()
+async fn enforce_rate_limit(
+    state: &Arc<AppState>,
+    key: String,
+    max_requests: i64,
+    window_ms: i64,
+    message: &str,
+) -> Result<(), Response> {
+    match rate_limit::check(&state.db, &key, max_requests, window_ms, now_ms()).await {
+        Ok(limit) if !limit.allowed => Err(rate_limit_headers(
+            json_error(StatusCode::TOO_MANY_REQUESTS, message, "RATE_LIMITED"),
+            limit,
+        )),
+        Ok(_) => Ok(()),
+        Err(error) => Err(app_error(error)),
+    }
 }

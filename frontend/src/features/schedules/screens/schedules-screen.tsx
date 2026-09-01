@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "@/platform/i18n";
 import { toast } from "sonner";

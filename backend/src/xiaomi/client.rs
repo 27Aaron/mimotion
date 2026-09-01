@@ -22,8 +22,6 @@ pub struct SetStepResult {
     pub error: Option<String>,
     pub error_code: Option<ZeppErrorCode>,
     pub retryable: bool,
-    pub http_status: Option<u16>,
-    pub vendor_code: Option<String>,
 }
 
 pub fn build_set_steps_request(
@@ -85,8 +83,6 @@ pub async fn set_steps(
                 error: Some(error.to_string()),
                 error_code: Some(ZeppErrorCode::NetworkError),
                 retryable: true,
-                http_status: None,
-                vendor_code: None,
             };
         }
         Err(_) => {
@@ -95,8 +91,6 @@ pub async fn set_steps(
                 error: Some("Zepp 请求超时".to_owned()),
                 error_code: Some(ZeppErrorCode::NetworkError),
                 retryable: true,
-                http_status: None,
-                vendor_code: None,
             };
         }
     };
@@ -115,8 +109,6 @@ pub async fn set_steps(
                 error: Some("Zepp 返回了无法解析的响应".to_owned()),
                 error_code: Some(ZeppErrorCode::ProtocolError),
                 retryable: false,
-                http_status: Some(200),
-                vendor_code: None,
             };
         }
     };
@@ -130,8 +122,6 @@ pub async fn set_steps(
             error: None,
             error_code: None,
             retryable: false,
-            http_status: Some(200),
-            vendor_code: None,
         };
     }
 
@@ -146,8 +136,6 @@ fn classify_http_failure(status: u16, response_text: &str) -> SetStepResult {
             error: Some(format!("Zepp 登录凭证已失效 ({status})")),
             error_code: Some(ZeppErrorCode::TokenExpired),
             retryable: false,
-            http_status: Some(status),
-            vendor_code: None,
         };
     }
     if status == 429 {
@@ -156,8 +144,6 @@ fn classify_http_failure(status: u16, response_text: &str) -> SetStepResult {
             error: Some("Zepp 请求过于频繁".to_owned()),
             error_code: Some(ZeppErrorCode::RateLimited),
             retryable: true,
-            http_status: Some(status),
-            vendor_code: None,
         };
     }
 
@@ -174,8 +160,6 @@ fn classify_http_failure(status: u16, response_text: &str) -> SetStepResult {
             ZeppErrorCode::ProtocolError
         }),
         retryable: status >= 500,
-        http_status: Some(status),
-        vendor_code: None,
     }
 }
 
@@ -197,8 +181,6 @@ fn classify_vendor_failure(message: Option<&str>, response_data: &Value) -> SetS
             ZeppErrorCode::RemoteError
         }),
         retryable: !token_expired,
-        http_status: Some(200),
-        vendor_code: message.map(str::to_owned),
     }
 }
 

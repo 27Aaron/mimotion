@@ -5,5 +5,6 @@ pub mod scheduling;
 pub mod security;
 pub mod state;
 pub mod storage;
+pub mod util;
 pub mod web;
 pub mod xiaomi;

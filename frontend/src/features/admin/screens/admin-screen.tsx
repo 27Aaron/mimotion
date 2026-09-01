@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "@/platform/i18n";
 import { toast } from "sonner";
@@ -25,6 +23,7 @@ import {
 } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { jsonRequest } from "@/lib/api";
 import { formatShanghaiDateTime } from "@/lib/time/format";
 import { cn } from "@/lib/utils";
 import {
@@ -76,27 +75,22 @@ export default function AdminScreen() {
 
   async function fetchUsers() {
     setLoading(true);
-    const res = await fetch("/api/admin/users");
-    if (res.ok) {
-      setUsers(await res.json());
+    try {
+      setUsers(await jsonRequest<UserRow[]>("/api/admin/users"));
+    } catch {
+      /* surfaced by mutations */
     }
     setLoading(false);
   }
 
   async function handleDelete(id: string, username: string) {
     if (!confirm(t("confirmDeleteUser", { username }))) return;
-    const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
-    if (res.ok) {
+    try {
+      await jsonRequest(`/api/admin/users?id=${id}`, { method: "DELETE" });
       fetchUsers();
       toast.success(t("toastDeleted"));
-    } else {
-      let msg = t("deleteFailed");
-      try {
-        msg = (await res.json()).error || msg;
-      } catch {
-        // Keep the localized fallback when the server returns non-JSON.
-      }
-      toast.error(msg);
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("deleteFailed"));
     }
   }
 
@@ -113,21 +107,19 @@ export default function AdminScreen() {
     setResetLoading(true);
     setResetError("");
 
-    const res = await fetch("/api/admin/users", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: resetUser.id, newPassword }),
-    });
-
-    setResetLoading(false);
-
-    if (res.ok) {
+    try {
+      await jsonRequest("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: resetUser.id, newPassword }),
+      });
       setResetOpen(false);
       setResetUser(null);
       toast.success(t("toastPasswordReset"));
-    } else {
-      const data = await res.json();
-      setResetError(data.error || t("resetFailed"));
+    } catch (requestError) {
+      setResetError(requestError instanceof Error ? requestError.message : t("resetFailed"));
+    } finally {
+      setResetLoading(false);
     }
   }
 

@@ -3,15 +3,15 @@ use std::sync::Arc;
 use axum::{
     Json,
     extract::{Query, State},
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::Response,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
-use crate::{auth, state::AppState};
+use crate::{auth, state::AppState, util::now_ms};
 
-use super::common::{app_error, json_error, no_store, require_admin};
+use super::common::{AdminUser, app_error, json_error, no_store};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,10 +42,7 @@ struct UserResponse {
     total_schedules: i64,
 }
 
-pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
-    if let Err(response) = require_admin(&state, &headers).await {
-        return response;
-    }
+pub async fn list(State(state): State<Arc<AppState>>, _admin: AdminUser) -> Response {
     let rows = match sqlx::query(
         "SELECT u.id, u.username, u.is_admin, u.bark_url, u.bark_url_data, u.telegram_bot_token, u.telegram_bot_token_data, u.telegram_chat_id, u.created_at, u.updated_at, (SELECT COUNT(*) FROM xiaomi_accounts a WHERE a.user_id = u.id) AS account_count, (SELECT COUNT(*) FROM schedules s WHERE s.user_id = u.id AND s.is_active = 1) AS active_schedules, (SELECT COUNT(*) FROM schedules s WHERE s.user_id = u.id) AS total_schedules FROM users u ORDER BY u.created_at ASC",
     )
@@ -77,10 +74,8 @@ pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Res
                                 .get::<Option<String>, _>("telegram_chat_id")
                                 .is_some_and(|chat_id| !chat_id.is_empty())
                     }),
-                created_at: crate::scheduling::cron::timestamp_to_iso(Some(row.get("created_at")))
-                    .unwrap_or_else(|| row.get::<i64, _>("created_at").to_string()),
-                updated_at: crate::scheduling::cron::timestamp_to_iso(Some(row.get("updated_at")))
-                    .unwrap_or_else(|| row.get::<i64, _>("updated_at").to_string()),
+                created_at: crate::scheduling::cron::timestamp_to_iso_or_raw(row.get("created_at")),
+                updated_at: crate::scheduling::cron::timestamp_to_iso_or_raw(row.get("updated_at")),
                 account_count: row.get("account_count"),
                 active_schedules: row.get("active_schedules"),
                 total_schedules: row.get("total_schedules"),
@@ -92,13 +87,9 @@ pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Res
 
 pub async fn reset_password(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    AdminUser(admin): AdminUser,
     Json(input): Json<ResetPasswordRequest>,
 ) -> Response {
-    let admin = match require_admin(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     if input.user_id == admin.id {
         return json_error(
             StatusCode::BAD_REQUEST,
@@ -126,7 +117,7 @@ pub async fn reset_password(
     };
     match sqlx::query("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
         .bind(password_hash)
-        .bind(chrono::Utc::now().timestamp_millis())
+        .bind(now_ms())
         .bind(input.user_id)
         .execute(&state.db)
         .await
@@ -141,13 +132,9 @@ pub async fn reset_password(
 
 pub async fn delete(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    AdminUser(admin): AdminUser,
     Query(query): Query<UserQuery>,
 ) -> Response {
-    let admin = match require_admin(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let Some(user_id) = query.id.filter(|value| !value.is_empty()) else {
         return json_error(
             StatusCode::BAD_REQUEST,
@@ -167,25 +154,14 @@ pub async fn delete(
         Ok(transaction) => transaction,
         Err(error) => return app_error(error),
     };
-    let schedule_ids = match sqlx::query("SELECT id FROM schedules WHERE user_id = ?")
-        .bind(&user_id)
-        .fetch_all(&mut *transaction)
-        .await
+    if let Err(error) = sqlx::query(
+        "DELETE FROM run_logs WHERE schedule_id IN (SELECT id FROM schedules WHERE user_id = ?)",
+    )
+    .bind(&user_id)
+    .execute(&mut *transaction)
+    .await
     {
-        Ok(rows) => rows
-            .into_iter()
-            .map(|row| row.get::<String, _>("id"))
-            .collect::<Vec<_>>(),
-        Err(error) => return app_error(error),
-    };
-    for schedule_id in &schedule_ids {
-        if let Err(error) = sqlx::query("DELETE FROM run_logs WHERE schedule_id = ?")
-            .bind(schedule_id)
-            .execute(&mut *transaction)
-            .await
-        {
-            return app_error(error);
-        }
+        return app_error(error);
     }
     for statement in [
         "DELETE FROM schedules WHERE user_id = ?",

@@ -6,7 +6,9 @@ use sqlx::SqlitePool;
 use tokio::net::lookup_host;
 use url::Url;
 
-use crate::{config::Config, security::crypto, storage::models::UserRow};
+use crate::{
+    config::Config, security::crypto, storage::models::UserRow, storage::queries::find_user_by_id,
+};
 
 pub const BARK_ICON_URL: &str =
     "https://cdn.jsdelivr.net/gh/27Aaron/mimotion@main/frontend/public/icon.png?v=1";
@@ -26,19 +28,7 @@ pub struct PushMessage<'a> {
     pub subtitle: Option<&'a str>,
 }
 
-pub async fn get_user_secrets(
-    config: &Config,
-    pool: &SqlitePool,
-    user_id: &str,
-) -> anyhow::Result<NotificationSecrets> {
-    let row = sqlx::query_as::<_, UserRow>(
-        "SELECT id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id, created_at, updated_at FROM users WHERE id = ? LIMIT 1",
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?
-    .context("用户不存在")?;
-
+pub fn decrypt_user_secrets(config: &Config, row: &UserRow) -> anyhow::Result<NotificationSecrets> {
     let bark_url = decrypt_secret(
         config,
         row.bark_url_data.as_deref(),
@@ -55,8 +45,19 @@ pub async fn get_user_secrets(
     Ok(NotificationSecrets {
         bark_url,
         telegram_bot_token,
-        telegram_chat_id: row.telegram_chat_id,
+        telegram_chat_id: row.telegram_chat_id.clone(),
     })
+}
+
+pub async fn get_user_secrets(
+    config: &Config,
+    pool: &SqlitePool,
+    user_id: &str,
+) -> anyhow::Result<NotificationSecrets> {
+    let row = find_user_by_id(pool, user_id)
+        .await?
+        .context("用户不存在")?;
+    decrypt_user_secrets(config, &row)
 }
 
 pub async fn send_bark(

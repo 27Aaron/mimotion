@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use axum::{
     Json,
     body::Body,
-    http::{HeaderMap, HeaderValue, StatusCode, header},
+    extract::FromRequestParts,
+    http::{HeaderMap, HeaderValue, StatusCode, header, request::Parts},
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
@@ -11,7 +14,6 @@ use crate::{
     security::rate_limit::RateLimit,
     state::AppState,
 };
-use std::sync::Arc;
 
 pub fn json_error(status: StatusCode, message: impl Into<String>, code: &'static str) -> Response {
     (
@@ -90,26 +92,44 @@ pub fn app_error(error: impl std::fmt::Display) -> Response {
     )
 }
 
-pub async fn require_user(
-    state: &Arc<AppState>,
-    headers: &HeaderMap,
-) -> Result<AuthUser, Response> {
-    auth::current_user(&state.config, &state.db, headers)
-        .await
-        .ok_or_else(|| json_error(StatusCode::UNAUTHORIZED, "未登录", "AUTH_REQUIRED"))
+#[allow(clippy::result_large_err)]
+pub fn require_id(value: Option<&str>) -> Result<String, Response> {
+    value
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| json_error(StatusCode::BAD_REQUEST, "缺少有效的 id", "MISSING_ID"))
 }
 
-pub async fn require_admin(
-    state: &Arc<AppState>,
-    headers: &HeaderMap,
-) -> Result<AuthUser, Response> {
-    let user = require_user(state, headers).await?;
-    if !user.is_admin {
-        return Err(json_error(
-            StatusCode::FORBIDDEN,
-            "需要管理员权限",
-            "ADMIN_REQUIRED",
-        ));
+impl FromRequestParts<Arc<AppState>> for AuthUser {
+    type Rejection = Response;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &Arc<AppState>,
+    ) -> Result<Self, Self::Rejection> {
+        auth::current_user(&state.config, &state.db, &parts.headers)
+            .await
+            .ok_or_else(|| json_error(StatusCode::UNAUTHORIZED, "未登录", "AUTH_REQUIRED"))
     }
-    Ok(user)
+}
+
+pub struct AdminUser(pub AuthUser);
+
+impl FromRequestParts<Arc<AppState>> for AdminUser {
+    type Rejection = Response;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &Arc<AppState>,
+    ) -> Result<Self, Self::Rejection> {
+        let user = AuthUser::from_request_parts(parts, state).await?;
+        if !user.is_admin {
+            return Err(json_error(
+                StatusCode::FORBIDDEN,
+                "需要管理员权限",
+                "ADMIN_REQUIRED",
+            ));
+        }
+        Ok(AdminUser(user))
+    }
 }

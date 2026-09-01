@@ -1,19 +1,11 @@
 import type { Schedule, ScheduleFormValue } from './model'
 import { buildCronExpression } from './model'
+import { jsonRequest } from '@/lib/api'
 
 export interface XiaomiAccountOption {
   id: string
   nickname: string
   account: string
-}
-
-async function jsonRequest<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init)
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error((data as { error?: string }).error || '请求失败')
-  }
-  return data as T
 }
 
 export function listSchedules(): Promise<Schedule[]> {

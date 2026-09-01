@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeading } from "@/components/layout/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { jsonRequest } from "@/lib/api";
 import { formatShanghaiDateTime } from "@/lib/time/format";
 
 interface DashboardData {
@@ -40,8 +41,7 @@ export default function DashboardScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((response) => (response.ok ? response.json() : null))
+    jsonRequest<DashboardData>("/api/dashboard")
       .then((value) => setData(value))
       .catch(() => setData(null));
   }, []);

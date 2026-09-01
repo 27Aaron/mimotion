@@ -12,7 +12,7 @@ aes-gcm = "0.10"
 aes = "0.8"
 axum = "0.8"
 bcrypt = "0.17"
-chrono = { version = "0.4", features = ["clock", "serde"] }
+chrono = { version = "0.4", features = ["clock"] }
 chrono-tz = "0.10"
 cipher = "0.4"
 cbc = "0.1"
@@ -21,21 +21,20 @@ futures-util = "0.3"
 jsonwebtoken = "9.3"
 hex = "0.4"
 mime_guess = "2.0"
-reqwest = { version = "0.13", default-features = false, features = ["json", "form", "rustls", "stream"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 rand = "0.9"
 rust-embed = { version = "8.7", features = ["compression"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
-sqlx = { version = "0.8", default-features = false, features = ["chrono", "macros", "runtime-tokio-rustls", "sqlite", "uuid"] }
-thiserror = "2.0"
-tokio = { version = "1.47", features = ["fs", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+sqlx = { version = "0.8", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlite"] }
+tokio = { version = "1.47", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
 tokio-util = "0.7"
 url = "2.5"
 tower-http = { version = "0.6", features = ["compression-br", "compression-gzip", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-uuid = { version = "1.18", features = ["serde", "v4"] }
+uuid = { version = "1.18", features = ["v4"] }
 
 [profile.release]
 lto = "thin"

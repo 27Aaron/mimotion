@@ -9,7 +9,11 @@ use crate::{
     notifications::{self, PushMessage},
     scheduling::cron,
     state::AppState,
-    storage::models::{ScheduleRow, UserRow, XiaomiAccountRow},
+    storage::models::{ScheduleRow, XiaomiAccountRow},
+    storage::queries::{
+        find_account_by_id, find_active_schedules, find_schedule_by_id, find_user_by_id,
+    },
+    util::now_ms,
     xiaomi::{self, AccountSyncResult, StoredXiaomiCredentials, ZeppErrorCode},
 };
 
@@ -67,7 +71,7 @@ impl Scheduler {
     }
 
     async fn tick(&self, concurrency: usize) {
-        let now = chrono::Utc::now().timestamp_millis();
+        let now = now_ms();
         let recovered = match recover_stale(&self.state.db, now).await {
             Ok(value) => value,
             Err(error) => {
@@ -123,30 +127,19 @@ impl Scheduler {
     }
 
     async fn run_claimed(&self, execution: ClaimedExecution) -> ExecutionResult {
-        let schedule = sqlx::query_as::<_, ScheduleRow>(
-            "SELECT id, user_id, xiaomi_account_id, cron_expression, min_step, max_step, is_active, last_run_at, next_run_at, created_at, updated_at FROM schedules WHERE id = ? LIMIT 1",
-        )
-        .bind(&execution.schedule_id)
-        .fetch_optional(&self.state.db)
-        .await;
-        let account = sqlx::query_as::<_, XiaomiAccountRow>(
-            "SELECT id, user_id, xiaomi_user_id, account, token_data, token_iv, login_token_data, login_token_iv, password_data, password_iv, device_id, nickname, status, last_sync_at, last_error, created_at, updated_at FROM xiaomi_accounts WHERE id = ? LIMIT 1",
-        )
-        .bind(&execution.xiaomi_account_id)
-        .fetch_optional(&self.state.db)
-        .await;
+        let schedule = find_schedule_by_id(&self.state.db, &execution.schedule_id).await;
+        let account = find_account_by_id(&self.state.db, &execution.xiaomi_account_id).await;
 
         let (schedule, account) = match (schedule, account) {
             (Ok(Some(schedule)), Ok(Some(account))) if schedule.user_id == account.user_id => {
                 (schedule, account)
             }
             _ => {
-                let now = chrono::Utc::now().timestamp_millis();
-                let _ = finish_execution(
+                let _ = finalize_running_execution(
                     &self.state.db,
                     &execution.id,
                     "failed",
-                    now,
+                    now_ms(),
                     execution.target_step,
                     Some("INVALID_EXECUTION_DATA"),
                     Some("Schedule or Xiaomi account no longer exists or ownership does not match"),
@@ -180,17 +173,7 @@ impl Scheduler {
             }
         };
 
-        let credentials = StoredXiaomiCredentials {
-            account: account.account.clone(),
-            xiaomi_user_id: account.xiaomi_user_id.clone(),
-            device_id: account.device_id.clone(),
-            token_data: account.token_data.clone(),
-            token_iv: account.token_iv.clone(),
-            login_token_data: account.login_token_data.clone(),
-            login_token_iv: account.login_token_iv.clone(),
-            password_data: account.password_data.clone(),
-            password_iv: account.password_iv.clone(),
-        };
+        let credentials = StoredXiaomiCredentials::from(&account);
         let sync_result =
             xiaomi::sync_account(&self.state.config, &self.state.http, &credentials, step).await;
         if let Some(update) = &sync_result.credential_update
@@ -272,11 +255,7 @@ impl Scheduler {
         .await;
 
         ExecutionResult {
-            status: if status == "succeeded" {
-                "succeeded"
-            } else {
-                "failed"
-            },
+            status,
             execution_id: execution.id,
             step: Some(step),
             error_code,
@@ -286,11 +265,7 @@ impl Scheduler {
 
 async fn enqueue_current_minute(pool: &SqlitePool, now: i64) -> Result<u64, sqlx::Error> {
     let slot = now - now.rem_euclid(60_000);
-    let schedules = sqlx::query_as::<_, ScheduleRow>(
-        "SELECT id, user_id, xiaomi_account_id, cron_expression, min_step, max_step, is_active, last_run_at, next_run_at, created_at, updated_at FROM schedules WHERE is_active = 1 ORDER BY created_at ASC, id ASC",
-    )
-    .fetch_all(pool)
-    .await?;
+    let schedules = find_active_schedules(pool).await?;
     let mut enqueued = 0;
     for schedule in schedules {
         if !cron::matches(&schedule.cron_expression, slot) {
@@ -419,8 +394,8 @@ async fn retry_execution(
     Ok(())
 }
 
-async fn finish_execution(
-    pool: &SqlitePool,
+async fn finalize_running_execution<'e, E: sqlx::Executor<'e, Database = sqlx::Sqlite>>(
+    executor: E,
     execution_id: &str,
     status: &str,
     now: i64,
@@ -438,7 +413,7 @@ async fn finish_execution(
     .bind(error_code)
     .bind(error_message)
     .bind(execution_id)
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(())
 }
@@ -451,17 +426,15 @@ async fn finish_success_or_failure(
     completion: Completion<'_>,
 ) -> Result<(), sqlx::Error> {
     let mut transaction = pool.begin().await?;
-    sqlx::query(
-        "UPDATE run_executions SET status = ?, target_step = COALESCE(target_step, ?), finished_at = ?, updated_at = ?, error_code = ?, error_message = ? WHERE id = ? AND status = 'running'",
+    finalize_running_execution(
+        &mut *transaction,
+        &execution.id,
+        completion.status,
+        completion.now,
+        Some(completion.step),
+        completion.error_code,
+        completion.error_message,
     )
-    .bind(completion.status)
-    .bind(completion.step)
-    .bind(completion.now)
-    .bind(completion.now)
-    .bind(completion.error_code)
-    .bind(completion.error_message)
-    .bind(&execution.id)
-    .execute(&mut *transaction)
     .await?;
     sqlx::query(
         "INSERT INTO run_logs (id, schedule_id, executed_at, step_written, status, error_message) VALUES (?, ?, ?, ?, ?, ?)",
@@ -548,24 +521,16 @@ async fn notify_result(
     result: &AccountSyncResult,
     error: Option<&str>,
 ) {
-    let user = match sqlx::query_as::<_, UserRow>(
-        "SELECT id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id, created_at, updated_at FROM users WHERE id = ? LIMIT 1",
-    )
-    .bind(&schedule.user_id)
-    .fetch_optional(&state.db)
-    .await
-    {
-        Ok(Some(user)) => user,
-        _ => return,
+    let Ok(Some(user)) = find_user_by_id(&state.db, &schedule.user_id).await else {
+        return;
     };
-    let secrets =
-        match notifications::get_user_secrets(&state.config, &state.db, &schedule.user_id).await {
-            Ok(secrets) => secrets,
-            Err(error) => {
-                tracing::warn!(%error, event = "notification_config_failed");
-                return;
-            }
-        };
+    let secrets = match notifications::decrypt_user_secrets(&state.config, &user) {
+        Ok(secrets) => secrets,
+        Err(error) => {
+            tracing::warn!(%error, event = "notification_config_failed");
+            return;
+        }
+    };
     let zh = user.locale.as_deref() != Some("en");
     let (subtitle, body) = if result.set_step.success {
         (
@@ -639,10 +604,6 @@ where
         .and_then(|value| value.parse::<T>().ok())
         .filter(|value| value > &T::default())
         .unwrap_or(fallback)
-}
-
-fn now_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
 }
 
 fn error_code_name(code: ZeppErrorCode) -> &'static str {
