@@ -114,3 +114,11 @@ docker compose up -d --build
 ```
 
 The database is mounted at `./data/mimotion.db`. Keep `ENCRYPTION_KEY` safe and stable; changing it makes existing encrypted credentials unreadable.
+
+On Linux hosts, make the data directory writable by the container user (uid 10001) before first start:
+
+```bash
+mkdir -p data && sudo chown 10001:10001 data
+```
+
+macOS (Docker Desktop / OrbStack) needs no extra steps.

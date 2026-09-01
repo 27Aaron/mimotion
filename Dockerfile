@@ -47,10 +47,14 @@ COPY --from=frontend /src/frontend/dist /src/frontend/dist
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     cargo zigbuild --release --locked --target "$(cat /triple)"
 
+# 预备属主正确的数据目录，运行时通过 COPY --chown 落地（运行时阶段保持零 RUN，无 QEMU 执行）
+RUN mkdir -p /out/mimotion-home && chown 10001:10001 /out/mimotion-home
+
 # ---------- 运行时：只做文件拷贝，无任何模拟执行 ----------
 FROM debian:bookworm-slim AS runtime
 COPY --from=backend /src/backend/target/*/release/mimotion /usr/local/bin/mimotion
 COPY --from=backend /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=backend --chown=10001:10001 /out/mimotion-home /var/lib/mimotion
 ENV MIMOTION_HOST=0.0.0.0 \
     PORT=3000 \
     DATABASE_URL=/var/lib/mimotion/mimotion.db
