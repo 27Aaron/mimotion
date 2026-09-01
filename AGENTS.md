@@ -237,3 +237,4 @@ rate_limits                  独立表，持久化限流计数（无外键）
 - 邀请码为 8 位十六进制短码，复制时生成 `/login?code=XXX` 注册链接
 - 用户管理页（admin）：表格居中对齐，按注册时间升序排列，支持重置密码、查看推送配置状态
 - 新增 shadcn 组件：在 `frontend` workspace 中运行 `npx shadcn add <component>`
+- Rust 单元测试放在模块旁的独立文件（如 `config.rs` → `config/tests.rs`），源码文件只保留 `#[cfg(test)] mod tests;` 声明
