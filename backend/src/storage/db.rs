@@ -10,24 +10,10 @@ use sqlx::{
 
 use crate::{config::Config, util::now_ms};
 
-const MIGRATIONS: &[(&str, &str)] = &[
-    (
-        "0000_baseline.sql",
-        include_str!("../../migrations/0000_baseline.sql"),
-    ),
-    (
-        "0001_encrypt_notification_secrets.sql",
-        include_str!("../../migrations/0001_encrypt_notification_secrets.sql"),
-    ),
-    (
-        "0002_durable_rate_limits.sql",
-        include_str!("../../migrations/0002_durable_rate_limits.sql"),
-    ),
-    (
-        "0003_normalize_timestamps_to_milliseconds.sql",
-        include_str!("../../migrations/0003_normalize_timestamps_to_milliseconds.sql"),
-    ),
-];
+const MIGRATIONS: &[(&str, &str)] = &[(
+    "0000_init.sql",
+    include_str!("../../migrations/0000_init.sql"),
+)];
 
 pub async fn connect_and_migrate(config: &Config) -> anyhow::Result<sqlx::SqlitePool> {
     let options = SqliteConnectOptions::new()

@@ -23,5 +23,5 @@ async fn applies_the_legacy_schema_and_is_idempotent() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(migration_count, 4);
+    assert_eq!(migration_count, 1);
 }
