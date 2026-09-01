@@ -9,10 +9,10 @@ Xiaomi/Zepp 自动刷步服务。用户绑定小米账号后，通过 cron 定�
 - **Frontend**: Vite + React 19 + TypeScript
 - **Backend**: Rust + Axum + Tokio
 - **Styling**: Tailwind CSS v4 + shadcn/ui (base-ui) + next-themes (dark/light)
-- **Icons**: lucide-react
+- **Icons**: lucide-react（个别组件使用 @tabler/icons-react）
 - **Database**: SQLite via SQLx
 - **Auth**: JWT + bcrypt + HttpOnly cookies
-- **Encryption**: AES-256-GCM (Xiaomi token 存储)
+- **Encryption**: AES-256-GCM (Xiaomi 凭据与推送配置存储)
 - **Scheduler**: Tokio + custom five-field cron (Asia/Shanghai timezone)
 - **Notifications**: Bark push service + Telegram Bot (可扩展)
 
@@ -103,97 +103,136 @@ users 1──N xiaomi_accounts   一个用户可绑定多个小米账号
 users 1──N schedules         一个用户可创建多个定时任务
 users 1──N invite_codes      管理员创建 / 用户使用
 xiaomi_accounts 1──N schedules  一个小米账号可配多个任务（不同 cron）
+schedules 1──N run_executions  一个任务每次计划执行占一个槽位
 schedules 1──N run_logs      一个任务每次执行产生一条日志
+rate_limits                  独立表，持久化限流计数（无外键）
 ```
 
 ### `users` — 用户表
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | text PK | UUID |
-| username | text unique | 用户名（登录凭证） |
-| passwordHash | text | bcrypt 哈希 |
-| isAdmin | boolean | 管理员标记 |
-| locale | text | 语言偏好，默认 `zh` |
-| barkUrl | text? | Bark 推送地址（用户级） |
-| telegramBotToken / telegramChatId | text? | Telegram 推送配置（用户级） |
-| createdAt / updatedAt | timestamp | 时间戳 |
+| 字段                                      | 类型        | 说明                                  |
+| ----------------------------------------- | ----------- | ------------------------------------- |
+| id                                        | text PK     | UUID                                  |
+| username                                  | text unique | 用户名（登录凭证）                    |
+| passwordHash                              | text        | bcrypt 哈希                           |
+| isAdmin                                   | boolean     | 管理员标记                            |
+| locale                                    | text        | 语言偏好，默认 `zh`                   |
+| barkUrlData + barkUrlIv                   | text?       | AES-256-GCM 加密的 Bark 推送地址      |
+| telegramBotTokenData + telegramBotTokenIv | text?       | AES-256-GCM 加密的 Telegram Bot Token |
+| telegramChatId                            | text?       | Telegram Chat ID（明文）              |
+| createdAt / updatedAt                     | timestamp   | 时间戳                                |
 
-业务逻辑：系统核心实体。推送配置（Bark/Telegram）存储在用户级别，该用户所有任务共享同一推送通道。
+业务逻辑：系统核心实体。推送配置（Bark/Telegram）存储在用户级别，该用户所有任务共享同一推送通道。Bark URL 和 Telegram Bot Token 以 AES-256-GCM + 独立 IV 加密存储（密钥来自 `ENCRYPTION_KEY`）；读取时优先解密加密列，旧明文列（`barkUrl` / `telegramBotToken`）仅作历史数据回退，新写入会清空。
 
 ### `invite_codes` — 邀请码表
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| code | text PK | 8 位十六进制短码 |
-| createdBy | text FK→users.id | 创建者（管理员） |
-| usedBy | text FK→users.id? | 使用者，null = 未使用 |
-| createdAt | timestamp | 创建时间 |
+| 字段      | 类型              | 说明                  |
+| --------- | ----------------- | --------------------- |
+| code      | text PK           | 8 位十六进制短码      |
+| createdBy | text FK→users.id  | 创建者（管理员）      |
+| usedBy    | text FK→users.id? | 使用者，null = 未使用 |
+| createdAt | timestamp         | 创建时间              |
 
 业务逻辑：注册准入控制。管理员生成 → 用户注册时填入 → `usedBy` 被标记后不可重复使用。索引 `usedBy` 用于快速查询某个用户的邀请来源。
 
 ### `xiaomi_accounts` — 小米账号表
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | text PK | UUID |
-| userId | text FK→users.id | 所属用户 |
-| xiaomiUserId | text? | 小米用户 ID |
-| account | text? | 账号标识（手机/邮箱） |
-| tokenData + tokenIv | text | AES-256-GCM 加密的 Xiaomi token |
-| loginTokenData + loginTokenIv | text? | AES-256-GCM 加密的 login token（用于自动重登录） |
-| passwordData + passwordIv | text? | AES-256-GCM 加密的密码（用于自动重登录） |
-| deviceId | text? | 设备标识 |
-| nickname | text? | 昵称 |
-| status | text | 状态，默认 `active` |
-| lastSyncAt | timestamp? | 最后同步时间 |
-| lastError | text? | 最后错误信息 |
+| 字段                          | 类型             | 说明                                             |
+| ----------------------------- | ---------------- | ------------------------------------------------ |
+| id                            | text PK          | UUID                                             |
+| userId                        | text FK→users.id | 所属用户                                         |
+| xiaomiUserId                  | text?            | 小米用户 ID                                      |
+| account                       | text?            | 账号标识（手机/邮箱）                            |
+| tokenData + tokenIv           | text             | AES-256-GCM 加密的 Xiaomi token                  |
+| loginTokenData + loginTokenIv | text?            | AES-256-GCM 加密的 login token（用于自动重登录） |
+| passwordData + passwordIv     | text?            | AES-256-GCM 加密的密码（用于自动重登录）         |
+| deviceId                      | text?            | 设备标识                                         |
+| nickname                      | text?            | 昵称                                             |
+| status                        | text             | 状态，默认 `active`                              |
+| lastSyncAt                    | timestamp?       | 最后同步时间                                     |
+| lastError                     | text?            | 最后错误信息                                     |
 
 业务逻辑：一个用户可绑定多个小米账号。三组加密字段（token/loginToken/password）均使用 AES-256-GCM + 独立 IV，密钥来自 `ENCRYPTION_KEY`。存储 loginToken 和加密密码是为了 token 过期时自动重登录。`status` 控制账号可用性（active/error），`lastError` 记录最近失败原因。索引 `userId` 用于按用户查询账号列表。
 
 ### `schedules` — 定时任务表
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | text PK | UUID |
-| userId | text FK→users.id | 所属用户 |
-| xiaomiAccountId | text FK→xiaomi_accounts.id | 关联的小米账号 |
-| cronExpression | text | cron 表达式（Asia/Shanghai 时区） |
-| minStep / maxStep | integer | 步数范围 |
-| isActive | boolean | 是否启用，默认 true |
-| lastRunAt / nextRunAt | timestamp? | 执行时间跟踪 |
-| createdAt / updatedAt | timestamp | 时间戳 |
+| 字段                  | 类型                       | 说明                              |
+| --------------------- | -------------------------- | --------------------------------- |
+| id                    | text PK                    | UUID                              |
+| userId                | text FK→users.id           | 所属用户                          |
+| xiaomiAccountId       | text FK→xiaomi_accounts.id | 关联的小米账号                    |
+| cronExpression        | text                       | cron 表达式（Asia/Shanghai 时区） |
+| minStep / maxStep     | integer                    | 步数范围                          |
+| isActive              | boolean                    | 是否启用，默认 true               |
+| lastRunAt / nextRunAt | timestamp?                 | 执行时间跟踪                      |
+| createdAt / updatedAt | timestamp                  | 时间戳                            |
 
 业务逻辑：每个任务绑定一个小米账号 + cron 时间 + 步数范围。调度器按 cron 表达式触发，在 [minStep, maxStep] 区间内随机生成步数写入小米。双重外键（userId + xiaomiAccountId）保证数据隔离。索引 `isActive` 用于调度器快速获取所有活跃任务。`nextRunAt` 用于前端展示下次执行时间。
 
 ### `run_logs` — 执行日志表
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | text PK | UUID |
-| scheduleId | text FK→schedules.id | 关联定时任务 |
-| executedAt | timestamp | 执行时间 |
-| stepWritten | integer? | 实际写入的步数 |
-| status | text? | 执行状态（success/error） |
-| errorMessage | text? | 错误信息 |
+| 字段         | 类型                 | 说明                      |
+| ------------ | -------------------- | ------------------------- |
+| id           | text PK              | UUID                      |
+| scheduleId   | text FK→schedules.id | 关联定时任务              |
+| executedAt   | timestamp            | 执行时间                  |
+| stepWritten  | integer?             | 实际写入的步数            |
+| status       | text?                | 执行状态（success/error） |
+| errorMessage | text?                | 错误信息                  |
 
 业务逻辑：每次调度执行产生一条记录。成功记录 `stepWritten`，失败记录 `errorMessage`。通过 `scheduleId` 可追溯某个任务的完整执行历史，用于 Dashboard 展示和控制台统计。索引 `scheduleId` 用于按任务查询日志。
+
+### `run_executions` — 调度执行槽位表
+
+| 字段                     | 类型                       | 说明                                                               |
+| ------------------------ | -------------------------- | ------------------------------------------------------------------ |
+| id                       | text PK                    | UUID                                                               |
+| scheduleId               | text FK→schedules.id       | 关联定时任务                                                       |
+| xiaomiAccountId          | text FK→xiaomi_accounts.id | 关联的小米账号                                                     |
+| scheduledFor             | timestamp                  | 计划执行时间（槽位）                                               |
+| status                   | text                       | 状态，默认 `pending`（pending/running/succeeded/failed/discarded） |
+| attempt                  | integer                    | 已尝试次数，默认 0                                                 |
+| targetStep               | integer?                   | 目标步数                                                           |
+| claimedAt                | timestamp                  | 被调度器认领的时间                                                 |
+| startedAt / finishedAt   | timestamp?                 | 开始 / 结束时间                                                    |
+| errorCode / errorMessage | text?                      | 失败原因                                                           |
+| createdAt / updatedAt    | timestamp                  | 时间戳                                                             |
+
+业务逻辑：持久化调度器的执行槽位，调度器为每个任务的每个计划时间点预先插入一行 `pending` 记录。唯一索引 `(scheduleId, scheduledFor)` 和 `(xiaomiAccountId, scheduledFor)` 防止同一槽位重复调度、同一账号并发执行。worker 按 `scheduledFor` 顺序认领 `pending` 槽位（`attempt` 超过上限不再重试），完成后写 `run_logs`。
+
+### `rate_limits` — 限流表
+
+| 字段    | 类型      | 说明                             |
+| ------- | --------- | -------------------------------- |
+| key     | text PK   | 限流键（如认证接口 + 客户端 IP） |
+| count   | integer   | 当前窗口计数                     |
+| resetAt | timestamp | 窗口重置时间                     |
+
+业务逻辑：`security` 模块的持久化限流存储（登录、注册等认证接口的固定窗口限流），进程重启后计数不丢失。过期窗口记录按 `resetAt` 索引清理。
 
 ## Environment Variables
 
 必需变量（参考 `.env.example`）：
 
 - `DATABASE_URL` — SQLite 路径 (默认 `./data/mimotion.db`)
-- `ENCRYPTION_KEY` — 64 字符 hex，用于加密 Xiaomi token
+- `ENCRYPTION_KEY` — 64 字符 hex，用于加密 Xiaomi 凭据和推送配置
 - `JWT_SECRET` — 64 字符 hex，用于 JWT 签名
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — 初始管理员（默认 `admin` / `password`）
 - Bark 和 Telegram 推送均由用户在设置页自行配置，无需全局环境变量
+
+可选变量：
+
+- `MIMOTION_HOST` — Web 监听地址（默认 `127.0.0.1`，容器部署设 `0.0.0.0`）
+- `PORT` — Web 监听端口（默认 `3000`）
+- `AUTH_COOKIE_SECURE` — 登录 Cookie Secure 标记；HTTPS 部署设 `true`，仅可信局域网 HTTP 调试设 `false`（未设置时跟随 `NODE_ENV=production`）
+- `WORKER_CONCURRENCY` — 调度器并发数（默认 `3`）
+- `WORKER_POLL_INTERVAL_MS` — 调度器轮询间隔（默认 `10000`）
 
 ## Key Conventions
 
 - 所有 API 路由在 `backend/src/web` 验证会话和所有权
 - Admin 专用路由额外检查 `is_admin` 字段
-- Xiaomi token 使用 AES-256-GCM 加密存储，密钥来自 `ENCRYPTION_KEY`
+- Xiaomi 凭据和推送配置（Bark URL、Telegram Bot Token）使用 AES-256-GCM 加密存储，密钥来自 `ENCRYPTION_KEY`
 - 调度器使用 `Asia/Shanghai` 时区，分钟级匹配五字段 cron 表达式
 - 前端页面全部是 Vite/React 浏览器组件
 - 邀请码注册机制，管理员生成邀请码后用户才能注册
