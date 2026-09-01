@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEventHandler } from "react";
-import { IconUserPlus } from "@tabler/icons-react";
+import { UserPlus } from "lucide-react";
 import { useTranslations } from "@/platform/i18n";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import type { XiaomiAccountFormValue } from "@/features/xiaomi/model";
 
 interface XiaomiAccountDialogProps {
@@ -47,7 +52,7 @@ export function XiaomiAccountDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {creating && (
         <DialogTrigger render={<Button />}>
-          <IconUserPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" />
+          <UserPlus data-icon="inline-start" />
           {t("addAccount")}
         </DialogTrigger>
       )}
@@ -59,40 +64,39 @@ export function XiaomiAccountDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{t("accountField")}</Label>
+          <FieldGroup className="gap-4 py-4">
+            <Field>
+              <FieldLabel htmlFor="xiaomi-account">{t("accountField")}</FieldLabel>
               <Input
+                id="xiaomi-account"
                 value={form.account}
                 onChange={(event) => onFormChange({ ...form, account: event.target.value })}
                 placeholder={t("accountPlaceholder")}
                 required={creating}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("passwordField")}</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="xiaomi-password">{t("passwordField")}</FieldLabel>
               <Input
+                id="xiaomi-password"
                 type="password"
                 value={form.password}
                 onChange={(event) => onFormChange({ ...form, password: event.target.value })}
                 placeholder={t(creating ? "passwordPlaceholder" : "editPasswordPlaceholder")}
                 required={creating}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("nicknameField")}</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="xiaomi-nickname">{t("nicknameField")}</FieldLabel>
               <Input
+                id="xiaomi-nickname"
                 value={form.nickname}
                 onChange={(event) => onFormChange({ ...form, nickname: event.target.value })}
                 placeholder={t("nicknamePlaceholder")}
               />
-            </div>
-            {error && (
-              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-          </div>
+            </Field>
+            {error && <FieldError>{error}</FieldError>}
+          </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {tc("cancel")}

@@ -11,9 +11,11 @@ import {
   Users,
   Gift,
   Hash,
+  Plus,
 } from "lucide-react";
-import { IconSparkles } from "@tabler/icons-react";
 import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,6 +23,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { formatShanghaiDateTime } from "@/lib/time/format";
+import { cn } from "@/lib/utils";
 
 type FilterType = "unused" | "all" | "used";
 
@@ -93,8 +96,6 @@ export default function InviteScreen() {
     value: number;
     icon: typeof Hash;
     detail: string;
-    color: string;
-    bg: string;
     filter: FilterType;
   }[] = [
     {
@@ -102,8 +103,6 @@ export default function InviteScreen() {
       value: totalCodes,
       icon: Hash,
       detail: t("statTotalDetail"),
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
       filter: "all",
     },
     {
@@ -111,8 +110,6 @@ export default function InviteScreen() {
       value: usedCodes,
       icon: Users,
       detail: t("statUsedDetail"),
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
       filter: "used",
     },
     {
@@ -120,39 +117,34 @@ export default function InviteScreen() {
       value: unusedCodes,
       icon: Gift,
       detail: unusedCodes > 0 ? t("statUnusedDetailOk") : t("statUnusedDetailEmpty"),
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
       filter: "unused",
     },
   ];
 
   return (
-    <div className="flex flex-col">
-      {/* Page header */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="page-title">{t("title")}</h1>
-          <p className="mt-1 text-muted-foreground">
-            {t("description")}
-          </p>
-        </div>
-        <Button onClick={handleCreate} disabled={loading}>
-          <IconSparkles className="mr-1.5 h-4 w-4 stroke-[1.5]" />
-          {loading ? t("generating") : t("generateCode")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          <Button onClick={handleCreate} disabled={loading}>
+            <Plus data-icon="inline-start" />
+            {loading ? t("generating") : t("generateCode")}
+          </Button>
+        }
+      />
 
       {/* New code highlight */}
       {newCode && (
-        <div className="mb-6 flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <Ticket className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-4 rounded-lg border border-primary/25 bg-primary/[0.04] px-5 py-4">
+          <div className="flex size-10 items-center justify-center rounded-md border border-primary/25 text-primary">
+            <Ticket className="size-5 text-primary" />
           </div>
           <div className="flex-1">
-            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">
               {t("newCode")}
             </p>
-            <code className="text-lg font-semibold text-primary">
+            <code className="text-lg font-semibold tabular-nums text-primary">
               {newCode}
             </code>
           </div>
@@ -163,11 +155,11 @@ export default function InviteScreen() {
           >
             {copiedCode === newCode ? (
               <>
-                <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> {tc("copied")}
+                <Check data-icon="inline-start" className="text-emerald-500" /> {tc("copied")}
               </>
             ) : (
               <>
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> {tc("copyLink")}
+                <Copy data-icon="inline-start" /> {tc("copyLink")}
               </>
             )}
           </Button>
@@ -185,41 +177,32 @@ export default function InviteScreen() {
 
       {/* Invite codes list */}
       {filteredCodes.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="empty-state py-12">
-            <div className="empty-icon">
-              <Ticket className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">
-                {filter === "used"
-                  ? t("emptyUsed")
-                  : filter === "all"
-                    ? t("emptyAll")
-                    : t("emptyUnused")}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("emptyDesc")}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Ticket}
+          title={
+            filter === "used"
+              ? t("emptyUsed")
+              : filter === "all"
+                ? t("emptyAll")
+                : t("emptyUnused")
+          }
+          description={t("emptyDesc")}
+        />
       ) : (
-        <div className="card-grid gap-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {filteredCodes.map((c) => (
-            <Card key={c.code} className="relative overflow-hidden">
+            <Card key={c.code}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                        c.usedBy ? "bg-muted" : "bg-primary/10"
-                      }`}
+                      className="flex size-9 items-center justify-center rounded-md border border-border bg-card"
                     >
                       <Ticket
-                        className={`h-4 w-4 ${
-                          c.usedBy ? "text-muted-foreground" : "text-primary"
-                        }`}
+                        className={cn(
+                          "size-4",
+                          c.usedBy ? "text-muted-foreground" : "text-primary",
+                        )}
                       />
                     </div>
                     <div>
@@ -234,7 +217,7 @@ export default function InviteScreen() {
                           {c.usedBy ? t("codeUsed") : t("codeUnused")}
                         </Badge>
                       </div>
-                      <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                         {formatShanghaiDateTime(c.createdAt, locale)}
                       </p>
                     </div>
@@ -245,27 +228,25 @@ export default function InviteScreen() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
                         onClick={() => handleCopy(c.code)}
                         title={tc("copyLink")}
                         aria-label={tc("copyLink")}
                       >
                         {copiedCode === c.code ? (
-                          <Check className="h-4 w-4 text-emerald-500" />
+                          <Check className="text-primary" />
                         ) : (
-                          <Copy className="h-4 w-4 text-muted-foreground" />
+                          <Copy className="text-muted-foreground" />
                         )}
                       </Button>
                     )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
                       onClick={() => handleDelete(c.code)}
                       title={tc("delete")}
                       aria-label={tc("delete")}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="text-destructive" />
                     </Button>
                   </div>
                 </div>

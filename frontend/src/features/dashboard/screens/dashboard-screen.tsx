@@ -10,6 +10,9 @@ import {
 import { useLocale, useTranslations } from "@/platform/i18n";
 
 import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { SectionHeading } from "@/components/layout/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatShanghaiDateTime } from "@/lib/time/format";
@@ -58,16 +61,12 @@ export default function DashboardScreen() {
       value: data.accountCount,
       icon: Smartphone,
       detail: t("statAccountsDetail", { count: data.activeAccountCount }),
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
     },
     {
       title: t("statActiveTasks"),
       value: data.activeScheduleCount,
       icon: ClockCheck,
       detail: t("statActiveTasksDetail", { count: data.scheduleCount }),
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
     },
     {
       title: t("statTodayExec"),
@@ -77,95 +76,79 @@ export default function DashboardScreen() {
         success: data.todaySuccess,
         failed: todayFailed,
       }),
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
     },
   ];
 
   return (
-    <div className="flex flex-col">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="page-title">{t("title")}</h1>
-          <p className="mt-1 text-muted-foreground">{t("description")}</p>
-        </div>
-        <div className="hidden items-center gap-2 rounded-lg border bg-background/80 px-3 py-2 backdrop-blur-sm sm:flex">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <div>
-            <p className="text-xs text-muted-foreground">{t("todaySuccessRate")}</p>
-            <p className="text-sm font-semibold">
-              {data.todayTotal > 0
-                ? Math.round((data.todaySuccess / data.todayTotal) * 100)
-                : 0}
-              %
-            </p>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          <div className="hidden items-center gap-2 rounded-md border border-border bg-card px-3 py-2 sm:flex">
+            <TrendingUp className="size-4 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">{t("todaySuccessRate")}</p>
+              <p className="text-sm font-semibold">
+                {data.todayTotal > 0
+                  ? Math.round((data.todaySuccess / data.todayTotal) * 100)
+                  : 0}
+                %
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <StatsGrid items={stats} cardClassName="card-glow relative overflow-hidden" />
+      <StatsGrid items={stats} />
 
-      <div className="flex items-center gap-2">
-        <div className="section-icon">
-          <Footprints className="h-3 w-3 text-primary" />
-        </div>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          {t("recentLogs")}
-        </h2>
-        <div className="ml-2 h-px flex-1 bg-border" />
-      </div>
+      <SectionHeading icon={Footprints}>{t("recentLogs")}</SectionHeading>
 
-      <div className="mt-3">
+      <div>
         {data.recentLogs.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="empty-state py-12">
-              <div className="empty-icon">
-                <Footprints className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">{t("noLogs")}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{t("noLogsDesc")}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Footprints}
+            title={t("noLogs")}
+            description={t("noLogsDesc")}
+          />
         ) : (
-          <Card className="card-glow relative overflow-hidden">
-            <div className="flex flex-col">
-              {data.recentLogs.slice(0, 10).map((log, index) => (
-                <div key={log.id}>
-                  {index > 0 && <div className="fade-divider" />}
-                  <div className="flex min-w-0 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 md:gap-4 md:px-5">
-                    {log.status === "success" ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 shrink-0 text-red-500" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {log.status === "success" ? t("syncSuccess") : t("syncFailed")}
-                        </span>
-                        {log.stepWritten != null && (
-                          <Badge variant="secondary" className="font-mono text-xs">
-                            {tc("steps", {
-                              count: log.stepWritten.toLocaleString(),
-                            })}
-                          </Badge>
-                        )}
-                      </div>
-                      {log.errorMessage && (
-                        <p className="mt-0.5 truncate text-xs text-destructive/80">
-                          {log.errorMessage}
-                        </p>
+          <Card className="py-0">
+            <CardContent className="flex flex-col gap-1 p-2">
+              {data.recentLogs.slice(0, 10).map((log) => (
+                <div
+                  key={log.id}
+                  className="flex min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 transition-colors duration-150 hover:bg-muted/50 md:gap-4 md:px-4"
+                >
+                  {log.status === "success" ? (
+                    <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                  ) : (
+                    <XCircle className="size-4 shrink-0 text-red-500" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {log.status === "success" ? t("syncSuccess") : t("syncFailed")}
+                      </span>
+                      {log.stepWritten != null && (
+                        <Badge variant="secondary" className="tabular-nums text-xs">
+                          {tc("steps", {
+                            count: log.stepWritten.toLocaleString(),
+                          })}
+                        </Badge>
                       )}
                     </div>
-                    <time className="shrink-0 font-mono text-[10px] text-muted-foreground sm:text-xs">
-                      {formatShanghaiDateTime(log.executedAt, locale)}
-                    </time>
+                    {log.errorMessage && (
+                      <p className="mt-0.5 truncate text-xs text-destructive/80">
+                        {log.errorMessage}
+                      </p>
+                    )}
                   </div>
+                  <time className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {formatShanghaiDateTime(log.executedAt, locale)}
+                  </time>
                 </div>
               ))}
-            </div>
+            </CardContent>
           </Card>
         )}
       </div>

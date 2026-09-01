@@ -61,6 +61,7 @@
     "settings": "Settings",
     "inviteCodes": "Invite Codes",
     "userManagement": "User Management",
+    "management": "Management",
     "roleAdmin": "Admin",
     "roleUser": "User",
     "logout": "Log Out",
@@ -68,6 +69,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "description": "Monitor accounts, schedules, and recent sync activity",
     "greetingLateNight": "Late night",
     "greetingMorning": "Good morning",
     "greetingAfternoon": "Good afternoon",

@@ -15,13 +15,13 @@ import {
   Timer,
 } from "lucide-react";
 import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { StepList } from "@/components/layout/step-list";
 import { ScheduleFormDialog } from "@/features/schedules/components/schedule-form-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -38,6 +38,7 @@ import {
   type Schedule,
 } from "@/features/schedules/model";
 import { formatShanghaiDateTime } from "@/lib/time/format";
+import { cn } from "@/lib/utils";
 import {
   createSchedule,
   deleteSchedule,
@@ -168,16 +169,12 @@ export default function SchedulesScreen() {
       value: schedules.length,
       icon: CalendarClock,
       detail: t("statTotalDetail"),
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
     },
     {
       title: t("statRunning"),
       value: activeCount,
       icon: Activity,
       detail: activeCount > 0 ? t("statRunningDetailActive") : t("statRunningDetailEmpty"),
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
     },
     {
       title: t("statDailySteps"),
@@ -186,39 +183,34 @@ export default function SchedulesScreen() {
         : "0",
       icon: Zap,
       detail: t("statDailyStepsDetail"),
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
     },
   ];
 
   return (
-    <div className="flex flex-col">
-      {/* Page header */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="page-title">{t("title")}</h1>
-          <p className="mt-1 text-muted-foreground">
-            {t("description")}
-          </p>
-        </div>
-        <ScheduleFormDialog
-          mode="create"
-          open={open}
-          onOpenChange={(nextOpen) => {
-            setOpen(nextOpen);
-            if (!nextOpen) {
-              setForm({ ...DEFAULT_SCHEDULE_FORM });
-              setError("");
-            }
-          }}
-          onSubmit={handleAdd}
-          form={form}
-          onFormChange={setForm}
-          accounts={accounts}
-          error={error}
-          loading={loading}
-        />
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          <ScheduleFormDialog
+            mode="create"
+            open={open}
+            onOpenChange={(nextOpen) => {
+              setOpen(nextOpen);
+              if (!nextOpen) {
+                setForm({ ...DEFAULT_SCHEDULE_FORM });
+                setError("");
+              }
+            }}
+            onSubmit={handleAdd}
+            form={form}
+            onFormChange={setForm}
+            accounts={accounts}
+            error={error}
+            loading={loading}
+          />
+        }
+      />
 
       <ScheduleFormDialog
         mode="edit"
@@ -239,47 +231,21 @@ export default function SchedulesScreen() {
       />
 
       {/* Stats overview */}
-      <StatsGrid items={stats} cardClassName="card-glow relative overflow-hidden" />
+      <StatsGrid items={stats} />
 
       {/* Task table */}
       {schedules.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="empty-state">
-            <div className="empty-icon">
-              <Timer className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">{t("emptyTitle")}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("emptyDesc")}
-              </p>
-            </div>
-            <div className="fade-divider max-w-[240px]" />
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <span className="step-circle">
-                  1
-                </span>
-                {t("step1")}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="step-circle">
-                  2
-                </span>
-                {t("step2")}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="step-circle">
-                  3
-                </span>
-                {t("step3")}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Timer}
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
+        >
+          <StepList steps={[t("step1"), t("step2"), t("step3")]} />
+        </EmptyState>
       ) : (
-        <Card>
-          <Table>
+        <Card className="py-0">
+          <CardContent className="p-0">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-center">{t("colStatus")}</TableHead>
@@ -294,7 +260,10 @@ export default function SchedulesScreen() {
               {[...schedules]
                 .sort((a, b) => cronSortKey(a.cronExpression) - cronSortKey(b.cronExpression))
                 .map((s) => (
-                  <TableRow key={s.id} className={!s.isActive ? "opacity-50" : ""}>
+                  <TableRow
+                    key={s.id}
+                    className={cn(!s.isActive && "opacity-50")}
+                  >
                     <TableCell className="text-center">
                       {s.isActive ? (
                         <Badge variant="default" className="text-[10px]">
@@ -311,14 +280,14 @@ export default function SchedulesScreen() {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="inline-flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Clock className="size-3.5 text-muted-foreground" />
                         <span className="text-sm">{cronToHuman(s.cronExpression, t)}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center font-mono text-sm">
+                    <TableCell className="text-center text-sm tabular-nums">
                       {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                    <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                       {formatShanghaiDateTime(s.lastRunAt, locale)}
                     </TableCell>
                     <TableCell>
@@ -326,43 +295,41 @@ export default function SchedulesScreen() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
                           onClick={() => handleToggle(s.id, s.isActive)}
                           title={s.isActive ? t("pause") : t("start")}
                           aria-label={s.isActive ? t("pause") : t("start")}
                         >
                           {s.isActive ? (
-                            <Pause className="h-4 w-4 text-amber-500" />
+                            <Pause className="text-muted-foreground" />
                           ) : (
-                            <Play className="h-4 w-4 text-emerald-500" />
+                            <Play className="text-muted-foreground" />
                           )}
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
                           onClick={() => openEdit(s)}
                           title={tc("edit")}
                           aria-label={tc("edit")}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
                           onClick={() => handleDelete(s.id)}
                           title={tc("delete")}
                           aria-label={tc("delete")}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
             </TableBody>
-          </Table>
+            </Table>
+          </CardContent>
         </Card>
       )}
     </div>

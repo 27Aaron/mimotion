@@ -9,8 +9,6 @@ export interface StatItem {
   value: ReactNode;
   detail: ReactNode;
   icon: ComponentType<{ className?: string }>;
-  color: string;
-  bg: string;
   active?: boolean;
   onClick?: () => void;
 }
@@ -18,12 +16,11 @@ export interface StatItem {
 interface StatsGridProps {
   items: StatItem[];
   className?: string;
-  cardClassName?: string;
 }
 
-export function StatsGrid({ items, className, cardClassName }: StatsGridProps) {
+export function StatsGrid({ items, className }: StatsGridProps) {
   return (
-    <div className={cn("stats-grid", className)}>
+    <div className={cn("grid gap-4 sm:grid-cols-3", className)}>
       {items.map((item) => {
         const interactive = Boolean(item.onClick);
 
@@ -31,10 +28,9 @@ export function StatsGrid({ items, className, cardClassName }: StatsGridProps) {
           <Card
             key={item.id ?? item.title}
             className={cn(
-              "stat-card",
-              interactive && "cursor-pointer transition-all hover:ring-1 hover:ring-border",
-              item.active && "ring-2 ring-primary/40",
-              cardClassName,
+              "gap-2 py-4",
+              interactive && "cursor-pointer transition-colors duration-150 hover:bg-muted/40",
+              item.active && "border-primary/50 bg-primary/[0.03]",
             )}
             onClick={item.onClick}
             onKeyDown={interactive ? (event) => {
@@ -50,9 +46,7 @@ export function StatsGrid({ items, className, cardClassName }: StatsGridProps) {
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="stat-label">{item.title}</CardTitle>
-                <div className={cn("stat-icon-box", item.bg)}>
-                  <item.icon className={item.color} />
-                </div>
+                <item.icon className="size-5 text-primary/70" />
               </div>
             </CardHeader>
             <CardContent className="pt-0 pb-1">

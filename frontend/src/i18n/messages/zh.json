@@ -61,6 +61,7 @@
     "settings": "设置",
     "inviteCodes": "邀请码",
     "userManagement": "用户管理",
+    "management": "管理",
     "roleAdmin": "管理员",
     "roleUser": "用户",
     "logout": "退出登录",
@@ -68,6 +69,7 @@
   },
   "dashboard": {
     "title": "控制台",
+    "description": "查看账号、任务和最近的执行记录",
     "greetingLateNight": "夜深了",
     "greetingMorning": "早上好",
     "greetingAfternoon": "下午好",

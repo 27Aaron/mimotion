@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Footprints } from "lucide-react";
 
 import { Toaster } from "@/components/providers/toaster";
 import AdminScreen from "@/features/admin/screens/admin-screen";
@@ -20,10 +21,9 @@ interface SessionUser {
 
 function LoadingScreen() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background">
-      <div className="pointer-events-none absolute right-[10%] top-[5%] h-72 w-72 rounded-full bg-primary/[0.06] blur-[90px]" />
+    <div className="flex min-h-screen items-center justify-center bg-background" aria-busy="true">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+        <Footprints className="h-4 w-4 text-primary" />
         MiMotion
       </div>
     </div>

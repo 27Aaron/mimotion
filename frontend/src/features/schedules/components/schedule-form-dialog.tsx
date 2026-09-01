@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEventHandler } from "react";
-import { IconCalendarPlus } from "@tabler/icons-react";
+import { CalendarPlus } from "lucide-react";
 import { useTranslations } from "@/platform/i18n";
 
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { XiaomiAccountOption } from "@/features/schedules/client";
 import type { ScheduleFormValue } from "@/features/schedules/model";
 
@@ -67,7 +73,7 @@ export function ScheduleFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {creating && (
         <DialogTrigger render={<Button />}>
-          <IconCalendarPlus className="mr-1.5 h-4 w-4 stroke-[1.5]" />
+          <CalendarPlus data-icon="inline-start" />
           {t("createTask")}
         </DialogTrigger>
       )}
@@ -79,9 +85,9 @@ export function ScheduleFormDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{t("xiaomiAccount")}</Label>
+          <FieldGroup className="gap-4 py-4">
+            <Field>
+              <FieldLabel htmlFor="schedule-account">{t("xiaomiAccount")}</FieldLabel>
               <Select
                 value={form.xiaomiAccountId}
                 onValueChange={(value) => onFormChange({
@@ -89,7 +95,7 @@ export function ScheduleFormDialog({
                   xiaomiAccountId: value ?? "",
                 })}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="schedule-account" className="w-full">
                   <span className="flex-1 truncate text-left">
                     {form.xiaomiAccountId
                       ? selectedAccount?.nickname || selectedAccount?.account || form.xiaomiAccountId
@@ -104,10 +110,10 @@ export function ScheduleFormDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
 
-            <div className="space-y-2">
-              <Label>{t("executionTime")}</Label>
+            <Field>
+              <FieldLabel>{t("executionTime")}</FieldLabel>
               <div className="grid grid-cols-2 gap-3">
                 <Select
                   value={String(form.hour)}
@@ -116,7 +122,7 @@ export function ScheduleFormDialog({
                     hour: Number.parseInt(value ?? "0"),
                   })}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="schedule-hour" className="w-full">
                     <span className="flex-1 text-left">
                       {String(form.hour).padStart(2, "0")} {t("hour")}
                     </span>
@@ -136,7 +142,7 @@ export function ScheduleFormDialog({
                     minute: Number.parseInt(value ?? "0"),
                   })}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="schedule-minute" className="w-full">
                     <span className="flex-1 text-left">
                       {String(form.minute).padStart(2, "0")} {t("minute")}
                     </span>
@@ -150,40 +156,31 @@ export function ScheduleFormDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </Field>
 
-            <div className="space-y-2">
-              <Label>{t("repeatDays")}</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {dayOptions.map((day) => {
-                  const selected = form.days.includes(day.value);
-                  return (
-                    <button
-                      key={day.value}
-                      type="button"
-                      onClick={() => onFormChange({
-                        ...form,
-                        days: selected
-                          ? form.days.filter((value) => value !== day.value)
-                          : [...form.days, day.value],
-                      })}
-                      className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-                        selected
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {day.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <Field>
+              <FieldLabel>{t("repeatDays")}</FieldLabel>
+              <ToggleGroup
+                multiple
+                value={form.days}
+                onValueChange={(days) => onFormChange({ ...form, days })}
+                className="w-full flex-wrap"
+                spacing={1}
+                aria-label={t("repeatDays")}
+              >
+                {dayOptions.map((day) => (
+                  <ToggleGroupItem key={day.value} value={day.value} size="sm">
+                    {day.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t("minSteps")}</Label>
+              <Field>
+                <FieldLabel htmlFor="schedule-min-steps">{t("minSteps")}</FieldLabel>
                 <Input
+                  id="schedule-min-steps"
                   type="number"
                   value={form.minStep}
                   onChange={(event) => onFormChange({
@@ -192,10 +189,11 @@ export function ScheduleFormDialog({
                   })}
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("maxSteps")}</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="schedule-max-steps">{t("maxSteps")}</FieldLabel>
                 <Input
+                  id="schedule-max-steps"
                   type="number"
                   value={form.maxStep}
                   onChange={(event) => onFormChange({
@@ -204,15 +202,11 @@ export function ScheduleFormDialog({
                   })}
                   required
                 />
-              </div>
+              </Field>
             </div>
 
-            {error && (
-              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-          </div>
+            {error && <FieldError>{error}</FieldError>}
+          </FieldGroup>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

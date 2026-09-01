@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "@/platform/i18n";
 import { toast } from "sonner";
 import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Users,
   Trash2,
@@ -16,10 +17,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatShanghaiDateTime } from "@/lib/time/format";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -133,40 +140,30 @@ export default function AdminScreen() {
       value: totalUsers,
       detail: t("statUsersDetail"),
       icon: Users,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
     },
     {
       title: t("statAccounts"),
       value: totalAccounts,
       detail: t("statAccountsDetail"),
       icon: Smartphone,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
     },
     {
       title: t("statActiveTasks"),
       value: totalActive,
       detail: t("statActiveTasksDetail"),
       icon: Calendar,
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
     },
   ];
 
   return (
-    <div className="flex flex-col">
-      {/* Page header */}
-      <div className="mb-6">
-        <h1 className="page-title">{t("title")}</h1>
-        <p className="mt-1 text-muted-foreground">{t("description")}</p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t("title")} description={t("description")} />
 
       {/* Overview stats */}
       <StatsGrid items={stats} />
 
       {/* User table */}
-      <Card>
+      <Card className="py-0">
         {loading ? (
           <CardContent className="flex h-32 items-center justify-center text-muted-foreground">
             {tc("loading")}
@@ -176,7 +173,8 @@ export default function AdminScreen() {
             {t("noUsers")}
           </CardContent>
         ) : (
-          <Table>
+          <CardContent className="p-0">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[180px] text-center">{t("colUser")}</TableHead>
@@ -193,7 +191,7 @@ export default function AdminScreen() {
                 <TableRow key={u.id}>
                   <TableCell>
                     <div className="flex items-center justify-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-muted">
                         <span className="text-xs font-medium">
                           {u.username.charAt(0).toUpperCase()}
                         </span>
@@ -204,7 +202,7 @@ export default function AdminScreen() {
                   <TableCell className="text-center">
                     {u.isAdmin ? (
                       <Badge variant="default" className="gap-1">
-                        <Shield className="h-3 w-3" />
+                        <Shield data-icon="inline-start" />
                         {tn("roleAdmin")}
                       </Badge>
                     ) : (
@@ -214,31 +212,37 @@ export default function AdminScreen() {
                   <TableCell className="text-center">
                     <div className="inline-flex items-center gap-2">
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded ${u.barkConfigured ? "bg-emerald-500/10" : "bg-muted"}`}
+                        className="flex size-6 items-center justify-center rounded-md border border-border bg-card"
                         title={u.barkConfigured ? t("barkConfigured") : t("barkNotConfigured")}
                       >
                         <Smartphone
-                          className={`h-3 w-3 ${u.barkConfigured ? "text-emerald-500" : "text-muted-foreground/40"}`}
+                          className={cn(
+                            "size-3",
+                            u.barkConfigured ? "text-primary" : "text-muted-foreground/40",
+                          )}
                         />
                       </span>
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded ${u.telegramConfigured ? "bg-blue-500/10" : "bg-muted"}`}
+                        className="flex size-6 items-center justify-center rounded-md border border-border bg-card"
                         title={u.telegramConfigured ? t("telegramConfigured") : t("telegramNotConfigured")}
                       >
                         <Send
-                          className={`h-3 w-3 ${u.telegramConfigured ? "text-blue-500" : "text-muted-foreground/40"}`}
+                          className={cn(
+                            "size-3",
+                            u.telegramConfigured ? "text-primary" : "text-muted-foreground/40",
+                          )}
                         />
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center font-mono text-sm">
+                  <TableCell className="text-center text-sm tabular-nums">
                     {u.accountCount}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="font-mono text-sm">{u.activeSchedules}</span>
+                    <span className="text-sm tabular-nums">{u.activeSchedules}</span>
                     <span className="text-muted-foreground"> / {u.totalSchedules}</span>
                   </TableCell>
-                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                     {formatShanghaiDateTime(u.updatedAt, locale)}
                   </TableCell>
                   <TableCell>
@@ -248,22 +252,20 @@ export default function AdminScreen() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
                             onClick={() => openResetDialog(u)}
                             title={t("resetPassword")}
                             aria-label={t("resetPassword")}
                           >
-                            <KeyRound className="h-4 w-4 text-muted-foreground" />
+                            <KeyRound className="text-muted-foreground" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
                             onClick={() => handleDelete(u.id, u.username)}
                             title={t("deleteUser")}
                             aria-label={t("deleteUser")}
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="text-destructive" />
                           </Button>
                         </>
                       )}
@@ -272,7 +274,8 @@ export default function AdminScreen() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </CardContent>
         )}
       </Card>
 
@@ -286,23 +289,21 @@ export default function AdminScreen() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>{t("newPassword")}</Label>
+            <FieldGroup className="py-4">
+              <Field data-invalid={Boolean(resetError)}>
+                <FieldLabel htmlFor="admin-new-password">{t("newPassword")}</FieldLabel>
                 <Input
+                  id="admin-new-password"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder={t("newPasswordPlaceholder")}
+                  aria-invalid={Boolean(resetError) || undefined}
                   required
                 />
-              </div>
-              {resetError && (
-                <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {resetError}
-                </div>
-              )}
-            </div>
+                <FieldError>{resetError}</FieldError>
+              </Field>
+            </FieldGroup>
             <DialogFooter>
               <Button
                 type="button"
@@ -312,7 +313,7 @@ export default function AdminScreen() {
                 {tc("cancel")}
               </Button>
               <Button type="submit" disabled={resetLoading}>
-                {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {resetLoading && <Loader2 data-icon="inline-start" className="animate-spin" />}
                 {resetLoading ? t("resetting") : t("confirmReset")}
               </Button>
             </DialogFooter>
