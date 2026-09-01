@@ -15,81 +15,30 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
       pkgsFor = system: import nixpkgs { inherit system; };
+      version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
+      hashes = builtins.fromJSON (builtins.readFile ./nix/hashes.json);
     in
     {
       packages = forAllSystems (
         system:
         let
           pkgs = pkgsFor system;
-          frontend = pkgs.buildNpmPackage {
-            pname = "mimotion-frontend";
-            version = "3.0.0";
-            src = ./.;
-            npmDepsHash = "sha256-5D1dFCJomsbHOEKpf7vlI4SYbasz/Aau/UEm3D/zLY4=";
-            npmBuildScript = "build:frontend";
-
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out
-              cp -r frontend/dist $out/dist
-              runHook postInstall
-            '';
+          frontend = pkgs.callPackage ./nix/packages/frontend.nix {
+            inherit hashes version;
           };
         in
         {
-          mimotion = pkgs.rustPlatform.buildRustPackage {
-            pname = "mimotion";
-            version = "3.0.0";
-            src = ./.;
-            cargoLock.lockFile = ./backend/Cargo.lock;
-            buildAndTestSubdir = "backend";
-
-            postPatch = ''
-              cp backend/Cargo.lock Cargo.lock
-            '';
-
-            preBuild = ''
-              rm -rf frontend/dist
-              cp -r ${frontend}/dist frontend/dist
-            '';
-
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out/bin
-              cp target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/mimotion $out/bin/mimotion
-              runHook postInstall
-            '';
-
-            meta = with pkgs.lib; {
-              description = "Xiaomi/Zepp auto step counter service";
-              homepage = "https://github.com/27Aaron/mimotion";
-              license = licenses.wtfpl;
-              mainProgram = "mimotion";
-              platforms = supportedSystems;
-            };
+          mimotion = pkgs.callPackage ./nix/packages/mimotion.nix {
+            inherit frontend version supportedSystems;
           };
-
           default = self.packages.${system}.mimotion;
         }
       );
 
       devShells = forAllSystems (
-        system:
-        let
-          pkgs = pkgsFor system;
-        in
-        {
-          default = pkgs.mkShell {
-            packages = with pkgs; [
-              nodejs_24
-              cargo
-              clippy
-              rustc
-              rustfmt
-              python3
-              gcc
-              gnumake
-            ];
+        system: {
+          default = import ./nix/devshell.nix {
+            pkgs = pkgsFor system;
           };
         }
       );
