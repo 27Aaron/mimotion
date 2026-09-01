@@ -7,6 +7,7 @@ ARG RUST_VERSION=1.96
 FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-slim AS frontend
 WORKDIR /src
 COPY package.json package-lock.json ./
+COPY frontend/package.json ./frontend/package.json
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts --no-audit --no-fund
 COPY . .
@@ -23,28 +24,28 @@ RUN apt-get update \
 
 # ---------- 依赖配方：源码变更不会打穿依赖编译缓存层 ----------
 FROM tools AS planner
-WORKDIR /src
-COPY backend/Cargo.toml backend/Cargo.lock ./backend/
+WORKDIR /src/backend
+COPY backend/Cargo.toml backend/Cargo.lock ./
 RUN cargo chef prepare --recipe-path recipe.json
 
 # ---------- 后端：原生平台执行，按 TARGETPLATFORM 交叉编译，全程无 QEMU ----------
 FROM tools AS backend
-WORKDIR /src
+WORKDIR /src/backend
 ARG TARGETPLATFORM
 RUN case "${TARGETPLATFORM}" in \
         linux/amd64) echo x86_64-unknown-linux-gnu > /triple ;; \
         linux/arm64) echo aarch64-unknown-linux-gnu > /triple ;; \
         *) echo "unsupported platform: ${TARGETPLATFORM}" >&2; exit 1 ;; \
     esac
-COPY --from=planner /src/recipe.json ./
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
+COPY --from=planner /src/backend/recipe.json ./
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     cargo chef cook --release --zigbuild --target "$(cat /triple)" --recipe-path recipe.json
-COPY backend/Cargo.toml backend/Cargo.lock ./backend/
-COPY backend/migrations ./backend/migrations
-COPY backend/src ./backend/src
-COPY --from=frontend /src/frontend/dist ./frontend/dist
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo zigbuild --release --locked --target "$(cat /triple)" --manifest-path backend/Cargo.toml
+COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/migrations ./migrations
+COPY backend/src ./src
+COPY --from=frontend /src/frontend/dist /src/frontend/dist
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    cargo zigbuild --release --locked --target "$(cat /triple)"
 
 # ---------- 运行时：只做文件拷贝，无任何模拟执行 ----------
 FROM debian:bookworm-slim AS runtime

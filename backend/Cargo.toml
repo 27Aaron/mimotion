@@ -6,6 +6,13 @@ rust-version = "1.96"
 description = "MiMotion Xiaomi/Zepp auto step sync service"
 license = "WTFPL"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "mimotion"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0"
 aes-gcm = "0.10"

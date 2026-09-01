@@ -26,7 +26,7 @@
             pname = "mimotion-frontend";
             version = "3.0.0-alpha.1";
             src = ./.;
-            npmDepsHash = "sha256-L2kVr+2Crl7z0DXJm4viaov8x+4+d8o4SoX9zi7f5JI=";
+            npmDepsHash = "sha256-tPE6MQbnBBa2umoriZSEUbXYQPelH24OUyL+vabbCy0=";
             npmBuildScript = "build:frontend";
 
             installPhase = ''
