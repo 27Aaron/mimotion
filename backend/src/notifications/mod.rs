@@ -9,7 +9,7 @@ use url::Url;
 use crate::{config::Config, security::crypto, storage::models::UserRow};
 
 pub const BARK_ICON_URL: &str =
-    "https://cdn.jsdelivr.net/gh/27Aaron/mimotion/frontend/public/icon.svg";
+    "https://cdn.jsdelivr.net/gh/27Aaron/mimotion@main/frontend/public/icon.png?v=1";
 
 #[derive(Debug, Clone)]
 pub struct NotificationSecrets {
