@@ -89,7 +89,25 @@ backend/
   src/notifications/        # Bark / Telegram
 ```
 
+## Releases
+
+Pushing a `v*` tag triggers GitHub Actions to build and publish in one go:
+
+- Static binaries (musl/glibc-free) for `linux/amd64`, `linux/arm64`, `macOS arm64` and `macOS x86_64`, attached to the GitHub Release with checksums;
+- Multi-arch Docker images (linux/amd64 + linux/arm64) pushed to `ghcr.io/27Aaron/mimotion`, tagged with the version.
+
 ## Docker
+
+Use the published image:
+
+```bash
+docker run -d --name mimotion -p 3000:3000 -v ./data:/var/lib/mimotion \
+  -e ENCRYPTION_KEY=<64-char-hex> -e JWT_SECRET=<64-char-hex> \
+  -e ADMIN_PASSWORD=<strong-password> \
+  ghcr.io/27Aaron/mimotion:latest
+```
+
+Or build locally:
 
 ```bash
 docker compose up -d --build

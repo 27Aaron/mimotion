@@ -91,7 +91,25 @@ backend/
   src/notifications/        # Bark / Telegram
 ```
 
+## 发布
+
+推送 `v*` tag 会触发 GitHub Actions 一次性完成构建和发布：
+
+- 四个平台的静态二进制（`linux/amd64`、`linux/arm64`、macOS arm64、macOS x86_64），附在 GitHub Release 并带校验和；
+- 多架构 Docker 镜像（linux/amd64 + linux/arm64），推送至 `ghcr.io/27Aaron/mimotion`，以版本号打 tag。
+
 ## Docker
+
+直接使用发布好的镜像：
+
+```bash
+docker run -d --name mimotion -p 3000:3000 -v ./data:/var/lib/mimotion \
+  -e ENCRYPTION_KEY=<64位十六进制> -e JWT_SECRET=<64位十六进制> \
+  -e ADMIN_PASSWORD=<强密码> \
+  ghcr.io/27Aaron/mimotion:latest
+```
+
+或者本地构建：
 
 ```bash
 docker compose up -d --build
