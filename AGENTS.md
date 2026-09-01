@@ -238,3 +238,4 @@ rate_limits                  独立表，持久化限流计数（无外键）
 - 用户管理页（admin）：表格居中对齐，按注册时间升序排列，支持重置密码、查看推送配置状态
 - 新增 shadcn 组件：在 `frontend` workspace 中运行 `npx shadcn add <component>`
 - Rust 单元测试放在模块旁的独立文件（如 `config.rs` → `config/tests.rs`），源码文件只保留 `#[cfg(test)] mod tests;` 声明
+- 发布仅由 `v*` tag 触发：GitHub Actions 构建四平台静态二进制（Linux musl ×2、macOS ×2，见 `.github/workflows/release.yml`）并推送 linux/amd64+arm64 多架构镜像到 GHCR（`.github/workflows/docker.yml`）；Dockerfile 全程在 BUILDPLATFORM 原生执行（cargo-zigbuild 交叉编译），不依赖 QEMU

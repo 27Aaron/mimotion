@@ -1,0 +1,119 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_VERSION: "1.96"
+
+jobs:
+  frontend:
+    name: Build frontend dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - run: npm run build:frontend
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  binaries:
+    name: Build ${{ matrix.target }}
+    needs: frontend
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            runs-on: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            runs-on: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            runs-on: macos-15
+          - target: x86_64-apple-darwin
+            runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+          rustup toolchain install "$RUST_VERSION" --profile minimal --target "${{ matrix.target }}"
+          rustup default "$RUST_VERSION"
+
+      - name: Install musl tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends musl-tools
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+          key: ${{ matrix.target }}
+
+      - run: cargo build --release --locked --target ${{ matrix.target }} --manifest-path backend/Cargo.toml
+
+      - name: Package
+        shell: bash
+        run: |
+          archive="mimotion-${{ github.ref_name }}-${{ matrix.target }}"
+          mkdir -p package
+          cp "backend/target/${{ matrix.target }}/release/mimotion" package/
+          cp LICENSE package/
+          tar -czf "${archive}.tar.gz" -C package mimotion LICENSE
+          shasum -a 256 "${archive}.tar.gz" > "${archive}.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: |
+            mimotion-*.tar.gz
+            mimotion-*.tar.gz.sha256
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: release
+
+      - name: Generate checksums
+        run: shasum -a 256 release/*.tar.gz > release/checksums.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/**
+          generate_release_notes: true
