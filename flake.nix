@@ -11,7 +11,6 @@
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"
-        "x86_64-darwin"
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -24,9 +23,9 @@
           pkgs = pkgsFor system;
           frontend = pkgs.buildNpmPackage {
             pname = "mimotion-frontend";
-            version = "3.0.0-alpha.1";
+            version = "3.0.0";
             src = ./.;
-            npmDepsHash = "sha256-tPE6MQbnBBa2umoriZSEUbXYQPelH24OUyL+vabbCy0=";
+            npmDepsHash = "sha256-5D1dFCJomsbHOEKpf7vlI4SYbasz/Aau/UEm3D/zLY4=";
             npmBuildScript = "build:frontend";
 
             installPhase = ''
@@ -40,7 +39,7 @@
         {
           mimotion = pkgs.rustPlatform.buildRustPackage {
             pname = "mimotion";
-            version = "3.0.0-alpha.1";
+            version = "3.0.0";
             src = ./.;
             cargoLock.lockFile = ./backend/Cargo.lock;
             buildAndTestSubdir = "backend";
