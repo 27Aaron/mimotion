@@ -13,6 +13,9 @@ import {
   Pencil,
 } from "lucide-react";
 import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { StepList } from "@/components/layout/step-list";
 import { XiaomiAccountDialog } from "@/features/xiaomi/components/xiaomi-account-dialog";
 import { EMPTY_XIAOMI_ACCOUNT_FORM } from "@/features/xiaomi/model";
 import { Button } from "@/components/ui/button";
@@ -125,24 +128,18 @@ export default function XiaomiScreen() {
       value: accounts.length,
       icon: Smartphone,
       detail: t("statTotalDetail"),
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
     },
     {
       title: t("statActive"),
       value: activeCount,
       icon: Wifi,
       detail: t("statActiveDetail"),
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
     },
     {
       title: t("statAttention"),
       value: errorCount,
       icon: WifiOff,
       detail: errorCount > 0 ? t("statAttentionDetailBad") : t("statAttentionDetailOk"),
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
     },
   ];
 
@@ -151,80 +148,60 @@ export default function XiaomiScreen() {
   }
 
   return (
-    <div className="flex flex-col">
-      {/* Page header */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="page-title">{t("title")}</h1>
-          <p className="mt-1 text-muted-foreground">
-            {t("description")}
-          </p>
-        </div>
-        <XiaomiAccountDialog
-          mode="create"
-          open={open}
-          onOpenChange={(nextOpen) => {
-            setOpen(nextOpen);
-            if (!nextOpen) setForm({ ...EMPTY_XIAOMI_ACCOUNT_FORM });
-          }}
-          onSubmit={handleAdd}
-          form={form}
-          onFormChange={setForm}
-          loading={loading}
-        />
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          <XiaomiAccountDialog
+            mode="create"
+            open={open}
+            onOpenChange={(nextOpen) => {
+              setOpen(nextOpen);
+              if (!nextOpen) setForm({ ...EMPTY_XIAOMI_ACCOUNT_FORM });
+            }}
+            onSubmit={handleAdd}
+            form={form}
+            onFormChange={setForm}
+            loading={loading}
+          />
+        }
+      />
 
-        <XiaomiAccountDialog
-          mode="edit"
-          open={editOpen}
-          onOpenChange={(nextOpen) => {
-            setEditOpen(nextOpen);
-            if (!nextOpen) {
-              setEditingId(null);
-              setEditError("");
-              setEditForm({ ...EMPTY_XIAOMI_ACCOUNT_FORM });
-            }
-          }}
-          onSubmit={handleEdit}
-          form={editForm}
-          onFormChange={setEditForm}
-          error={editError}
-          loading={loading}
-        />
-      </div>
+      <XiaomiAccountDialog
+        mode="edit"
+        open={editOpen}
+        onOpenChange={(nextOpen) => {
+          setEditOpen(nextOpen);
+          if (!nextOpen) {
+            setEditingId(null);
+            setEditError("");
+            setEditForm({ ...EMPTY_XIAOMI_ACCOUNT_FORM });
+          }
+        }}
+        onSubmit={handleEdit}
+        form={editForm}
+        onFormChange={setEditForm}
+        error={editError}
+        loading={loading}
+      />
 
       {/* Stats overview */}
       <StatsGrid items={stats} />
 
       {/* Account table */}
       {accounts.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="empty-state">
-            <div className="empty-icon">
-              <Smartphone className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">{t("emptyTitle")}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("emptyDesc")}
-              </p>
-            </div>
-            <div className="fade-divider max-w-[240px]" />
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <span className="step-circle">1</span> {t("step1")}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="step-circle">2</span> {t("step2")}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="step-circle">3</span> {t("step3")}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Smartphone}
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
+        >
+          <StepList steps={[t("step1"), t("step2"), t("step3")]} />
+        </EmptyState>
       ) : (
-        <Card>
-          <Table>
+        <Card className="py-0">
+          <CardContent className="p-0">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[200px] text-center">{t("colAccount")}</TableHead>
@@ -243,16 +220,12 @@ export default function XiaomiScreen() {
                   <TableCell className="text-center">
                     <div className="inline-flex items-center gap-2.5 text-left">
                       <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                          acc.status === "active"
-                            ? "bg-emerald-500/10"
-                            : "bg-red-500/10"
-                        }`}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card"
                       >
                         {acc.status === "active" ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          <CheckCircle2 className="size-4 text-emerald-500" />
                         ) : (
-                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <AlertCircle className="size-4 text-red-500" />
                         )}
                       </div>
                       <div className="min-w-0">
@@ -278,23 +251,23 @@ export default function XiaomiScreen() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="font-mono text-sm">{acc.activeScheduleCount}</span>
+                    <span className="text-sm tabular-nums">{acc.activeScheduleCount}</span>
                     <span className="text-muted-foreground"> / {acc.scheduleCount}</span>
                   </TableCell>
-                  <TableCell className="text-center font-mono text-sm">
+                  <TableCell className="text-center text-sm tabular-nums">
                     {acc.lastStep != null ? (
                       <span>{acc.lastStep.toLocaleString()}</span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                     {formatDate(acc.lastSyncAt)}
                   </TableCell>
-                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                     {formatDate(acc.createdAt)}
                   </TableCell>
-                  <TableCell className="text-center font-mono text-sm text-muted-foreground">
+                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
                     {formatDate(acc.updatedAt)}
                   </TableCell>
                   <TableCell>
@@ -302,29 +275,28 @@ export default function XiaomiScreen() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
                         onClick={() => openEdit(acc)}
                         title={tc("edit")}
                         aria-label={tc("edit")}
                       >
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                        <Pencil className="text-muted-foreground" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
                         onClick={() => handleDelete(acc.id)}
                         title={tc("delete")}
                         aria-label={tc("delete")}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="text-destructive" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </CardContent>
         </Card>
       )}
     </div>

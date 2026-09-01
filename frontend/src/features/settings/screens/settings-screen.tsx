@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -24,6 +23,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { PageHeader } from "@/components/layout/page-header";
+import { SectionHeading } from "@/components/layout/section-heading";
 export default function SettingsScreen() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
@@ -145,18 +152,14 @@ export default function SettingsScreen() {
   }
 
   return (
-    <div className="flex flex-col">
-      {/* Page header */}
-      <div className="mb-6">
-        <h1 className="page-title">{t("title")}</h1>
-        <p className="mt-1 text-muted-foreground">{t("description")}</p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t("title")} description={t("description")} />
 
       {/* User info */}
-      <Card className="mb-3">
-        <CardContent className="px-4 py-4">
+      <Card>
+        <CardContent className="py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-card text-base font-bold text-primary">
               {currentUsername ? currentUsername.charAt(0).toUpperCase() : "?"}
             </div>
             <div className="flex-1">
@@ -165,7 +168,7 @@ export default function SettingsScreen() {
                   {currentUsername || tc("loading")}
                 </p>
                 <Badge variant="secondary" className="text-[10px]">
-                  <User className="mr-1 h-3 w-3" />
+                  <User data-icon="inline-start" />
                   {t("usernameLabel")}
                 </Badge>
               </div>
@@ -177,55 +180,39 @@ export default function SettingsScreen() {
         </CardContent>
       </Card>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* Section headers */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="flex items-center gap-2">
-            <div className="section-icon">
-              <Shield className="h-3 w-3 text-primary" />
-            </div>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              {t("security")}
-            </h2>
-            <div className="ml-2 h-px flex-1 bg-border" />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="section-icon">
-              <Bell className="h-3 w-3 text-primary" />
-            </div>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              {t("pushNotifications")}
-            </h2>
-            <div className="ml-2 h-px flex-1 bg-border" />
-          </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <SectionHeading icon={Shield}>{t("security")}</SectionHeading>
+          <SectionHeading icon={Bell}>{t("pushNotifications")}</SectionHeading>
         </div>
 
         {/* Row 1: Username + Bark */}
-        <div className="mt-3 grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
+                <User className="size-4 text-primary" />
                 <CardTitle className="text-base">{t("changeUsername")}</CardTitle>
               </div>
               <CardDescription>{t("changeUsernameDesc")}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="username" className="text-xs">
-                  {t("newUsername")}
-                </Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={t("newUsernamePlaceholder")}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("newUsernameHint")}
-              </p>
+            <CardContent>
+              <FieldGroup className="gap-4">
+                <Field>
+                  <FieldLabel htmlFor="username">
+                    {t("newUsername")}
+                  </FieldLabel>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder={t("newUsernamePlaceholder")}
+                  />
+                  <FieldDescription>{t("newUsernameHint")}</FieldDescription>
+                </Field>
+              </FieldGroup>
             </CardContent>
           </Card>
 
@@ -233,7 +220,7 @@ export default function SettingsScreen() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Smartphone className="h-4 w-4 text-primary" />
+                  <Smartphone className="size-4 text-primary" />
                   <CardTitle className="text-base">{t("barkPush")}</CardTitle>
                 </div>
                 <Button
@@ -243,67 +230,69 @@ export default function SettingsScreen() {
                   disabled={testingBark || !barkUrl}
                   onClick={(e) => { e.preventDefault(); handleTestPush("bark"); }}
                 >
-                  {testingBark && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  {testingBark && <Loader2 data-icon="inline-start" className="animate-spin" />}
                   {testingBark ? tc("sending") : tc("testPush")}
                 </Button>
               </div>
               <CardDescription>{t("barkPushDesc")}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="barkUrl" className="text-xs">
-                  Bark URL
-                </Label>
-                <Input
-                  id="barkUrl"
-                  type="url"
-                  value={barkUrl}
-                  onChange={(e) => setBarkUrl(e.target.value)}
-                  placeholder="https://api.day.app/yourkey"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("barkHint")}
-              </p>
+            <CardContent>
+              <FieldGroup className="gap-4">
+                <Field>
+                  <FieldLabel htmlFor="barkUrl">
+                    Bark URL
+                  </FieldLabel>
+                  <Input
+                    id="barkUrl"
+                    type="url"
+                    value={barkUrl}
+                    onChange={(e) => setBarkUrl(e.target.value)}
+                    placeholder="https://api.day.app/yourkey"
+                  />
+                  <FieldDescription>{t("barkHint")}</FieldDescription>
+                </Field>
+              </FieldGroup>
             </CardContent>
           </Card>
         </div>
 
         {/* Row 2: Password + Telegram */}
-        <div className="mt-3 grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <Key className="h-4 w-4 text-primary" />
+                <Key className="size-4 text-primary" />
                 <CardTitle className="text-base">{t("changePassword")}</CardTitle>
               </div>
               <CardDescription>{t("changePasswordDesc")}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="currentPassword" className="text-xs">
-                  {t("currentPassword")}
-                </Label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder={t("currentPasswordPlaceholder")}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="newPassword" className="text-xs">
-                  {t("newPassword")}
-                </Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={t("newPasswordPlaceholder")}
-                />
-              </div>
+            <CardContent>
+              <FieldGroup className="gap-4">
+                <Field>
+                  <FieldLabel htmlFor="currentPassword">
+                    {t("currentPassword")}
+                  </FieldLabel>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder={t("currentPasswordPlaceholder")}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="newPassword">
+                    {t("newPassword")}
+                  </FieldLabel>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={t("newPasswordPlaceholder")}
+                  />
+                </Field>
+              </FieldGroup>
             </CardContent>
           </Card>
 
@@ -311,7 +300,7 @@ export default function SettingsScreen() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Send className="h-4 w-4 text-primary" />
+                  <Send className="size-4 text-primary" />
                   <CardTitle className="text-base">{t("telegramPush")}</CardTitle>
                 </div>
                 <Button
@@ -321,43 +310,45 @@ export default function SettingsScreen() {
                   disabled={testingTelegram || !telegramBotToken || !telegramChatId}
                   onClick={(e) => { e.preventDefault(); handleTestPush("telegram"); }}
                 >
-                  {testingTelegram && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  {testingTelegram && <Loader2 data-icon="inline-start" className="animate-spin" />}
                   {testingTelegram ? tc("sending") : tc("testPush")}
                 </Button>
               </div>
               <CardDescription>{t("telegramPushDesc")}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="telegramBotToken" className="text-xs">
-                  Bot Token
-                </Label>
-                <Input
-                  id="telegramBotToken"
-                  type="text"
-                  value={telegramBotToken}
-                  onChange={(e) => setTelegramBotToken(e.target.value)}
-                  placeholder="123456:ABC-DEF..."
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="telegramChatId" className="text-xs">
-                  Chat ID
-                </Label>
-                <Input
-                  id="telegramChatId"
-                  type="text"
-                  value={telegramChatId}
-                  onChange={(e) => setTelegramChatId(e.target.value)}
-                  placeholder="123456789"
-                />
-              </div>
+            <CardContent>
+              <FieldGroup className="gap-4">
+                <Field>
+                  <FieldLabel htmlFor="telegramBotToken">
+                    Bot Token
+                  </FieldLabel>
+                  <Input
+                    id="telegramBotToken"
+                    type="text"
+                    value={telegramBotToken}
+                    onChange={(e) => setTelegramBotToken(e.target.value)}
+                    placeholder="123456:ABC-DEF..."
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="telegramChatId">
+                    Chat ID
+                  </FieldLabel>
+                  <Input
+                    id="telegramChatId"
+                    type="text"
+                    value={telegramChatId}
+                    onChange={(e) => setTelegramChatId(e.target.value)}
+                    placeholder="123456789"
+                  />
+                </Field>
+              </FieldGroup>
             </CardContent>
           </Card>
         </div>
 
         {/* Action buttons */}
-        <div className="mt-6 flex items-center justify-end gap-3 border-t pt-6">
+        <div className="flex items-center justify-end gap-3 pt-1">
           <Button
             type="button"
             variant="outline"
@@ -373,7 +364,7 @@ export default function SettingsScreen() {
             {tc("reset")}
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && <Loader2 data-icon="inline-start" className="animate-spin" />}
             {loading ? tc("saving") : tc("saveSettings")}
           </Button>
         </div>

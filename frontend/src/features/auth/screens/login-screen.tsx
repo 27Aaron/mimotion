@@ -97,26 +97,21 @@ function AuthPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-primary/3 blur-3xl" />
-      </div>
-
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
       <div className="absolute right-6 top-6 flex items-center gap-2">
         <LocaleSwitcher />
         <ThemeToggle />
       </div>
 
-      <div className="relative z-10 grid w-full max-w-3xl overflow-hidden rounded-2xl border border-border/50 shadow-2xl md:grid-cols-2">
+      <div className="relative z-10 grid w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-card shadow-lg md:grid-cols-2">
         {/* Brand */}
-        <div className="relative hidden flex-col justify-between bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 md:flex">
+        <div className="relative hidden flex-col justify-between border-border bg-primary/[0.05] p-8 md:flex md:border-r">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
                 <Footprints className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-mono text-xl font-bold tracking-tight">
+              <span className="font-heading text-xl font-bold tracking-tight">
                 <span className="text-primary">Mi</span>Motion
               </span>
             </div>
@@ -188,7 +183,7 @@ function AuthPage() {
                   />
                 </div>
                 {loginError && (
-                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                     {loginError}
                   </div>
                 )}
@@ -256,7 +251,7 @@ function AuthPage() {
                   />
                 </div>
                 {regError && (
-                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                     {regError}
                   </div>
                 )}
