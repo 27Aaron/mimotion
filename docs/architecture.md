@@ -48,6 +48,7 @@ backend/
   migrations/                # Rust 启动时执行的版本化 SQLite 迁移
   src/
     main.rs                  # 单进程入口
+    lib.rs                   # 模块组装入口
     config.rs                # 环境变量和服务配置
     state.rs                 # 共享应用状态
     auth/                    # JWT、密码和会话

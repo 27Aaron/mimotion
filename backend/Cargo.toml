@@ -2,6 +2,7 @@
 name = "mimotion"
 version = "3.0.0-alpha.1"
 edition = "2024"
+rust-version = "1.96"
 description = "MiMotion Xiaomi/Zepp auto step sync service"
 license = "WTFPL"
 
