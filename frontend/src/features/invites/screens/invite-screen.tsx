@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "@/platform/i18n";
 import { toast } from "sonner";
@@ -22,6 +20,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import { jsonRequest } from "@/lib/api";
 import { formatShanghaiDateTime } from "@/lib/time/format";
 import { cn } from "@/lib/utils";
 
@@ -49,15 +48,19 @@ export default function InviteScreen() {
   }, []);
 
   async function fetchCodes() {
-    const res = await fetch("/api/invite");
-    if (res.ok) setCodes(await res.json());
+    try {
+      setCodes(await jsonRequest<InviteCode[]>("/api/invite"));
+    } catch {
+      /* surfaced by mutations */
+    }
   }
 
   async function handleCreate() {
     setLoading(true);
-    const res = await fetch("/api/invite", { method: "POST" });
-    const data = await res.json();
-    if (res.ok) {
+    const data = await jsonRequest<{ code: string }>("/api/invite", {
+      method: "POST",
+    }).catch(() => null);
+    if (data) {
       setNewCode(data.code);
       fetchCodes();
       toast.success(t("toastGenerated"));
@@ -67,9 +70,13 @@ export default function InviteScreen() {
 
   async function handleDelete(code: string) {
     if (!confirm(t("confirmDelete"))) return;
-    await fetch(`/api/invite?code=${code}`, { method: "DELETE" });
-    fetchCodes();
-    toast.success(t("toastDeleted"));
+    try {
+      await jsonRequest(`/api/invite?code=${code}`, { method: "DELETE" });
+      fetchCodes();
+      toast.success(t("toastDeleted"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : tc("requestFailed"));
+    }
   }
 
   async function handleCopy(code: string) {

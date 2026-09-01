@@ -1,8 +1,5 @@
-"use client";
-
 import { useState, Suspense } from "react";
-import { useRouter } from "@/i18n/routing";
-import { useSearchParams } from "@/platform/navigation";
+import { useRouter, useSearchParams } from "@/platform/navigation";
 import { useTranslations } from "@/platform/i18n";
 import { Footprints } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +51,6 @@ function AuthPage() {
 
       if (res.ok) {
         router.push("/dashboard");
-        router.refresh();
       } else {
         setLoginError(data.error || t("loginFailed"));
       }
@@ -85,7 +81,6 @@ function AuthPage() {
 
       if (res.ok) {
         router.push("/dashboard");
-        router.refresh();
       } else {
         setRegError(data.error || t("registerFailed"));
       }

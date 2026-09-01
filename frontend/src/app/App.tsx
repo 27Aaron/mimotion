@@ -10,6 +10,7 @@ import SettingsScreen from "@/features/settings/screens/settings-screen";
 import XiaomiScreen from "@/features/xiaomi/screens/xiaomi-screen";
 import { I18nProvider } from "@/platform/i18n";
 import { currentLocale, navigate, stripLocale } from "@/platform/navigation";
+import { jsonRequest } from "@/lib/api";
 import DashboardShell from "@/components/layout/dashboard-shell";
 import DashboardScreen from "@/features/dashboard/screens/dashboard-screen";
 
@@ -49,12 +50,8 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/me")
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const data = (await response.json()) as { user?: SessionUser };
-        return data.user ?? null;
-      })
+    jsonRequest<{ user?: SessionUser }>("/api/auth/me")
+      .then((data) => data.user ?? null)
       .catch(() => null)
       .then((nextUser) => {
         if (cancelled) return;

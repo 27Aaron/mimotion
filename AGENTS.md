@@ -9,7 +9,7 @@ Xiaomi/Zepp 自动刷步服务。用户绑定小米账号后，通过 cron 定�
 - **Frontend**: Vite + React 19 + TypeScript
 - **Backend**: Rust + Axum + Tokio
 - **Styling**: Tailwind CSS v4 + shadcn/ui (base-ui) + next-themes (dark/light)
-- **Icons**: lucide-react（个别组件使用 @tabler/icons-react）
+- **Icons**: lucide-react
 - **Database**: SQLite via SQLx
 - **Auth**: JWT + bcrypt + HttpOnly cookies
 - **Encryption**: AES-256-GCM (Xiaomi 凭据与推送配置存储)
@@ -80,8 +80,6 @@ backend/
 - CSS 自定义效果类（定义在 `globals.css`）：
   - `.fade-divider` / `.fade-border-*` — 主色调渐隐分割线
   - `.card-glow` — hover 时绿色渐变边框（30% primary）
-  - `.glass` — 毛玻璃容器（`bg-card/70 backdrop-blur-12px`）
-  - `.glass-subtle` — 轻量毛玻璃（`bg-card/50 backdrop-blur-8px`，用于 hover 覆层）
   - `.nav-item` — 导航项基础样式 + active 指示条
   - `.stats-grid` — 三列统计卡片网格（`mb-6 grid gap-4 sm:grid-cols-3`）
   - `.stat-card` — 紧凑统计卡片（`py-0.5 gap-1`，配合 stats-grid 使用）

@@ -32,13 +32,11 @@ frontend/
         components/          # 领域私有组件
         screens/             # 页面级组件
         client.ts            # 浏览器端 API 客户端
-        contracts.ts         # 请求和表单契约
         model.ts             # 前端类型与纯函数
     i18n/
       messages/              # zh/en 语言包
-      routing.ts             # 语言路由
     platform/                # 浏览器导航、链接和国际化适配
-    lib/                     # 纯前端工具
+    lib/                     # 纯前端工具（api.ts 统一 fetch 封装、时间格式化等）
     styles/                  # 全局样式
   index.html
   vite.config.ts
@@ -51,9 +49,10 @@ backend/
     lib.rs                   # 模块组装入口
     config.rs                # 环境变量和服务配置
     state.rs                 # 共享应用状态
+    util.rs                  # 公共工具（now_ms 等）
     auth/                    # JWT、密码和会话
     security/                # 加密和限流
-    storage/                 # SQLite 连接、迁移和数据模型
+    storage/                 # SQLite 连接、迁移、数据模型和共享查询
     scheduling/              # Cron 和持久化调度器
     notifications/           # Bark、Telegram
     xiaomi/                  # Xiaomi/Zepp 协议

@@ -7,6 +7,8 @@ use url::Url;
 
 const HM_AES_KEY: &[u8; 16] = b"xeNtBVqzDc6tuNTh";
 const HM_AES_IV: &[u8; 16] = b"MAAAYAAAAAAAAABg";
+const APP_NAME: &str = "com.xiaomi.hm.health";
+const APP_VERSION: &str = "6.14.0";
 
 #[derive(Debug, Clone)]
 pub struct LoginResult {
@@ -58,8 +60,8 @@ pub async fn refresh_app_token(
     device_id: &str,
 ) -> Result<(String, Option<String>), String> {
     let data = [
-        ("app_name", "com.xiaomi.hm.health"),
-        ("app_version", "6.14.0"),
+        ("app_name", APP_NAME),
+        ("app_version", APP_VERSION),
         ("code", login_token),
         ("country_code", "CN"),
         ("device_id", device_id),
@@ -129,8 +131,8 @@ async fn login_access_token(
             "user-agent",
             "MiFit6.14.0 (M2007J1SC; Android 12; Density/2.75)",
         )
-        .header("app_name", "com.xiaomi.hm.health")
-        .header("appname", "com.xiaomi.hm.health")
+        .header("app_name", APP_NAME)
+        .header("appname", APP_NAME)
         .header("appplatform", "android_phone")
         .header("x-hm-ekv", "1")
         .header("hm-privacy-ceip", "false")
@@ -169,8 +171,8 @@ async fn grant_login_tokens(
     } else {
         vec![
             ("allow_registration=", "false".to_owned()),
-            ("app_name", "com.xiaomi.hm.health".to_owned()),
-            ("app_version", "6.14.0".to_owned()),
+            ("app_name", APP_NAME.to_owned()),
+            ("app_version", APP_VERSION.to_owned()),
             ("code", access_token.to_owned()),
             ("country_code", "CN".to_owned()),
             ("device_id", device_id.to_owned()),
@@ -179,14 +181,17 @@ async fn grant_login_tokens(
             ("grant_type", "access_token".to_owned()),
             ("lang", "zh_CN".to_owned()),
             ("os_version", "1.5.0".to_owned()),
-            ("source", "com.xiaomi.hm.health:6.14.0:50818".to_owned()),
+            (
+                "source",
+                format!("{APP_NAME}:{APP_VERSION}:50818"),
+            ),
             ("third_name", "email".to_owned()),
         ]
     };
     if is_phone {
         data.extend([
-            ("app_name", "com.xiaomi.hm.health".to_owned()),
-            ("app_version", "6.14.0".to_owned()),
+            ("app_name", APP_NAME.to_owned()),
+            ("app_version", APP_VERSION.to_owned()),
             ("code", access_token.to_owned()),
             ("country_code", "CN".to_owned()),
             ("device_id", device_id.to_owned()),
@@ -245,26 +250,12 @@ async fn post_form_owned(
     url: &str,
     data: &[(impl AsRef<str>, String)],
 ) -> Result<reqwest::Response, String> {
-    let body = data
+    let pairs = data
         .iter()
-        .map(|(key, value)| (key.as_ref().to_owned(), value.clone()))
+        .map(|(key, value)| (key.as_ref(), value.as_str()))
         .collect::<Vec<_>>();
     login_request(client, url)
-        .body(
-            body.iter()
-                .map(|(key, value)| (key.as_str(), value.as_str()))
-                .collect::<Vec<_>>()
-                .as_slice()
-                .iter()
-                .fold(String::new(), |mut result, (key, value)| {
-                    let encoded = form_urlencoded(&[(key, value)]);
-                    if !result.is_empty() {
-                        result.push('&');
-                    }
-                    result.push_str(&encoded);
-                    result
-                }),
-        )
+        .body(form_urlencoded(&pairs))
         .send()
         .await
         .map_err(|error| format!("网络错误: {error}"))

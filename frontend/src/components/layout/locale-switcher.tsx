@@ -1,7 +1,5 @@
-"use client"
-
 import { useLocale } from "@/platform/i18n"
-import { useRouter, usePathname } from "@/i18n/routing"
+import { useRouter, usePathname } from "@/platform/navigation"
 import { Button } from "@/components/ui/button"
 import { Languages } from "lucide-react"
 

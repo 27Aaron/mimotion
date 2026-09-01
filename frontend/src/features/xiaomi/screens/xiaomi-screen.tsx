@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTranslations, useLocale } from "@/platform/i18n";
@@ -143,10 +141,6 @@ export default function XiaomiScreen() {
     },
   ];
 
-  function formatDate(d: string | null) {
-    return formatShanghaiDateTime(d, locale);
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -262,13 +256,13 @@ export default function XiaomiScreen() {
                     )}
                   </TableCell>
                   <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                    {formatDate(acc.lastSyncAt)}
+                    {formatShanghaiDateTime(acc.lastSyncAt, locale)}
                   </TableCell>
                   <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                    {formatDate(acc.createdAt)}
+                    {formatShanghaiDateTime(acc.createdAt, locale)}
                   </TableCell>
                   <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                    {formatDate(acc.updatedAt)}
+                    {formatShanghaiDateTime(acc.updatedAt, locale)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center gap-1">

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useTranslations } from "@/platform/i18n";
 import { useLocale } from "@/platform/i18n";
@@ -31,6 +29,7 @@ import {
 } from "@/components/ui/field";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeading } from "@/components/layout/section-heading";
+import { jsonRequest } from "@/lib/api";
 export default function SettingsScreen() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
@@ -54,8 +53,12 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     let mounted = true;
-    fetch("/api/user/settings")
-      .then((res) => res.json())
+    jsonRequest<{
+      username?: string;
+      barkUrl?: string;
+      telegramBotToken?: string;
+      telegramChatId?: string;
+    }>("/api/user/settings")
       .then((data) => {
         if (!mounted) return;
         if (data.username) setCurrentUsername(data.username);
@@ -77,7 +80,7 @@ export default function SettingsScreen() {
     else setTestingTelegram(true);
 
     try {
-      const res = await fetch("/api/user/test-push", {
+      await jsonRequest("/api/user/test-push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
@@ -86,14 +89,9 @@ export default function SettingsScreen() {
             : { type: "telegram", telegramBotToken, telegramChatId }
         ),
       });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(type === "bark" ? t("barkTestSuccess") : t("telegramTestSuccess"));
-      } else {
-        toast.error(data.error || t("pushTestFailed"));
-      }
-    } catch {
-      toast.error(tc("requestFailed"));
+      toast.success(type === "bark" ? t("barkTestSuccess") : t("telegramTestSuccess"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("pushTestFailed"));
     } finally {
       if (type === "bark") setTestingBark(false);
       else setTestingTelegram(false);
@@ -110,23 +108,20 @@ export default function SettingsScreen() {
 
     setLoading(true);
 
-    const res = await fetch("/api/user/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: username || undefined,
-        password: newPassword || undefined,
-        currentPassword: currentPassword || undefined,
-        barkUrl: barkUrl || null,
-        telegramBotToken: telegramBotToken || null,
-        telegramChatId: telegramChatId || null,
-      }),
-    });
+    try {
+      const data = await jsonRequest<{ sessionInvalidated?: boolean }>("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username || undefined,
+          password: newPassword || undefined,
+          currentPassword: currentPassword || undefined,
+          barkUrl: barkUrl || null,
+          telegramBotToken: telegramBotToken || null,
+          telegramChatId: telegramChatId || null,
+        }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
-
-    if (res.ok) {
       if (data.sessionInvalidated) {
         toast.success(t("settingsSaved"));
         setTimeout(() => { window.location.href = `/${locale}/login`; }, 1500);
@@ -146,8 +141,10 @@ export default function SettingsScreen() {
         telegramBotToken: telegramBotToken || "",
         telegramChatId: telegramChatId || "",
       });
-    } else {
-      toast.error(data.error || t("saveFailed"));
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : t("saveFailed"));
+    } finally {
+      setLoading(false);
     }
   }
 

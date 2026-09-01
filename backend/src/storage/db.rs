@@ -8,7 +8,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
 
-use crate::config::Config;
+use crate::{config::Config, util::now_ms};
 
 const MIGRATIONS: &[(&str, &str)] = &[
     (
@@ -73,7 +73,7 @@ pub async fn initialize_admin(config: &Config, pool: &sqlx::SqlitePool) -> anyho
         .map_err(|error| anyhow::anyhow!("管理员密码哈希任务失败: {error}"))?
         .context("管理员密码哈希失败")?;
     let id = uuid::Uuid::new_v4().to_string();
-    let now = chrono::Utc::now().timestamp_millis();
+    let now = now_ms();
 
     sqlx::query(
         "INSERT INTO users (id, username, password_hash, is_admin, locale, created_at, updated_at) VALUES (?, ?, ?, 1, 'zh', ?, ?)",
@@ -128,7 +128,7 @@ async fn apply_legacy_compatible_migrations(pool: &sqlx::SqlitePool) -> anyhow::
         sqlx::query("INSERT INTO _mimotion_migrations (name, hash, applied_at) VALUES (?, ?, ?)")
             .bind(name)
             .bind(hash)
-            .bind(chrono::Utc::now().timestamp_millis())
+            .bind(now_ms())
             .execute(&mut *transaction)
             .await
             .with_context(|| format!("记录迁移 {name} 失败"))?;

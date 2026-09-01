@@ -1,9 +1,8 @@
 use crate::{
     config::Config,
     security::crypto,
-    xiaomi::{
-        LoginResult, SetStepResult, ZeppErrorCode, login_account, refresh_app_token, set_steps,
-    },
+    storage::models::XiaomiAccountRow,
+    xiaomi::{SetStepResult, ZeppErrorCode, login_account, refresh_app_token, set_steps},
 };
 
 #[derive(Debug, Clone)]
@@ -17,6 +16,22 @@ pub struct StoredXiaomiCredentials {
     pub login_token_iv: Option<String>,
     pub password_data: Option<String>,
     pub password_iv: Option<String>,
+}
+
+impl From<&XiaomiAccountRow> for StoredXiaomiCredentials {
+    fn from(account: &XiaomiAccountRow) -> Self {
+        Self {
+            account: account.account.clone(),
+            xiaomi_user_id: account.xiaomi_user_id.clone(),
+            device_id: account.device_id.clone(),
+            token_data: account.token_data.clone(),
+            token_iv: account.token_iv.clone(),
+            login_token_data: account.login_token_data.clone(),
+            login_token_iv: account.login_token_iv.clone(),
+            password_data: account.password_data.clone(),
+            password_iv: account.password_iv.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -224,12 +239,5 @@ fn failed_result(error: String, error_code: ZeppErrorCode, retryable: bool) -> S
         error: Some(error),
         error_code: Some(error_code),
         retryable,
-        http_status: None,
-        vendor_code: None,
     }
-}
-
-#[allow(dead_code)]
-fn _login_device_id(result: &LoginResult) -> Option<&str> {
-    result.device_id.as_deref()
 }

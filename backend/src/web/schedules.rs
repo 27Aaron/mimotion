@@ -1,15 +1,18 @@
 use std::sync::Arc;
 
-use crate::{scheduling::cron, state::AppState, storage::models::ScheduleRow};
+use crate::{
+    auth::AuthUser, scheduling::cron, state::AppState, storage::queries::find_schedule_owned,
+    util::now_ms,
+};
 use axum::{
     Json,
     extract::{Query, State},
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::Response,
 };
 use serde::{Deserialize, Serialize};
 
-use super::common::{app_error, json_error, no_store, require_user};
+use super::common::{app_error, json_error, no_store, require_id};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,11 +66,7 @@ struct ScheduleWithNickname {
     next_run_at: Option<i64>,
 }
 
-pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
+pub async fn list(State(state): State<Arc<AppState>>, user: AuthUser) -> Response {
     let rows = match sqlx::query_as::<_, ScheduleWithNickname>(
         "SELECT s.id, s.xiaomi_account_id, a.nickname AS account_nickname, s.cron_expression, s.min_step, s.max_step, s.is_active, s.last_run_at, s.next_run_at FROM schedules s LEFT JOIN xiaomi_accounts a ON a.id = s.xiaomi_account_id AND a.user_id = s.user_id WHERE s.user_id = ? ORDER BY s.created_at ASC, s.id ASC",
     )
@@ -98,13 +97,9 @@ pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Res
 
 pub async fn create(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Json(input): Json<CreateScheduleRequest>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     if !valid_step_range(input.min_step, input.max_step) {
         return json_error(
             StatusCode::BAD_REQUEST,
@@ -123,7 +118,7 @@ pub async fn create(
         return json_error(StatusCode::NOT_FOUND, "小米账号不存在", "ACCOUNT_NOT_FOUND");
     }
 
-    let now = chrono::Utc::now().timestamp_millis();
+    let now = now_ms();
     let id = uuid::Uuid::new_v4().to_string();
     let next_run_at = cron::next_occurrence(&expression, now);
     if let Err(error) = sqlx::query(
@@ -148,28 +143,22 @@ pub async fn create(
 
 pub async fn update(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Query(query): Query<ScheduleQuery>,
     Json(input): Json<UpdateScheduleRequest>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
+    let id = match require_id(query.id.as_deref()) {
+        Ok(id) => id,
         Err(response) => return response,
     };
-    let Some(id) = query.id.filter(|value| !value.is_empty()) else {
-        return json_error(StatusCode::BAD_REQUEST, "缺少有效的 id", "MISSING_ID");
-    };
-    let existing = match sqlx::query_as::<_, ScheduleRow>(
-        "SELECT id, user_id, xiaomi_account_id, cron_expression, min_step, max_step, is_active, last_run_at, next_run_at, created_at, updated_at FROM schedules WHERE id = ? AND user_id = ? LIMIT 1",
-    )
-    .bind(&id)
-    .bind(&user.id)
-    .fetch_optional(&state.db)
-    .await
-    {
+    let existing = match find_schedule_owned(&state.db, &id, &user.id).await {
         Ok(Some(row)) => row,
         Ok(None) => {
-            return json_error(StatusCode::NOT_FOUND, "定时任务不存在", "SCHEDULE_NOT_FOUND");
+            return json_error(
+                StatusCode::NOT_FOUND,
+                "定时任务不存在",
+                "SCHEDULE_NOT_FOUND",
+            );
         }
         Err(error) => return app_error(error),
     };
@@ -211,7 +200,7 @@ pub async fn update(
     let is_active = input
         .is_active
         .unwrap_or(existing.is_active.unwrap_or_default() != 0);
-    let now = chrono::Utc::now().timestamp_millis();
+    let now = now_ms();
     let next_run_at = if is_active {
         cron::next_occurrence(&expression, now)
     } else {
@@ -239,15 +228,12 @@ pub async fn update(
 
 pub async fn delete(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Query(query): Query<ScheduleQuery>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
+    let id = match require_id(query.id.as_deref()) {
+        Ok(id) => id,
         Err(response) => return response,
-    };
-    let Some(id) = query.id.filter(|value| !value.is_empty()) else {
-        return json_error(StatusCode::BAD_REQUEST, "缺少有效的 id", "MISSING_ID");
     };
     let mut transaction = match state.db.begin().await {
         Ok(transaction) => transaction,

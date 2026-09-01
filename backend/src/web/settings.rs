@@ -1,25 +1,19 @@
 use std::sync::Arc;
 
-use axum::{
-    Json,
-    extract::State,
-    http::{HeaderMap, StatusCode},
-    response::Response,
-};
+use axum::{Json, extract::State, http::StatusCode, response::Response};
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 
 use crate::{
-    auth,
+    auth::{self, AuthUser},
+    config::Config,
     notifications::{self, PushMessage},
     security::crypto,
     state::AppState,
-    storage::models::UserRow,
+    storage::queries::find_user_by_id,
+    util::now_ms,
 };
 
-use super::common::{
-    app_error, json_error, no_store, require_user, secure_cookie, with_set_cookie,
-};
+use super::common::{app_error, json_error, no_store, secure_cookie, with_set_cookie};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,17 +49,13 @@ pub struct TestPushRequest {
     telegram_chat_id: Option<String>,
 }
 
-pub async fn get(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let row = match fetch_user(&state, &user.id).await {
+pub async fn get(State(state): State<Arc<AppState>>, user: AuthUser) -> Response {
+    let row = match find_user_by_id(&state.db, &user.id).await {
         Ok(Some(row)) => row,
         Ok(None) => return json_error(StatusCode::UNAUTHORIZED, "Token 无效", "TOKEN_INVALID"),
         Err(error) => return app_error(error),
     };
-    let secrets = match notifications::get_user_secrets(&state.config, &state.db, &user.id).await {
+    let secrets = match notifications::decrypt_user_secrets(&state.config, &row) {
         Ok(secrets) => secrets,
         Err(error) => return app_error(error),
     };
@@ -83,14 +73,10 @@ pub async fn get(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Resp
 
 pub async fn update(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Json(input): Json<UpdateSettingsRequest>,
 ) -> Response {
-    let current = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let existing = match fetch_user(&state, &current.id).await {
+    let existing = match find_user_by_id(&state.db, &user.id).await {
         Ok(Some(row)) => row,
         Ok(None) => return json_error(StatusCode::UNAUTHORIZED, "Token 无效", "TOKEN_INVALID"),
         Err(error) => return app_error(error),
@@ -113,7 +99,7 @@ pub async fn update(
     if username != existing.username {
         match sqlx::query("SELECT 1 FROM users WHERE username = ? AND id <> ? LIMIT 1")
             .bind(&username)
-            .bind(&current.id)
+            .bind(&user.id)
             .fetch_optional(&state.db)
             .await
         {
@@ -178,19 +164,16 @@ pub async fn update(
                     "BARK_URL_INVALID",
                 );
             }
-            match value {
-                Some(value) => match crypto::encrypt(&state.config, &value) {
-                    Ok((data, iv)) => (None, Some(data), Some(iv)),
-                    Err(error) => return app_error(error),
-                },
-                None => (None, None, None),
+            match store_secret(&state.config, value) {
+                Ok(encrypted) => encrypted,
+                Err(response) => return response,
             }
         }
-        None => (
-            existing.bark_url.clone(),
-            existing.bark_url_data.clone(),
-            existing.bark_url_iv.clone(),
-        ),
+        None => StoredSecret {
+            legacy: existing.bark_url.clone(),
+            data: existing.bark_url_data.clone(),
+            iv: existing.bark_url_iv.clone(),
+        },
     };
 
     let telegram_token = match input.telegram_bot_token {
@@ -205,19 +188,16 @@ pub async fn update(
                     "TELEGRAM_TOKEN_INVALID",
                 );
             }
-            match value {
-                Some(value) => match crypto::encrypt(&state.config, &value) {
-                    Ok((data, iv)) => (None, Some(data), Some(iv)),
-                    Err(error) => return app_error(error),
-                },
-                None => (None, None, None),
+            match store_secret(&state.config, value) {
+                Ok(encrypted) => encrypted,
+                Err(response) => return response,
             }
         }
-        None => (
-            existing.telegram_bot_token.clone(),
-            existing.telegram_bot_token_data.clone(),
-            existing.telegram_bot_token_iv.clone(),
-        ),
+        None => StoredSecret {
+            legacy: existing.telegram_bot_token.clone(),
+            data: existing.telegram_bot_token_data.clone(),
+            iv: existing.telegram_bot_token_iv.clone(),
+        },
     };
 
     let telegram_chat_id = match input.telegram_chat_id {
@@ -241,7 +221,7 @@ pub async fn update(
         Some(_) => return json_error(StatusCode::BAD_REQUEST, "无效的语言设置", "INVALID_LOCALE"),
         None => existing.locale.unwrap_or_else(|| "zh".to_owned()),
     };
-    let now = chrono::Utc::now().timestamp_millis();
+    let now = now_ms();
 
     if let Err(error) = sqlx::query(
         "UPDATE users SET username = ?, password_hash = ?, locale = ?, bark_url = ?, bark_url_data = ?, bark_url_iv = ?, telegram_bot_token = ?, telegram_bot_token_data = ?, telegram_bot_token_iv = ?, telegram_chat_id = ?, updated_at = ? WHERE id = ?",
@@ -249,15 +229,15 @@ pub async fn update(
     .bind(username)
     .bind(password_hash)
     .bind(locale)
-    .bind(bark.0)
-    .bind(bark.1)
-    .bind(bark.2)
-    .bind(telegram_token.0)
-    .bind(telegram_token.1)
-    .bind(telegram_token.2)
+    .bind(bark.legacy)
+    .bind(bark.data)
+    .bind(bark.iv)
+    .bind(telegram_token.legacy)
+    .bind(telegram_token.data)
+    .bind(telegram_token.iv)
     .bind(telegram_chat_id)
     .bind(now)
-    .bind(&current.id)
+    .bind(&user.id)
     .execute(&state.db)
     .await
     {
@@ -276,13 +256,9 @@ pub async fn update(
 
 pub async fn test_push(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Json(input): Json<TestPushRequest>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     match input.r#type.as_str() {
         "bark" => {
             let Some(url) = input.bark_url.filter(|value| !value.trim().is_empty()) else {
@@ -351,16 +327,26 @@ pub async fn test_push(
     }
 }
 
-async fn fetch_user(state: &Arc<AppState>, user_id: &str) -> Result<Option<UserRow>, sqlx::Error> {
-    sqlx::query_as::<_, UserRow>(
-        "SELECT id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id, created_at, updated_at FROM users WHERE id = ? LIMIT 1",
-    )
-    .bind(user_id)
-    .fetch_optional(&state.db)
-    .await
+struct StoredSecret {
+    legacy: Option<String>,
+    data: Option<String>,
+    iv: Option<String>,
 }
 
-#[allow(dead_code)]
-fn _row_id(row: &sqlx::sqlite::SqliteRow) -> Option<String> {
-    row.try_get("id").ok()
+#[allow(clippy::result_large_err)]
+fn store_secret(config: &Config, value: Option<String>) -> Result<StoredSecret, Response> {
+    match value {
+        Some(value) => crypto::encrypt(config, &value)
+            .map(|(data, iv)| StoredSecret {
+                legacy: None,
+                data: Some(data),
+                iv: Some(iv),
+            })
+            .map_err(app_error),
+        None => Ok(StoredSecret {
+            legacy: None,
+            data: None,
+            iv: None,
+        }),
+    }
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import type { FormEventHandler } from "react";
 import { CalendarPlus } from "lucide-react";
 import { useTranslations } from "@/platform/i18n";

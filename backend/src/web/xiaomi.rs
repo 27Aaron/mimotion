@@ -3,21 +3,24 @@ use std::sync::Arc;
 use axum::{
     Json,
     extract::{Query, State},
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::Response,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
 use crate::{
+    auth::AuthUser,
+    config::Config,
     scheduling::cron,
     security::crypto,
     state::AppState,
-    storage::models::XiaomiAccountRow,
-    xiaomi::{self, StoredXiaomiCredentials, ZeppErrorCode},
+    storage::queries::{find_account_for_user, find_accounts_by_user},
+    util::now_ms,
+    xiaomi,
 };
 
-use super::common::{app_error, json_error, no_store, require_user};
+use super::common::{app_error, json_error, no_store, require_id};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,18 +61,8 @@ struct AccountResponse {
     last_step: Option<i64>,
 }
 
-pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let accounts = match sqlx::query_as::<_, XiaomiAccountRow>(
-        "SELECT id, user_id, xiaomi_user_id, account, token_data, token_iv, login_token_data, login_token_iv, password_data, password_iv, device_id, nickname, status, last_sync_at, last_error, created_at, updated_at FROM xiaomi_accounts WHERE user_id = ? ORDER BY created_at ASC, id ASC",
-    )
-    .bind(&user.id)
-    .fetch_all(&state.db)
-    .await
-    {
+pub async fn list(State(state): State<Arc<AppState>>, user: AuthUser) -> Response {
+    let accounts = match find_accounts_by_user(&state.db, &user.id).await {
         Ok(rows) => rows,
         Err(error) => return app_error(error),
     };
@@ -110,10 +103,8 @@ pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Res
             status: account.status.unwrap_or_else(|| "active".to_owned()),
             last_sync_at: cron::timestamp_to_iso(account.last_sync_at),
             last_error: account.last_error,
-            created_at: cron::timestamp_to_iso(Some(account.created_at))
-                .unwrap_or_else(|| account.created_at.to_string()),
-            updated_at: cron::timestamp_to_iso(Some(account.updated_at))
-                .unwrap_or_else(|| account.updated_at.to_string()),
+            created_at: cron::timestamp_to_iso_or_raw(account.created_at),
+            updated_at: cron::timestamp_to_iso_or_raw(account.updated_at),
             schedule_count: counts.get("total"),
             active_schedule_count: counts.get("active"),
             last_step,
@@ -124,13 +115,9 @@ pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Res
 
 pub async fn create(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Json(input): Json<CreateAccountRequest>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     if input.account.trim().is_empty()
         || input.account.len() > 128
         || input.password.is_empty()
@@ -169,22 +156,16 @@ pub async fn create(
             "XIAOMI_LOGIN_FAILED",
         );
     };
-    let (token_data, token_iv) = match crypto::encrypt(&state.config, app_token) {
+    let credentials = match encrypt_credentials(
+        &state.config,
+        app_token,
+        login.login_token.as_deref(),
+        &input.password,
+    ) {
         Ok(value) => value,
-        Err(error) => return app_error(error),
+        Err(response) => return response,
     };
-    let (login_token_data, login_token_iv) = match login.login_token.as_deref() {
-        Some(value) => match crypto::encrypt(&state.config, value) {
-            Ok((data, iv)) => (Some(data), Some(iv)),
-            Err(error) => return app_error(error),
-        },
-        None => (None, None),
-    };
-    let (password_data, password_iv) = match crypto::encrypt(&state.config, &input.password) {
-        Ok(value) => value,
-        Err(error) => return app_error(error),
-    };
-    let now = chrono::Utc::now().timestamp_millis();
+    let now = now_ms();
     let id = uuid::Uuid::new_v4().to_string();
     let final_nickname = nickname.unwrap_or_else(|| input.account.trim().to_owned());
     if let Err(error) = sqlx::query(
@@ -194,12 +175,12 @@ pub async fn create(
     .bind(&user.id)
     .bind(login.user_id)
     .bind(input.account.trim())
-    .bind(token_data)
-    .bind(token_iv)
-    .bind(login_token_data)
-    .bind(login_token_iv)
-    .bind(password_data)
-    .bind(password_iv)
+    .bind(credentials.token_data)
+    .bind(credentials.token_iv)
+    .bind(credentials.login_token_data)
+    .bind(credentials.login_token_iv)
+    .bind(credentials.password_data)
+    .bind(credentials.password_iv)
     .bind(login.device_id)
     .bind(&final_nickname)
     .bind(now)
@@ -218,18 +199,15 @@ pub async fn create(
 
 pub async fn update(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Query(query): Query<AccountQuery>,
     Json(input): Json<UpdateAccountRequest>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
+    let id = match require_id(query.id.as_deref()) {
+        Ok(id) => id,
         Err(response) => return response,
     };
-    let Some(id) = query.id.filter(|value| !value.is_empty()) else {
-        return json_error(StatusCode::BAD_REQUEST, "缺少有效的 id", "MISSING_ID");
-    };
-    let existing = match fetch_account(&state, &user.id, &id).await {
+    let existing = match find_account_for_user(&state.db, &id, &user.id).await {
         Ok(Some(row)) => row,
         Ok(None) => {
             return json_error(StatusCode::NOT_FOUND, "小米账号不存在", "ACCOUNT_NOT_FOUND");
@@ -264,7 +242,7 @@ pub async fn update(
 
     let mut account = existing.account.clone();
     let mut xiaomi_user_id = existing.xiaomi_user_id.clone();
-    let mut token_data = existing.token_data.clone();
+    let mut token_data = Some(existing.token_data.clone());
     let mut token_iv = existing.token_iv.clone();
     let mut login_token_data = existing.login_token_data.clone();
     let mut login_token_iv = existing.login_token_iv.clone();
@@ -306,35 +284,29 @@ pub async fn update(
                 "XIAOMI_LOGIN_FAILED",
             );
         };
-        let encrypted = match crypto::encrypt(&state.config, app_token) {
+        let encrypted = match encrypt_credentials(
+            &state.config,
+            app_token,
+            login.login_token.as_deref(),
+            &new_password,
+        ) {
             Ok(value) => value,
-            Err(error) => return app_error(error),
-        };
-        let login_encrypted = match login.login_token.as_deref() {
-            Some(value) => match crypto::encrypt(&state.config, value) {
-                Ok(value) => (Some(value.0), Some(value.1)),
-                Err(error) => return app_error(error),
-            },
-            None => (None, None),
-        };
-        let password_encrypted = match crypto::encrypt(&state.config, &new_password) {
-            Ok(value) => value,
-            Err(error) => return app_error(error),
+            Err(response) => return response,
         };
         account = Some(new_account.trim().to_owned());
         xiaomi_user_id = login.user_id;
-        token_data = encrypted.0;
-        token_iv = Some(encrypted.1);
-        login_token_data = login_encrypted.0;
-        login_token_iv = login_encrypted.1;
-        password_data = Some(password_encrypted.0);
-        password_iv = Some(password_encrypted.1);
+        token_data = Some(encrypted.token_data);
+        token_iv = Some(encrypted.token_iv);
+        login_token_data = encrypted.login_token_data;
+        login_token_iv = encrypted.login_token_iv;
+        password_data = encrypted.password_data;
+        password_iv = encrypted.password_iv;
         device_id = login.device_id;
         status = "active".to_owned();
         last_error = None;
     }
 
-    let now = chrono::Utc::now().timestamp_millis();
+    let now = now_ms();
     if let Err(error) = sqlx::query(
         "UPDATE xiaomi_accounts SET xiaomi_user_id = ?, account = ?, token_data = ?, token_iv = ?, login_token_data = ?, login_token_iv = ?, password_data = ?, password_iv = ?, device_id = ?, nickname = ?, status = ?, last_error = ?, updated_at = ? WHERE id = ? AND user_id = ?",
     )
@@ -363,15 +335,12 @@ pub async fn update(
 
 pub async fn delete(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    user: AuthUser,
     Query(query): Query<AccountQuery>,
 ) -> Response {
-    let user = match require_user(&state, &headers).await {
-        Ok(user) => user,
+    let id = match require_id(query.id.as_deref()) {
+        Ok(id) => id,
         Err(response) => return response,
-    };
-    let Some(id) = query.id.filter(|value| !value.is_empty()) else {
-        return json_error(StatusCode::BAD_REQUEST, "缺少有效的 id", "MISSING_ID");
     };
     let mut transaction = match state.db.begin().await {
         Ok(transaction) => transaction,
@@ -414,36 +383,37 @@ pub async fn delete(
     no_store(serde_json::json!({ "success": true }))
 }
 
-async fn fetch_account(
-    state: &Arc<AppState>,
-    user_id: &str,
-    id: &str,
-) -> Result<Option<XiaomiAccountRow>, sqlx::Error> {
-    sqlx::query_as::<_, XiaomiAccountRow>(
-        "SELECT id, user_id, xiaomi_user_id, account, token_data, token_iv, login_token_data, login_token_iv, password_data, password_iv, device_id, nickname, status, last_sync_at, last_error, created_at, updated_at FROM xiaomi_accounts WHERE id = ? AND user_id = ? LIMIT 1",
-    )
-    .bind(id)
-    .bind(user_id)
-    .fetch_optional(&state.db)
-    .await
+struct EncryptedCredentials {
+    token_data: String,
+    token_iv: String,
+    login_token_data: Option<String>,
+    login_token_iv: Option<String>,
+    password_data: Option<String>,
+    password_iv: Option<String>,
 }
 
-#[allow(dead_code)]
-fn _credential_shape(account: &XiaomiAccountRow) -> StoredXiaomiCredentials {
-    StoredXiaomiCredentials {
-        account: account.account.clone(),
-        xiaomi_user_id: account.xiaomi_user_id.clone(),
-        device_id: account.device_id.clone(),
-        token_data: account.token_data.clone(),
-        token_iv: account.token_iv.clone(),
-        login_token_data: account.login_token_data.clone(),
-        login_token_iv: account.login_token_iv.clone(),
-        password_data: account.password_data.clone(),
-        password_iv: account.password_iv.clone(),
-    }
-}
-
-#[allow(dead_code)]
-fn _is_token_expired(result: &xiaomi::SetStepResult) -> bool {
-    result.error_code == Some(ZeppErrorCode::TokenExpired)
+#[allow(clippy::result_large_err)]
+fn encrypt_credentials(
+    config: &Config,
+    app_token: &str,
+    login_token: Option<&str>,
+    password: &str,
+) -> Result<EncryptedCredentials, Response> {
+    let (token_data, token_iv) = crypto::encrypt(config, app_token).map_err(app_error)?;
+    let (login_token_data, login_token_iv) = match login_token {
+        Some(value) => {
+            let (data, iv) = crypto::encrypt(config, value).map_err(app_error)?;
+            (Some(data), Some(iv))
+        }
+        None => (None, None),
+    };
+    let (password_data, password_iv) = crypto::encrypt(config, password).map_err(app_error)?;
+    Ok(EncryptedCredentials {
+        token_data,
+        token_iv,
+        login_token_data,
+        login_token_iv,
+        password_data: Some(password_data),
+        password_iv: Some(password_iv),
+    })
 }
