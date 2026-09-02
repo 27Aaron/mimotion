@@ -115,12 +115,4 @@ docker run -d --name mimotion -p 3000:3000 -v ./data:/var/lib/mimotion \
 docker compose up -d --build
 ```
 
-数据库默认挂载到 `./data/mimotion.db`。`ENCRYPTION_KEY` 必须长期保存，不能随意更换，否则已有加密凭据无法解密。
-
-Linux 主机首次启动前，需要让数据目录对容器用户（uid 10001）可写：
-
-```bash
-mkdir -p data && sudo chown 10001:10001 data
-```
-
-macOS（Docker Desktop / OrbStack）无需处理。
+数据库默认挂载到 `./data/mimotion.db`。`ENCRYPTION_KEY` 必须长期保存，不能随意更换，否则已有加密凭据无法解密。数据目录权限由容器入口脚本自动处理，任何宿主机都无需手动 `chown`。

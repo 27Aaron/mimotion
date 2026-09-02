@@ -1,6 +1,6 @@
 {
   "name": "@mimotion/frontend",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "packageManager": "npm@11.16.0",
   "engines": {
