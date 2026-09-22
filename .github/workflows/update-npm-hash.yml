@@ -1,0 +1,135 @@
+name: Update Nix npm dependency hash
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package-lock.json
+      - package.json
+      - frontend/package.json
+      - nix/packages/frontend.nix
+      - nix/hashes.json
+      - flake.nix
+      - flake.lock
+      - scripts/update-npm-hash.sh
+  schedule:
+    - cron: "47 18 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-npm-hash
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update and validate nix/hashes.json
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      base_sha: ${{ steps.base.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            accept-flake-config = true
+
+      - name: Refresh npm dependency hash
+        run: scripts/update-npm-hash.sh
+
+      - name: Validate the updated hash
+        run: |
+          nix flake check --no-build --all-systems --no-write-lock-file
+          nix build .#mimotion --no-link
+          git diff --check
+
+      - id: diff
+        name: Verify the update scope
+        shell: bash
+        run: |
+          mapfile -t changed_files < <(git diff --name-only)
+          if (( ${#changed_files[@]} == 0 )); then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if (( ${#changed_files[@]} != 1 )) || [[ "${changed_files[0]}" != "nix/hashes.json" ]]; then
+            printf 'Unexpected files changed:\n%s\n' "$(git diff --name-only)"
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save hash patch
+        if: steps.diff.outputs.changed == 'true'
+        run: git diff --binary HEAD -- nix/hashes.json > "$RUNNER_TEMP/npm-hash.patch"
+
+      - uses: actions/upload-artifact@v7
+        if: steps.diff.outputs.changed == 'true'
+        with:
+          name: npm-hash-patch
+          path: ${{ runner.temp }}/npm-hash.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Open npm hash update PR
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure the validated base is still current
+        env:
+          VALIDATED_SHA: ${{ needs.update.outputs.base_sha }}
+        run: |
+          current_sha=$(git rev-parse HEAD)
+          if [[ "$current_sha" != "$VALIDATED_SHA" ]]; then
+            echo "main advanced while the hash was being validated; rerun this workflow"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-hash-patch
+          path: ${{ runner.temp }}/npm-hash-patch
+
+      - name: Apply the validated patch
+        run: |
+          git apply --index "$RUNNER_TEMP/npm-hash-patch/npm-hash.patch"
+          git diff --cached --check
+
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.UPDATE_PR_TOKEN || github.token }}
+          branch: automation/update-npm-hash
+          base: main
+          delete-branch: true
+          add-paths: nix/hashes.json
+          commit-message: "chore(nix): refresh npm dependency hash"
+          title: "chore(nix): refresh npm dependency hash"
+          body: |
+            Refreshes the fixed-output hash used by the Nix frontend package.
+
+            The workflow ran `nix flake check --no-build --all-systems` and built `.#{mimotion}` before opening this PR.
+          labels: automation, dependencies

@@ -102,6 +102,19 @@ backend/
 - 四个平台的静态二进制（`linux/amd64`、`linux/arm64`、macOS arm64、macOS x86_64），附在 GitHub Release 并带校验和；
 - 多架构 Docker 镜像（linux/amd64 + linux/arm64），推送至 `ghcr.io/27Aaron/mimotion`，以版本号打 tag。
 
+### Actions 自动化
+
+- `Check` 会被普通提交、PR、Docker 构建和版本发布共同调用，先完成前端与 Rust 检查。
+- 在 Actions 手动运行 `Build and Push Docker Image` 时，默认只构建并验证多架构镜像；只有打开 `是否推送镜像到 GHCR` 才会写入镜像仓库。
+- `Update Nix flake lock` 和 `Update Nix npm dependency hash` 会定期运行，先执行 Nix 求值与构建，再自动更新固定分支上的 PR。
+- 自动 PR 使用 `GITHUB_TOKEN` 时不会再次触发 `pull_request` 工作流。若希望这些 PR 自动跑完整 CI，可配置一个具有 `contents: write`、`pull-requests: write`（涉及工作流文件时还需 `workflows`）的 `UPDATE_PR_TOKEN` 仓库 Secret。
+
+手动验证 npm 固定依赖 hash：
+
+```bash
+scripts/update-npm-hash.sh
+```
+
 ## Docker
 
 直接使用发布好的镜像：

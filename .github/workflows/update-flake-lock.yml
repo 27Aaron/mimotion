@@ -1,0 +1,123 @@
+name: Update Nix flake lock
+
+on:
+  schedule:
+    - cron: "17 18 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-flake-lock
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update and validate flake.lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      base_sha: ${{ steps.base.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            accept-flake-config = true
+
+      - name: Update flake inputs
+        run: nix flake update
+
+      - name: Validate the updated package
+        run: |
+          nix flake check --no-build --all-systems --no-write-lock-file
+          nix build .#mimotion --no-link
+          git diff --check
+
+      - id: diff
+        name: Verify the update scope
+        shell: bash
+        run: |
+          mapfile -t changed_files < <(git diff --name-only)
+          if (( ${#changed_files[@]} == 0 )); then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if (( ${#changed_files[@]} != 1 )) || [[ "${changed_files[0]}" != "flake.lock" ]]; then
+            printf 'Unexpected files changed:\n%s\n' "$(git diff --name-only)"
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save lock-file patch
+        if: steps.diff.outputs.changed == 'true'
+        run: git diff --binary HEAD -- flake.lock > "$RUNNER_TEMP/flake.lock.patch"
+
+      - uses: actions/upload-artifact@v7
+        if: steps.diff.outputs.changed == 'true'
+        with:
+          name: flake-lock-patch
+          path: ${{ runner.temp }}/flake.lock.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Open flake.lock update PR
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure the validated base is still current
+        env:
+          VALIDATED_SHA: ${{ needs.update.outputs.base_sha }}
+        run: |
+          current_sha=$(git rev-parse HEAD)
+          if [[ "$current_sha" != "$VALIDATED_SHA" ]]; then
+            echo "main advanced while the lock file was being validated; rerun this workflow"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: flake-lock-patch
+          path: ${{ runner.temp }}/flake-lock-patch
+
+      - name: Apply the validated patch
+        run: |
+          git apply --index "$RUNNER_TEMP/flake-lock-patch/flake.lock.patch"
+          git diff --cached --check
+
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.UPDATE_PR_TOKEN || github.token }}
+          branch: automation/update-flake-lock
+          base: main
+          delete-branch: true
+          add-paths: flake.lock
+          commit-message: "chore(nix): update flake lock file"
+          title: "chore(nix): update flake lock file"
+          body: |
+            Updates the pinned Nix flake inputs.
+
+            The workflow ran `nix flake check --no-build --all-systems` and built `.#{mimotion}` before opening this PR.
+          labels: automation, dependencies
