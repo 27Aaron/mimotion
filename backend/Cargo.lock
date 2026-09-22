@@ -1410,7 +1410,7 @@ dependencies = [
  "chinese_holiday",
  "chrono",
  "chrono-tz",
- "cipher 0.4.4",
+ "cipher 0.5.2",
  "dotenvy",
  "futures-util",
  "hex",
