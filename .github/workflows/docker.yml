@@ -47,7 +47,7 @@ jobs:
             type=raw,value=v${{ inputs.image_tag }},enable=${{ inputs.image_tag != '' }}
             type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && inputs.image_tag != '' }}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/Dockerfile
