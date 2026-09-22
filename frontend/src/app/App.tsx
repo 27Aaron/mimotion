@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Footprints } from "lucide-react";
 
 import { Toaster } from "@/components/providers/toaster";
-import AdminScreen from "@/features/admin/screens/admin-screen";
-import InviteScreen from "@/features/invites/screens/invite-screen";
-import LoginScreen from "@/features/auth/screens/login-screen";
-import SchedulesScreen from "@/features/schedules/screens/schedules-screen";
-import SettingsScreen from "@/features/settings/screens/settings-screen";
-import XiaomiScreen from "@/features/xiaomi/screens/xiaomi-screen";
 import { I18nProvider } from "@/platform/i18n";
 import { currentLocale, navigate, stripLocale } from "@/platform/navigation";
 import { jsonRequest } from "@/lib/api";
 import DashboardShell from "@/components/layout/dashboard-shell";
-import DashboardScreen from "@/features/dashboard/screens/dashboard-screen";
+
+const AdminScreen = lazy(() => import("@/features/admin/screens/admin-screen"));
+const InviteScreen = lazy(() => import("@/features/invites/screens/invite-screen"));
+const LoginScreen = lazy(() => import("@/features/auth/screens/login-screen"));
+const DashboardScreen = lazy(() => import("@/features/dashboard/screens/dashboard-screen"));
+const SchedulesScreen = lazy(() => import("@/features/schedules/screens/schedules-screen"));
+const SettingsScreen = lazy(() => import("@/features/settings/screens/settings-screen"));
+const XiaomiScreen = lazy(() => import("@/features/xiaomi/screens/xiaomi-screen"));
 
 interface SessionUser {
   id: string;
@@ -98,15 +99,17 @@ export default function App() {
 
   return (
     <I18nProvider locale={locale}>
-      {!sessionReady ? (
-        <LoadingScreen />
-      ) : pagePath === "/login" ? (
-        <LoginScreen />
-      ) : user ? (
-        <DashboardShell user={user}>{screen}</DashboardShell>
-      ) : (
-        <LoadingScreen />
-      )}
+      <Suspense fallback={<LoadingScreen />}>
+        {!sessionReady ? (
+          <LoadingScreen />
+        ) : pagePath === "/login" ? (
+          <LoginScreen />
+        ) : user ? (
+          <DashboardShell user={user}>{screen}</DashboardShell>
+        ) : (
+          <LoadingScreen />
+        )}
+      </Suspense>
       <Toaster />
     </I18nProvider>
   );
