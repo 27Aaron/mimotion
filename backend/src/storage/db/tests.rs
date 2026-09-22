@@ -23,5 +23,11 @@ async fn applies_the_legacy_schema_and_is_idempotent() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(migration_count, 1);
+    assert_eq!(migration_count, 2);
+
+    let calendar_mode =
+        sqlx::query_scalar::<_, String>("SELECT calendar_mode FROM schedules LIMIT 1")
+            .fetch_optional(&pool)
+            .await;
+    assert!(calendar_mode.is_ok());
 }

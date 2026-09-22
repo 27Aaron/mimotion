@@ -48,6 +48,9 @@ PORT=3000
 npm install
 npm run dev:frontend
 
+# You can also start the backend directly; Cargo checks and builds the frontend first
+cargo run --manifest-path backend/Cargo.toml
+
 # Build the frontend and the Rust single binary
 npm run build:single
 
@@ -61,6 +64,7 @@ The frontend dev server runs at `http://localhost:5173` and proxies API requests
 
 - Multiple Xiaomi / Zepp accounts
 - Random step ranges and Cron schedules
+- Optional mainland China workday calendar with holiday and make-up workday handling
 - Token → loginToken → password automatic re-login chain
 - Bark / Telegram notifications
 - Invite-code registration and admin panel

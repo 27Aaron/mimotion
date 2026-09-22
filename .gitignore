@@ -45,5 +45,6 @@ next-env.d.ts
 data/*.db
 
 # nix
+.direnv/
 result
 result-*

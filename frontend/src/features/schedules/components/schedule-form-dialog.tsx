@@ -157,22 +157,48 @@ export function ScheduleFormDialog({
             </Field>
 
             <Field>
-              <FieldLabel>{t("repeatDays")}</FieldLabel>
-              <ToggleGroup
-                multiple
-                value={form.days}
-                onValueChange={(days) => onFormChange({ ...form, days })}
-                className="w-full flex-wrap"
-                spacing={1}
-                aria-label={t("repeatDays")}
+              <FieldLabel htmlFor="schedule-calendar-mode">{t("calendarMode")}</FieldLabel>
+              <Select
+                value={form.calendarMode}
+                onValueChange={(value) => onFormChange({
+                  ...form,
+                  calendarMode: (value ?? "weekly") as ScheduleFormValue["calendarMode"],
+                })}
               >
-                {dayOptions.map((day) => (
-                  <ToggleGroupItem key={day.value} value={day.value} size="sm">
-                    {day.label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+                <SelectTrigger id="schedule-calendar-mode" className="w-full">
+                  <span className="flex-1 truncate text-left">
+                    {t(form.calendarMode === "china_workday" ? "calendarChinaWorkday" : "calendarWeekly")}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">{t("calendarWeekly")}</SelectItem>
+                  <SelectItem value="china_workday">{t("calendarChinaWorkday")}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {t(form.calendarMode === "china_workday" ? "calendarChinaWorkdayHint" : "calendarWeeklyHint")}
+              </p>
             </Field>
+
+            {form.calendarMode === "weekly" && (
+              <Field>
+                <FieldLabel>{t("repeatDays")}</FieldLabel>
+                <ToggleGroup
+                  multiple
+                  value={form.days}
+                  onValueChange={(days) => onFormChange({ ...form, days })}
+                  className="w-full flex-wrap"
+                  spacing={1}
+                  aria-label={t("repeatDays")}
+                >
+                  {dayOptions.map((day) => (
+                    <ToggleGroupItem key={day.value} value={day.value} size="sm">
+                      {day.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </Field>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <Field>

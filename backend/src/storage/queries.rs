@@ -5,7 +5,7 @@ use crate::storage::models::{ScheduleRow, UserRow, XiaomiAccountRow};
 const USER_COLUMNS: &str = "id, username, password_hash, is_admin, locale, bark_url, bark_url_data, bark_url_iv, telegram_bot_token, telegram_bot_token_data, telegram_bot_token_iv, telegram_chat_id";
 const XIAOMI_ACCOUNT_COLUMNS: &str = "id, user_id, xiaomi_user_id, account, token_data, token_iv, login_token_data, login_token_iv, password_data, password_iv, device_id, nickname, status, last_sync_at, last_error, created_at, updated_at";
 const SCHEDULE_COLUMNS: &str =
-    "id, user_id, xiaomi_account_id, cron_expression, min_step, max_step, is_active";
+    "id, user_id, xiaomi_account_id, cron_expression, calendar_mode, min_step, max_step, is_active";
 
 pub async fn find_user_by_id(pool: &SqlitePool, id: &str) -> Result<Option<UserRow>, sqlx::Error> {
     sqlx::query_as::<_, UserRow>(&format!(
