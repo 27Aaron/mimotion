@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use futures_util::future::join_all;
-use rand::Rng;
+use rand::RngExt;
 use sqlx::{Row, SqlitePool};
 use tokio_util::sync::CancellationToken;
 

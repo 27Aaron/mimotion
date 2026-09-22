@@ -1,6 +1,6 @@
 use aes::Aes128;
 use cbc::Encryptor;
-use cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
+use cipher::{BlockModeEncrypt, KeyIvInit, block_padding::Pkcs7};
 use reqwest::header::{CONTENT_TYPE, LOCATION};
 use serde_json::Value;
 use url::Url;
@@ -117,7 +117,7 @@ async fn login_access_token(
     buffer[..plaintext.len()].copy_from_slice(plaintext.as_bytes());
     let encrypted = Encryptor::<Aes128>::new_from_slices(HM_AES_KEY, HM_AES_IV)
         .expect("fixed AES key and IV are valid")
-        .encrypt_padded_mut::<Pkcs7>(&mut buffer, plaintext.len())
+        .encrypt_padded::<Pkcs7>(&mut buffer, plaintext.len())
         .ok()?
         .to_vec();
 
