@@ -14,8 +14,9 @@ pub fn encrypt(config: &Config, plaintext: &str) -> anyhow::Result<(String, Stri
     let iv: [u8; 12] = rand::random();
     let iv = iv.to_vec();
     let cipher = Aes256Gcm::new_from_slice(&key).expect("AES-256-GCM accepts a 32-byte key");
+    let nonce = Nonce::try_from(iv.as_slice()).expect("generated 12-byte IV is valid");
     let ciphertext = cipher
-        .encrypt(Nonce::from_slice(&iv), plaintext.as_bytes())
+        .encrypt(&nonce, plaintext.as_bytes())
         .map_err(|_| anyhow::anyhow!("加密失败"))?;
 
     Ok((
@@ -50,8 +51,9 @@ pub fn decrypt(config: &Config, encrypted: &str, iv_hex: &str) -> anyhow::Result
     }
     let ciphertext = hex::decode(payload).context("加密数据格式无效")?;
     let cipher = Aes256Gcm::new_from_slice(&key).expect("AES-256-GCM accepts a 32-byte key");
+    let nonce = Nonce::try_from(iv.as_slice()).map_err(|_| anyhow::anyhow!("加密 IV 长度无效"))?;
     let plaintext = cipher
-        .decrypt(Nonce::from_slice(&iv), ciphertext.as_ref())
+        .decrypt(&nonce, ciphertext.as_ref())
         .map_err(|_| anyhow::anyhow!("解密失败"))?;
 
     String::from_utf8(plaintext).context("解密后的数据不是 UTF-8")
