@@ -19,7 +19,7 @@ anyhow = "1.0"
 aes-gcm = "0.10"
 aes = "0.8"
 axum = "0.8"
-bcrypt = "0.17"
+bcrypt = "0.19"
 chrono = { version = "0.4", features = ["clock"] }
 chrono-tz = "0.10"
 chinese_holiday = { version = "2026.0.1", default-features = false }
