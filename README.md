@@ -100,6 +100,19 @@ Pushing a `v*` tag triggers GitHub Actions to build and publish in one go:
 - Static binaries (musl/glibc-free) for `linux/amd64`, `linux/arm64`, `macOS arm64` and `macOS x86_64`, attached to the GitHub Release with checksums;
 - Multi-arch Docker images (linux/amd64 + linux/arm64) pushed to `ghcr.io/27Aaron/mimotion`, tagged with the version.
 
+### Actions automation
+
+- `Check` is reused by normal pushes, pull requests, Docker builds, and releases so the same frontend and Rust checks gate each path.
+- A manual `Build and Push Docker Image` run builds and validates the multi-architecture image by default. Enable `是否推送镜像到 GHCR` only when the image should be published.
+- `Update Nix flake lock` and `Update Nix npm dependency hash` run on a schedule, validate the Nix package, and open or update fixed-branch pull requests.
+- Pull requests created with the default `GITHUB_TOKEN` do not trigger another `pull_request` workflow. To run the full CI on these automation PRs, configure an `UPDATE_PR_TOKEN` repository secret with `contents: write` and `pull-requests: write` (and `workflows` when workflow files are changed).
+
+To refresh the npm fixed-output hash locally:
+
+```bash
+scripts/update-npm-hash.sh
+```
+
 ## Docker
 
 Use the published image:

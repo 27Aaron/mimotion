@@ -8,14 +8,21 @@ updates:
       day: monday
       time: "09:00"
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+      exclude:
+        - chinese_holiday
     groups:
       rust-minor-and-patch:
         update-types:
           - minor
           - patch
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: scope
 
   - package-ecosystem: npm
@@ -25,14 +32,19 @@ updates:
       day: monday
       time: "09:15"
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
     groups:
       npm-minor-and-patch:
         update-types:
           - minor
           - patch
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: scope
 
   - package-ecosystem: docker
@@ -43,17 +55,23 @@ updates:
       time: "09:30"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: scope
 
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/docker-build
     schedule:
       interval: monthly
       time: "09:45"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: "chore(ci)"
+      prefix: "ci"
       include: scope

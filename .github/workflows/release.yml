@@ -16,12 +16,21 @@ env:
   RUST_VERSION: "1.96"
 
 jobs:
+  checks:
+    name: Check source
+    uses: ./.github/workflows/check.yml
+    permissions:
+      contents: read
+
   frontend:
     name: Build frontend dist
+    needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -60,6 +69,8 @@ jobs:
             runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         shell: bash
@@ -89,10 +100,13 @@ jobs:
 
       - name: Package
         shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          TARGET: ${{ matrix.target }}
         run: |
-          archive="mimotion-${{ github.ref_name }}-${{ matrix.target }}"
+          archive="mimotion-${RELEASE_TAG}-${TARGET}"
           mkdir -p package
-          cp "backend/target/${{ matrix.target }}/release/mimotion" package/
+          cp "backend/target/${TARGET}/release/mimotion" package/
           cp LICENSE package/
           tar -czf "${archive}.tar.gz" -C package mimotion LICENSE
           shasum -a 256 "${archive}.tar.gz" > "${archive}.tar.gz.sha256"
