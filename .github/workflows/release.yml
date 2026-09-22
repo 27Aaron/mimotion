@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -19,6 +19,7 @@ jobs:
   frontend:
     name: Build frontend dist
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +28,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
 
       - run: npm run build:frontend
 
@@ -35,11 +36,16 @@ jobs:
         with:
           name: frontend-dist
           path: frontend/dist
+          if-no-files-found: error
+          retention-days: 1
 
   binaries:
     name: Build ${{ matrix.target }}
     needs: frontend
     runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 20
+    env:
+      MIMOTION_SKIP_FRONTEND_BUILD: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +68,7 @@ jobs:
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
             echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           fi
-          rustup toolchain install "$RUST_VERSION" --profile minimal --target "${{ matrix.target }}"
+          rustup toolchain install "$RUST_VERSION" --profile minimal --no-self-update --target "${{ matrix.target }}"
           rustup default "$RUST_VERSION"
 
       - name: Install musl tools
@@ -98,11 +104,16 @@ jobs:
             mimotion-*.tar.gz
             mimotion-*.tar.gz.sha256
           if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
 
   release:
     name: Publish GitHub Release
     needs: binaries
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:

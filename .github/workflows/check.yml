@@ -22,6 +22,7 @@ jobs:
   check:
     name: Frontend and Rust checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -33,7 +34,7 @@ jobs:
       - name: Install Rust toolchain
         shell: bash
         run: |
-          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup toolchain install "$RUST_VERSION" --profile minimal --no-self-update
           rustup component add rustfmt clippy --toolchain "$RUST_VERSION"
           rustup default "$RUST_VERSION"
 
@@ -41,5 +42,5 @@ jobs:
         with:
           workspaces: backend
 
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
       - run: npm run check
