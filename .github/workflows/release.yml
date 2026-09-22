@@ -113,7 +113,7 @@ jobs:
       - name: Generate checksums
         run: shasum -a 256 release/*.tar.gz > release/checksums.txt
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: release/**
           generate_release_notes: true
