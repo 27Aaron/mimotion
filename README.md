@@ -6,128 +6,61 @@
 
 English | [中文](README_CN.md)
 
+[![CI](https://github.com/27Aaron/mimotion/actions/workflows/check.yml/badge.svg)](https://github.com/27Aaron/mimotion/actions/workflows/check.yml)
+[![Release](https://img.shields.io/github/v/release/27Aaron/mimotion)](https://github.com/27Aaron/mimotion/releases)
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2F27Aaron%2Fmimotion-2496ED?logo=docker&logoColor=white)](https://github.com/27Aaron/mimotion/pkgs/container/mimotion)
+[![Rust Version](https://img.shields.io/badge/rust-1.96%2B-orange?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+
 </div>
 
-MiMotion is a self-hosted Xiaomi/Zepp step counter service with multi-account support, scheduled tasks, automatic re-login, and Bark / Telegram notifications.
+MiMotion is a self-hosted Xiaomi/Zepp step counter service. It supports multiple accounts, Cron schedules, automatic re-login, and Bark / Telegram notifications.
 
-## Architecture
+## Features
 
-- `frontend/`: Vite + React frontend, preserving the original visual design and screens.
-- `backend/`: Rust + Axum + SQLx + Tokio API, SQLite storage, scheduler, notifications, and Xiaomi protocol.
-
-The Rust server embeds `frontend/dist` into the final executable. Production only needs one binary and does not require Node.js.
+- Manage multiple Xiaomi / Zepp accounts
+- Write a random step count within a configured range on a Cron schedule
+- Automatically re-login with `loginToken` and password when a token expires
+- Optional mainland China workday calendar with holiday and make-up workday support
+- Bark / Telegram push notifications
+- Invite-code registration, admin panel, Chinese/English, and dark mode
+- SQLite storage with durable execution logs
 
 ## Quick start
 
-### Requirements
-
-- Node.js >= 22 (frontend build only)
-- Rust >= 1.96
-
-### Configuration
+Docker Compose is the recommended deployment method:
 
 ```bash
 cp .env.example .env
 ```
 
-Set at least:
+Edit `.env` and set at least:
 
 ```env
-DATABASE_URL=./data/mimotion.db
 ENCRYPTION_KEY=64-character-hex-key
 JWT_SECRET=64-character-hex-secret
-ADMIN_USERNAME=admin
 ADMIN_PASSWORD=replace-with-a-strong-password
-MIMOTION_HOST=0.0.0.0
-PORT=3000
 ```
 
-### Development and build
+Set `AUTH_COOKIE_SECURE=false` for local HTTP access. Keep it `true` when serving MiMotion over HTTPS.
 
 ```bash
-npm install
-npm run dev:frontend
-
-# You can also start the backend directly; Cargo checks and builds the frontend first
-cargo run --manifest-path backend/Cargo.toml
-
-# Build the frontend and the Rust single binary
-npm run build:single
-
-# Start
-npm run start:single
+docker compose up -d
 ```
 
-The frontend dev server runs at `http://localhost:5173` and proxies API requests to `http://localhost:3000`.
+Open <http://localhost:3000> and sign in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`. The database and runtime data are stored in `./data`. Keep `ENCRYPTION_KEY` safe and stable; changing it makes existing encrypted credentials unreadable.
 
-## Features
-
-- Multiple Xiaomi / Zepp accounts
-- Random step ranges and Cron schedules
-- Optional mainland China workday calendar with holiday and make-up workday handling
-- Token → loginToken → password automatic re-login chain
-- Bark / Telegram notifications
-- Invite-code registration and admin panel
-- Chinese/English language packs and dark mode
-- SQLite in-place migrations and durable execution logs
-
-## Project layout
-
-See [the architecture guide](docs/architecture.md) and [the Rust single-binary guide](docs/rust-single-binary.md).
-
-```text
-frontend/
-  src/app/                  # SPA entry
-  src/components/           # Shared UI and layout
-  src/features/             # Feature screens and browser API clients
-  src/i18n/messages/        # zh/en language packs
-  src/platform/             # Browser navigation and platform adapters
-  src/styles/               # Global styles
-
-backend/
-  migrations/               # SQLite migrations
-  src/web/                  # Axum API
-  src/storage/              # Database and models
-  src/scheduling/           # Cron and scheduler
-  src/xiaomi/               # Xiaomi/Zepp protocol
-  src/notifications/        # Bark / Telegram
-```
-
-## Releases
-
-Pushing a `v*` tag triggers GitHub Actions to build and publish in one go:
-
-- Static binaries (musl/glibc-free) for `linux/amd64`, `linux/arm64`, `macOS arm64` and `macOS x86_64`, attached to the GitHub Release with checksums;
-- Multi-arch Docker images (linux/amd64 + linux/arm64) pushed to `ghcr.io/27Aaron/mimotion`, tagged with the version.
-
-### Actions automation
-
-- `Check` is reused by normal pushes, pull requests, Docker builds, and releases so the same frontend and Rust checks gate each path.
-- A manual `Build and Push Docker Image` run builds and validates the multi-architecture image by default. Enable `是否推送镜像到 GHCR` only when the image should be published.
-- `Update Nix flake lock` and `Update Nix npm dependency hash` run on a schedule, validate the Nix package, and open or update fixed-branch pull requests.
-- Pull requests created with the default `GITHUB_TOKEN` do not trigger another `pull_request` workflow. To run the full CI on these automation PRs, configure an `UPDATE_PR_TOKEN` repository secret with `contents: write` and `pull-requests: write` (and `workflows` when workflow files are changed).
-
-To refresh the npm fixed-output hash locally:
-
-```bash
-scripts/update-npm-hash.sh
-```
-
-## Docker
-
-Use the published image:
+You can also run the published image directly:
 
 ```bash
 docker run -d --name mimotion -p 3000:3000 -v ./data:/var/lib/mimotion \
-  -e ENCRYPTION_KEY=<64-char-hex> -e JWT_SECRET=<64-char-hex> \
+  -e ENCRYPTION_KEY=<64-char-hex-key> \
+  -e JWT_SECRET=<64-char-hex-secret> \
   -e ADMIN_PASSWORD=<strong-password> \
+  -e AUTH_COOKIE_SECURE=false \
   ghcr.io/27Aaron/mimotion:latest
 ```
 
-Or build locally:
+## Documentation
 
-```bash
-docker compose up -d --build
-```
-
-The database is mounted at `./data/mimotion.db`. Keep `ENCRYPTION_KEY` safe and stable; changing it makes existing encrypted credentials unreadable. Data directory permissions are handled by the container entrypoint automatically — no manual `chown` needed on any host.
+- [Architecture, project conventions, and local development](docs/architecture.md)
+- [Rust single-binary build and runtime](docs/rust-single-binary.md)

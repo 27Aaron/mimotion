@@ -72,6 +72,21 @@ backend/
 7. `backend/migrations` 是唯一的生产迁移来源，Rust 启动时按版本执行 SQL。
 8. 根目录不放业务源代码；前端和后端实现分别归属于 `frontend/` 与 `backend/`。
 
+## 本地开发
+
+前端开发服务器默认运行在 `http://localhost:5173`，并将 API 请求代理到 `http://localhost:3000`：
+
+```bash
+npm install
+npm run dev:frontend
+```
+
+需要同时调试 Rust 后端时，在另一个终端运行：
+
+```bash
+cargo run --manifest-path backend/Cargo.toml
+```
+
 ## 构建约定
 
 ```bash
