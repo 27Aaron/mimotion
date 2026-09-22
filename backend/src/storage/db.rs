@@ -10,10 +10,16 @@ use sqlx::{
 
 use crate::{config::Config, util::now_ms};
 
-const MIGRATIONS: &[(&str, &str)] = &[(
-    "0000_init.sql",
-    include_str!("../../migrations/0000_init.sql"),
-)];
+const MIGRATIONS: &[(&str, &str)] = &[
+    (
+        "0000_init.sql",
+        include_str!("../../migrations/0000_init.sql"),
+    ),
+    (
+        "0001_schedule_calendar_mode.sql",
+        include_str!("../../migrations/0001_schedule_calendar_mode.sql"),
+    ),
+];
 
 pub async fn connect_and_migrate(config: &Config) -> anyhow::Result<sqlx::SqlitePool> {
     let options = SqliteConnectOptions::new()

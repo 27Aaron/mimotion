@@ -23,7 +23,7 @@ RUN apt-get update \
 
 FROM tools AS planner
 WORKDIR /src/backend
-COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/Cargo.toml backend/Cargo.lock backend/build.rs ./
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM tools AS backend
@@ -37,7 +37,7 @@ RUN case "${TARGETPLATFORM}" in \
 COPY --from=planner /src/backend/recipe.json ./
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     cargo chef cook --release --zigbuild --target "$(cat /triple)" --recipe-path recipe.json
-COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/Cargo.toml backend/Cargo.lock backend/build.rs ./
 COPY backend/migrations ./migrations
 COPY backend/src ./src
 COPY --from=frontend /src/frontend/dist /src/frontend/dist

@@ -21,6 +21,7 @@ rustPlatform.buildRustPackage {
   preBuild = ''
     rm -rf frontend/dist
     cp -r ${frontend}/dist frontend/dist
+    export MIMOTION_SKIP_FRONTEND_BUILD=1
   '';
 
   installPhase = ''

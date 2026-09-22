@@ -81,4 +81,10 @@ npm run build:single
 npm run start:single
 ```
 
-`build:single` 先构建 `frontend/dist`，再由 Rust 编译器通过 `rust-embed` 将静态资源嵌入 `backend` 二进制。
+直接执行 `cargo run --manifest-path backend/Cargo.toml` 也会自动检查并构建前端：
+
+- `frontend/dist/index.html` 不存在时执行前端构建；
+- 前端源码、配置或依赖文件比 `frontend/dist` 更新时执行前端构建；
+- 前端没有变化时复用已有产物，不重复运行 Vite。
+
+随后 Rust 编译器通过 `rust-embed` 将静态资源嵌入 `backend` 二进制。若构建环境已经预先准备好 `frontend/dist`，可设置 `MIMOTION_SKIP_FRONTEND_BUILD=1` 跳过 Node.js 构建。

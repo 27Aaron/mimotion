@@ -41,6 +41,7 @@ pub struct ScheduleRow {
     pub user_id: String,
     pub xiaomi_account_id: String,
     pub cron_expression: String,
+    pub calendar_mode: String,
     pub min_step: i64,
     pub max_step: i64,
     pub is_active: Option<i64>,

@@ -219,7 +219,11 @@ impl Scheduler {
         } else {
             "failed"
         };
-        let next_run_at = cron::next_occurrence(&schedule.cron_expression, completed_at);
+        let next_run_at = cron::next_occurrence_for_calendar_mode(
+            &schedule.cron_expression,
+            &schedule.calendar_mode,
+            completed_at,
+        );
         if let Err(error) = finish_success_or_failure(
             &self.state.db,
             &execution,
@@ -268,7 +272,7 @@ async fn enqueue_current_minute(pool: &SqlitePool, now: i64) -> Result<u64, sqlx
     let schedules = find_active_schedules(pool).await?;
     let mut enqueued = 0;
     for schedule in schedules {
-        if !cron::matches(&schedule.cron_expression, slot) {
+        if !cron::matches_schedule(&schedule.cron_expression, &schedule.calendar_mode, slot) {
             continue;
         }
         let result = sqlx::query(

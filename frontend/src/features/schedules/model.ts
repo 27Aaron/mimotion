@@ -3,6 +3,7 @@ export interface Schedule {
   xiaomiAccountId: string
   accountNickname: string
   cronExpression: string
+  calendarMode: CalendarMode
   minStep: number
   maxStep: number
   isActive: boolean
@@ -10,11 +11,14 @@ export interface Schedule {
   nextRunAt: string | null
 }
 
+export type CalendarMode = 'weekly' | 'china_workday'
+
 export interface ScheduleFormValue {
   xiaomiAccountId: string
   hour: number
   minute: number
   days: string[]
+  calendarMode: CalendarMode
   minStep: number
   maxStep: number
 }
@@ -24,6 +28,7 @@ export const DEFAULT_SCHEDULE_FORM: ScheduleFormValue = {
   hour: 9,
   minute: 0,
   days: ['1', '2', '3', '4', '5'],
+  calendarMode: 'weekly',
   minStep: 1000,
   maxStep: 1500,
 }
@@ -50,6 +55,9 @@ export function parseCron(cron: string): Pick<ScheduleFormValue, 'hour' | 'minut
 }
 
 export function buildCronExpression(form: ScheduleFormValue): string {
+  if (form.calendarMode === 'china_workday') {
+    return `${form.minute} ${form.hour} * * *`
+  }
   const sorted = [...form.days].sort((a, b) => Number(a) - Number(b))
   const dayOfWeek = sorted.length === 7
     ? '*'

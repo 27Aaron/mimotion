@@ -25,6 +25,7 @@ pub struct ScheduleQuery {
 pub struct CreateScheduleRequest {
     xiaomi_account_id: String,
     cron_expression: String,
+    calendar_mode: Option<String>,
     min_step: i64,
     max_step: i64,
 }
@@ -34,6 +35,7 @@ pub struct CreateScheduleRequest {
 pub struct UpdateScheduleRequest {
     xiaomi_account_id: Option<String>,
     cron_expression: Option<String>,
+    calendar_mode: Option<String>,
     min_step: Option<i64>,
     max_step: Option<i64>,
     is_active: Option<bool>,
@@ -46,6 +48,7 @@ struct ScheduleResponse {
     xiaomi_account_id: String,
     account_nickname: String,
     cron_expression: String,
+    calendar_mode: String,
     min_step: i64,
     max_step: i64,
     is_active: bool,
@@ -59,6 +62,7 @@ struct ScheduleWithNickname {
     xiaomi_account_id: String,
     account_nickname: Option<String>,
     cron_expression: String,
+    calendar_mode: String,
     min_step: i64,
     max_step: i64,
     is_active: Option<i64>,
@@ -68,7 +72,7 @@ struct ScheduleWithNickname {
 
 pub async fn list(State(state): State<Arc<AppState>>, user: AuthUser) -> Response {
     let rows = match sqlx::query_as::<_, ScheduleWithNickname>(
-        "SELECT s.id, s.xiaomi_account_id, a.nickname AS account_nickname, s.cron_expression, s.min_step, s.max_step, s.is_active, s.last_run_at, s.next_run_at FROM schedules s LEFT JOIN xiaomi_accounts a ON a.id = s.xiaomi_account_id AND a.user_id = s.user_id WHERE s.user_id = ? ORDER BY s.created_at ASC, s.id ASC",
+        "SELECT s.id, s.xiaomi_account_id, a.nickname AS account_nickname, s.cron_expression, s.calendar_mode, s.min_step, s.max_step, s.is_active, s.last_run_at, s.next_run_at FROM schedules s LEFT JOIN xiaomi_accounts a ON a.id = s.xiaomi_account_id AND a.user_id = s.user_id WHERE s.user_id = ? ORDER BY s.created_at ASC, s.id ASC",
     )
     .bind(user.id)
     .fetch_all(&state.db)
@@ -85,6 +89,7 @@ pub async fn list(State(state): State<Arc<AppState>>, user: AuthUser) -> Respons
                 xiaomi_account_id: row.xiaomi_account_id,
                 account_nickname: row.account_nickname.unwrap_or_else(|| "未知".to_owned()),
                 cron_expression: row.cron_expression,
+                calendar_mode: row.calendar_mode,
                 min_step: row.min_step,
                 max_step: row.max_step,
                 is_active: row.is_active.unwrap_or_default() != 0,
@@ -107,7 +112,19 @@ pub async fn create(
             "STEP_RANGE_INVALID",
         );
     }
-    let Some(expression) = cron::normalize(&input.cron_expression) else {
+    let calendar_mode = input
+        .calendar_mode
+        .as_deref()
+        .unwrap_or(cron::WEEKLY_CALENDAR_MODE);
+    let Some(expression) = cron::normalize_for_calendar_mode(&input.cron_expression, calendar_mode)
+    else {
+        if !cron::is_valid_calendar_mode(calendar_mode) {
+            return json_error(
+                StatusCode::BAD_REQUEST,
+                "日历模式无效",
+                "CALENDAR_MODE_INVALID",
+            );
+        }
         return json_error(
             StatusCode::BAD_REQUEST,
             "Cron 表达式格式或取值无效",
@@ -120,14 +137,15 @@ pub async fn create(
 
     let now = now_ms();
     let id = uuid::Uuid::new_v4().to_string();
-    let next_run_at = cron::next_occurrence(&expression, now);
+    let next_run_at = cron::next_occurrence_for_calendar_mode(&expression, calendar_mode, now);
     if let Err(error) = sqlx::query(
-        "INSERT INTO schedules (id, user_id, xiaomi_account_id, cron_expression, min_step, max_step, is_active, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)",
+        "INSERT INTO schedules (id, user_id, xiaomi_account_id, cron_expression, calendar_mode, min_step, max_step, is_active, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)",
     )
     .bind(&id)
     .bind(user.id)
     .bind(input.xiaomi_account_id)
     .bind(expression)
+    .bind(calendar_mode)
     .bind(input.min_step)
     .bind(input.max_step)
     .bind(next_run_at)
@@ -178,18 +196,27 @@ pub async fn update(
             "STEP_RANGE_INVALID",
         );
     }
-    let expression = match input.cron_expression {
-        Some(value) => match cron::normalize(&value) {
-            Some(value) => value,
-            None => {
-                return json_error(
-                    StatusCode::BAD_REQUEST,
-                    "Cron 表达式格式或取值无效",
-                    "CRON_INVALID",
-                );
-            }
-        },
-        None => existing.cron_expression,
+    let calendar_mode = input
+        .calendar_mode
+        .as_deref()
+        .unwrap_or(&existing.calendar_mode);
+    if !cron::is_valid_calendar_mode(calendar_mode) {
+        return json_error(
+            StatusCode::BAD_REQUEST,
+            "日历模式无效",
+            "CALENDAR_MODE_INVALID",
+        );
+    }
+    let raw_expression = input
+        .cron_expression
+        .as_deref()
+        .unwrap_or(&existing.cron_expression);
+    let Some(expression) = cron::normalize_for_calendar_mode(raw_expression, calendar_mode) else {
+        return json_error(
+            StatusCode::BAD_REQUEST,
+            "Cron 表达式格式或取值无效",
+            "CRON_INVALID",
+        );
     };
     let account_id = input
         .xiaomi_account_id
@@ -202,15 +229,16 @@ pub async fn update(
         .unwrap_or(existing.is_active.unwrap_or_default() != 0);
     let now = now_ms();
     let next_run_at = if is_active {
-        cron::next_occurrence(&expression, now)
+        cron::next_occurrence_for_calendar_mode(&expression, calendar_mode, now)
     } else {
         None
     };
     if let Err(error) = sqlx::query(
-        "UPDATE schedules SET xiaomi_account_id = ?, cron_expression = ?, min_step = ?, max_step = ?, is_active = ?, next_run_at = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+        "UPDATE schedules SET xiaomi_account_id = ?, cron_expression = ?, calendar_mode = ?, min_step = ?, max_step = ?, is_active = ?, next_run_at = ?, updated_at = ? WHERE id = ? AND user_id = ?",
     )
     .bind(account_id)
     .bind(expression)
+    .bind(calendar_mode)
     .bind(min_step)
     .bind(max_step)
     .bind(if is_active { 1_i64 } else { 0_i64 })

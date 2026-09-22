@@ -50,6 +50,9 @@ PORT=3000
 npm install
 npm run dev:frontend
 
+# 也可以直接启动后端；Cargo 会自动检查并构建前端
+cargo run --manifest-path backend/Cargo.toml
+
 # 构建前端并生成 Rust 单二进制
 npm run build:single
 
@@ -63,6 +66,7 @@ npm run start:single
 
 - 多个 Xiaomi / Zepp 账号
 - 随机步数范围和 Cron 定时任务
+- 可选中国大陆工作日历，自动识别法定节假日和周末调休
 - Token → loginToken → 密码的自动重登录链路
 - Bark / Telegram 推送
 - 邀请码注册和管理员后台

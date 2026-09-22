@@ -22,6 +22,7 @@ export function createSchedule(value: ScheduleFormValue): Promise<{ id: string }
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       xiaomiAccountId: value.xiaomiAccountId,
+      calendarMode: value.calendarMode,
       cronExpression: buildCronExpression(value),
       minStep: value.minStep,
       maxStep: value.maxStep,

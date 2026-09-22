@@ -18,5 +18,9 @@
     "check:rust": "cargo fmt --manifest-path backend/Cargo.toml -- --check && cargo test --manifest-path backend/Cargo.toml && cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings",
     "start": "npm run start:single",
     "start:single": "./backend/target/release/mimotion"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
   }
 }

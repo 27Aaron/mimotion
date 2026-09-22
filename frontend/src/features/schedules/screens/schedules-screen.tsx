@@ -77,7 +77,7 @@ export default function SchedulesScreen() {
     e.preventDefault();
     setError("");
 
-    if (form.days.length === 0) {
+    if (form.calendarMode === "weekly" && form.days.length === 0) {
       setError(t("selectAtLeastOneDay"));
       return;
     }
@@ -104,6 +104,7 @@ export default function SchedulesScreen() {
       hour: parsed.hour,
       minute: parsed.minute,
       days: parsed.days,
+      calendarMode: s.calendarMode ?? "weekly",
       minStep: s.minStep,
       maxStep: s.maxStep,
     });
@@ -116,7 +117,7 @@ export default function SchedulesScreen() {
     setError("");
 
     if (!editingId) return;
-    if (form.days.length === 0) {
+    if (form.calendarMode === "weekly" && form.days.length === 0) {
       setError(t("selectAtLeastOneDay"));
       return;
     }
@@ -277,9 +278,16 @@ export default function SchedulesScreen() {
                       {s.accountNickname}
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="inline-flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-muted-foreground" />
-                        <span className="text-sm">{cronToHuman(s.cronExpression, t)}</span>
+                      <div className="inline-flex flex-col items-center gap-1.5">
+                        <div className="inline-flex items-center gap-1.5">
+                          <Clock className="size-3.5 text-muted-foreground" />
+                          <span className="text-sm">{cronToHuman(s.cronExpression, t)}</span>
+                        </div>
+                        {s.calendarMode === "china_workday" && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {t("calendarChinaWorkdayShort")}
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-center text-sm tabular-nums">
