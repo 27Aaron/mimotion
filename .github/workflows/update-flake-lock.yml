@@ -80,6 +80,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      UPDATE_PR_TOKEN: ${{ secrets.UPDATE_PR_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -107,9 +109,14 @@ jobs:
           git apply --index "$RUNNER_TEMP/flake-lock-patch/flake.lock.patch"
           git diff --cached --check
 
+      - name: Skip PR creation without UPDATE_PR_TOKEN
+        if: env.UPDATE_PR_TOKEN == ''
+        run: echo "::notice::UPDATE_PR_TOKEN is not configured; the validated lock-file patch will not open a pull request."
+
       - uses: peter-evans/create-pull-request@v8
+        if: env.UPDATE_PR_TOKEN != ''
         with:
-          token: ${{ secrets.UPDATE_PR_TOKEN || github.token }}
+          token: ${{ env.UPDATE_PR_TOKEN }}
           branch: automation/update-flake-lock
           base: main
           delete-branch: true

@@ -1,18 +1,6 @@
 name: Update Nix npm dependency hash
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - package-lock.json
-      - package.json
-      - frontend/package.json
-      - nix/packages/frontend.nix
-      - nix/hashes.json
-      - flake.nix
-      - flake.lock
-      - scripts/update-npm-hash.sh
   schedule:
     - cron: "47 18 * * 1"
   workflow_dispatch:
@@ -92,6 +80,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      UPDATE_PR_TOKEN: ${{ secrets.UPDATE_PR_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -119,9 +109,14 @@ jobs:
           git apply --index "$RUNNER_TEMP/npm-hash-patch/npm-hash.patch"
           git diff --cached --check
 
+      - name: Skip PR creation without UPDATE_PR_TOKEN
+        if: env.UPDATE_PR_TOKEN == ''
+        run: echo "::notice::UPDATE_PR_TOKEN is not configured; the validated hash patch will not open a pull request."
+
       - uses: peter-evans/create-pull-request@v8
+        if: env.UPDATE_PR_TOKEN != ''
         with:
-          token: ${{ secrets.UPDATE_PR_TOKEN || github.token }}
+          token: ${{ env.UPDATE_PR_TOKEN }}
           branch: automation/update-npm-hash
           base: main
           delete-branch: true
