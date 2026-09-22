@@ -17,7 +17,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0"
 aes-gcm = "0.10"
-aes = "0.8"
+aes = "0.9"
 axum = "0.8"
 bcrypt = "0.19"
 chrono = { version = "0.4", features = ["clock"] }
