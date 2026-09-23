@@ -46,7 +46,7 @@ export function StatsGrid({ items, className }: StatsGridProps) {
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="stat-label">{item.title}</CardTitle>
-                <item.icon className="size-5 text-primary/70" />
+                <item.icon className="size-5 text-primary/70" aria-hidden="true" />
               </div>
             </CardHeader>
             <CardContent className="pt-0 pb-1">

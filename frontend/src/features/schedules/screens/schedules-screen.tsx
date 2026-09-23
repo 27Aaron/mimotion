@@ -19,15 +19,7 @@ import { StepList } from "@/components/layout/step-list";
 import { ScheduleFormDialog } from "@/features/schedules/components/schedule-form-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   cronSortKey,
   cronToHuman,
@@ -36,7 +28,6 @@ import {
   type Schedule,
 } from "@/features/schedules/model";
 import { formatShanghaiDateTime } from "@/lib/time/format";
-import { cn } from "@/lib/utils";
 import {
   createSchedule,
   deleteSchedule,
@@ -232,7 +223,7 @@ export default function SchedulesScreen() {
       {/* Stats overview */}
       <StatsGrid items={stats} />
 
-      {/* Task table */}
+      {/* Task cards */}
       {schedules.length === 0 ? (
         <EmptyState
           icon={Timer}
@@ -242,101 +233,54 @@ export default function SchedulesScreen() {
           <StepList steps={[t("step1"), t("step2"), t("step3")]} />
         </EmptyState>
       ) : (
-        <Card className="py-0">
-          <CardContent className="p-0">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-center">{t("colStatus")}</TableHead>
-                <TableHead className="text-center">{t("colAccount")}</TableHead>
-                <TableHead className="text-center">{t("colTime")}</TableHead>
-                <TableHead className="text-center">{t("colStepRange")}</TableHead>
-                <TableHead className="text-center">{t("colLastRun")}</TableHead>
-                <TableHead className="text-center w-[120px]">{t("colActions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[...schedules]
-                .sort((a, b) => cronSortKey(a.cronExpression) - cronSortKey(b.cronExpression))
-                .map((s) => (
-                  <TableRow
-                    key={s.id}
-                    className={cn(!s.isActive && "opacity-50")}
-                  >
-                    <TableCell className="text-center">
-                      {s.isActive ? (
-                        <Badge variant="default" className="text-[10px]">
-                          {t("statusRunning")}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {t("statusPaused")}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center font-medium">
-                      {s.accountNickname}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="inline-flex flex-col items-center gap-1.5">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Clock className="size-3.5 text-muted-foreground" />
-                          <span className="text-sm">{cronToHuman(s.cronExpression, t)}</span>
-                        </div>
-                        {s.calendarMode === "china_workday" && (
-                          <Badge variant="secondary" className="text-[10px]">
-                            {t("calendarChinaWorkdayShort")}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center text-sm tabular-nums">
-                      {s.minStep.toLocaleString()} - {s.maxStep.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                      {formatShanghaiDateTime(s.lastRunAt, locale)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggle(s.id, s.isActive)}
-                          title={s.isActive ? t("pause") : t("start")}
-                          aria-label={s.isActive ? t("pause") : t("start")}
-                        >
-                          {s.isActive ? (
-                            <Pause className="text-muted-foreground" />
-                          ) : (
-                            <Play className="text-muted-foreground" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(s)}
-                          title={tc("edit")}
-                          aria-label={tc("edit")}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(s.id)}
-                          title={tc("delete")}
-                          aria-label={tc("delete")}
-                        >
-                          <Trash2 className="text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[...schedules]
+            .sort((a, b) => cronSortKey(a.cronExpression) - cronSortKey(b.cronExpression))
+            .map((s) => (
+              <Card key={s.id} className="gap-4">
+                <CardHeader className="grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+                  <Clock className="size-4 text-primary" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <CardTitle className="truncate" title={s.accountNickname}>{s.accountNickname}</CardTitle>
+                    <p className="text-xs text-muted-foreground">{t("colAccount")}</p>
+                  </div>
+                  <Badge variant={s.isActive ? "default" : "secondary"}>
+                    {s.isActive ? t("statusRunning") : t("statusPaused")}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="rounded-md bg-muted/50 px-3 py-3">
+                    <p className="text-xs text-muted-foreground">{t("colTime")}</p>
+                    <p className="mt-1 text-base font-semibold">{cronToHuman(s.cronExpression, t)}</p>
+                    {s.calendarMode === "china_workday" && (
+                      <Badge variant="secondary" className="mt-2">{t("calendarChinaWorkdayShort")}</Badge>
+                    )}
+                  </div>
+                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">{t("colStepRange")}</dt>
+                      <dd className="mt-1 font-mono font-semibold tabular-nums">{s.minStep.toLocaleString()}–{s.maxStep.toLocaleString()}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">{t("colLastRun")}</dt>
+                      <dd className="mt-1 text-xs tabular-nums">{formatShanghaiDateTime(s.lastRunAt, locale)}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+                <CardFooter className="mt-auto justify-end gap-1 bg-muted/20 py-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleToggle(s.id, s.isActive)} title={s.isActive ? t("pause") : t("start")} aria-label={`${s.isActive ? t("pause") : t("start")} ${s.accountNickname}`}>
+                    {s.isActive ? <Pause className="text-muted-foreground" /> : <Play className="text-muted-foreground" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(s)} title={tc("edit")} aria-label={`${tc("edit")} ${s.accountNickname}`}>
+                    <Pencil />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} title={tc("delete")} aria-label={`${tc("delete")} ${s.accountNickname}`}>
+                    <Trash2 className="text-destructive" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+        </div>
       )}
     </div>
   );

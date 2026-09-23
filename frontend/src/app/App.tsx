@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, startTransition, Suspense, useEffect, useMemo, useState } from "react";
 import { Footprints } from "lucide-react";
 
 import { Toaster } from "@/components/providers/toaster";
@@ -40,11 +40,20 @@ export default function App() {
   }>({ path: "", user: null });
   const locale = currentLocale();
   const pagePath = stripLocale(location);
-  const sessionReady = session.path === pagePath;
+  // Keep the authenticated shell mounted while checking the next protected route.
+  // Login/logout and the first visit still wait for the session check.
+  const sessionReady =
+    session.path === pagePath ||
+    (session.path !== "" &&
+      session.path !== "/login" &&
+      pagePath !== "/login" &&
+      session.user !== null);
   const user = sessionReady ? session.user : null;
 
   useEffect(() => {
-    const update = () => setLocation(window.location.pathname);
+    const update = () => {
+      startTransition(() => setLocation(window.location.pathname));
+    };
     window.addEventListener("popstate", update);
     return () => window.removeEventListener("popstate", update);
   }, []);
@@ -99,17 +108,21 @@ export default function App() {
 
   return (
     <I18nProvider locale={locale}>
-      <Suspense fallback={<LoadingScreen />}>
-        {!sessionReady ? (
-          <LoadingScreen />
-        ) : pagePath === "/login" ? (
+      {!sessionReady ? (
+        <LoadingScreen />
+      ) : pagePath === "/login" ? (
+        <Suspense fallback={<LoadingScreen />}>
           <LoginScreen />
-        ) : user ? (
-          <DashboardShell user={user}>{screen}</DashboardShell>
-        ) : (
-          <LoadingScreen />
-        )}
-      </Suspense>
+        </Suspense>
+      ) : user ? (
+        <DashboardShell user={user}>
+          <Suspense fallback={<div className="min-h-64" aria-busy="true" />}>
+            {screen}
+          </Suspense>
+        </DashboardShell>
+      ) : (
+        <LoadingScreen />
+      )}
       <Toaster />
     </I18nProvider>
   );
