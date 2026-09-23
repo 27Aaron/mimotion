@@ -163,6 +163,7 @@ function AuthPage() {
                     value={loginUsername}
                     onChange={(e) => setLoginUsername(e.target.value)}
                     placeholder={t("enterUsername")}
+                    autoComplete="username"
                     required
                   />
                 </div>
@@ -174,6 +175,7 @@ function AuthPage() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder={t("enterPassword")}
+                    autoComplete="current-password"
                     required
                   />
                 </div>
@@ -220,6 +222,7 @@ function AuthPage() {
                     value={regUsername}
                     onChange={(e) => setRegUsername(e.target.value)}
                     placeholder={t("enterUsername")}
+                    autoComplete="username"
                     required
                   />
                 </div>
@@ -231,6 +234,7 @@ function AuthPage() {
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder={t("enterPassword")}
+                    autoComplete="new-password"
                     required
                   />
                 </div>
@@ -242,6 +246,7 @@ function AuthPage() {
                     value={regInviteCode}
                     onChange={(e) => setRegInviteCode(e.target.value)}
                     placeholder={t("enterInviteCode")}
+                    autoComplete="off"
                     required
                   />
                 </div>

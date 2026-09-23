@@ -18,15 +18,7 @@ import { XiaomiAccountDialog } from "@/features/xiaomi/components/xiaomi-account
 import { EMPTY_XIAOMI_ACCOUNT_FORM } from "@/features/xiaomi/model";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   createXiaomiAccount,
   deleteXiaomiAccount,
@@ -183,7 +175,7 @@ export default function XiaomiScreen() {
       {/* Stats overview */}
       <StatsGrid items={stats} />
 
-      {/* Account table */}
+      {/* Account cards */}
       {accounts.length === 0 ? (
         <EmptyState
           icon={Smartphone}
@@ -193,105 +185,56 @@ export default function XiaomiScreen() {
           <StepList steps={[t("step1"), t("step2"), t("step3")]} />
         </EmptyState>
       ) : (
-        <Card className="py-0">
-          <CardContent className="p-0">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px] text-center">{t("colAccount")}</TableHead>
-                <TableHead className="text-center">{t("colStatus")}</TableHead>
-                <TableHead className="text-center">{t("colSchedules")}</TableHead>
-                <TableHead className="text-center">{t("colLastStep")}</TableHead>
-                <TableHead className="text-center">{t("colLastSync")}</TableHead>
-                <TableHead className="text-center">{t("colCreatedAt")}</TableHead>
-                <TableHead className="text-center">{t("colUpdatedAt")}</TableHead>
-                <TableHead className="text-center w-[100px]">{t("colActions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts.map((acc) => (
-                <TableRow key={acc.id}>
-                  <TableCell className="text-center">
-                    <div className="inline-flex items-center gap-2.5 text-left">
-                      <div
-                        className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card"
-                      >
-                        {acc.status === "active" ? (
-                          <CheckCircle2 className="size-4 text-emerald-500" />
-                        ) : (
-                          <AlertCircle className="size-4 text-red-500" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium">{acc.nickname}</p>
-                        {acc.account && (
-                          <p className="truncate text-xs text-muted-foreground">
-                            {acc.account}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={acc.status === "active" ? "default" : "destructive"}
-                    >
-                      {acc.status === "active" ? t("statusActive") : t("statusError")}
-                    </Badge>
-                    {acc.lastError && (
-                      <p className="mt-1 text-xs text-destructive/80 truncate max-w-[160px] mx-auto" title={acc.lastError}>
-                        {acc.lastError}
-                      </p>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className="text-sm tabular-nums">{acc.activeScheduleCount}</span>
-                    <span className="text-muted-foreground"> / {acc.scheduleCount}</span>
-                  </TableCell>
-                  <TableCell className="text-center text-sm tabular-nums">
-                    {acc.lastStep != null ? (
-                      <span>{acc.lastStep.toLocaleString()}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                    {formatShanghaiDateTime(acc.lastSyncAt, locale)}
-                  </TableCell>
-                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                    {formatShanghaiDateTime(acc.createdAt, locale)}
-                  </TableCell>
-                  <TableCell className="text-center text-sm tabular-nums text-muted-foreground">
-                    {formatShanghaiDateTime(acc.updatedAt, locale)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEdit(acc)}
-                        title={tc("edit")}
-                        aria-label={tc("edit")}
-                      >
-                        <Pencil className="text-muted-foreground" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(acc.id)}
-                        title={tc("delete")}
-                        aria-label={tc("delete")}
-                      >
-                        <Trash2 className="text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {accounts.map((acc) => (
+            <Card key={acc.id} className="gap-4">
+              <CardHeader className="grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+                {acc.status === "active" ? <CheckCircle2 className="size-4 text-primary" aria-hidden="true" /> : <AlertCircle className="size-4 text-destructive" aria-hidden="true" />}
+                <div className="min-w-0">
+                  <CardTitle className="truncate" title={acc.nickname}>{acc.nickname}</CardTitle>
+                  {acc.account && <p className="truncate text-xs text-muted-foreground" title={acc.account}>{acc.account}</p>}
+                </div>
+                <Badge variant={acc.status === "active" ? "default" : "destructive"}>
+                  {acc.status === "active" ? t("statusActive") : t("statusError")}
+                </Badge>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                {acc.lastError && <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive [overflow-wrap:anywhere]">{acc.lastError}</p>}
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{t("colSchedules")}</dt>
+                    <dd className="mt-1 font-mono font-semibold tabular-nums">{acc.activeScheduleCount} / {acc.scheduleCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{t("colLastStep")}</dt>
+                    <dd className="mt-1 font-mono font-semibold tabular-nums">{acc.lastStep != null ? acc.lastStep.toLocaleString() : "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{t("colLastSync")}</dt>
+                    <dd className="mt-1 text-xs tabular-nums">{formatShanghaiDateTime(acc.lastSyncAt, locale)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{t("colCreatedAt")}</dt>
+                    <dd className="mt-1 text-xs tabular-nums">{formatShanghaiDateTime(acc.createdAt, locale)}</dd>
+                  </div>
+                </dl>
+              </CardContent>
+              <CardFooter className="mt-auto justify-between gap-2 bg-muted/20 py-2">
+                <p className="min-w-0 text-xs tabular-nums text-muted-foreground">
+                  {t("colUpdatedAt")} · {formatShanghaiDateTime(acc.updatedAt, locale)}
+                </p>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(acc)} title={tc("edit")} aria-label={`${tc("edit")} ${acc.nickname}`}>
+                    <Pencil className="text-muted-foreground" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(acc.id)} title={tc("delete")} aria-label={`${tc("delete")} ${acc.nickname}`}>
+                    <Trash2 className="text-destructive" />
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -55,6 +55,9 @@ export default function DashboardScreen() {
   }
 
   const todayFailed = data.todayTotal - data.todaySuccess;
+  const successRate = data.todayTotal > 0
+    ? Math.round((data.todaySuccess / data.todayTotal) * 100)
+    : 0;
   const stats = [
     {
       title: t("statAccounts"),
@@ -90,10 +93,7 @@ export default function DashboardScreen() {
             <div>
               <p className="text-xs text-muted-foreground">{t("todaySuccessRate")}</p>
               <p className="text-sm font-semibold">
-                {data.todayTotal > 0
-                  ? Math.round((data.todaySuccess / data.todayTotal) * 100)
-                  : 0}
-                %
+                {successRate}%
               </p>
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function DashboardScreen() {
                       </p>
                     )}
                   </div>
-                  <time className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                  <time className="ml-7 text-xs tabular-nums text-muted-foreground sm:ml-0 sm:shrink-0">
                     {formatShanghaiDateTime(log.executedAt, locale)}
                   </time>
                 </div>

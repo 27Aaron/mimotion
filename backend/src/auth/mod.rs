@@ -122,3 +122,6 @@ pub fn expired_session_cookie(secure: bool) -> String {
     let secure_suffix = if secure { "; Secure" } else { "" };
     format!("{AUTH_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0{secure_suffix}")
 }
+
+#[cfg(test)]
+mod tests;
